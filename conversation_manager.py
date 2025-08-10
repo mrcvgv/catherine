@@ -202,16 +202,27 @@ class ConversationManager:
             ToDo検出: {'はい' if todo_detected else 'いいえ'}
             """
             
+            # 過去の会話履歴も含めて、より長いコンテキストを提供
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # 最近の会話履歴を追加（コンテキスト長増加）
+            for conv in conversation_history[-5:]:  # 最新5件
+                if conv.get('user_message'):
+                    messages.append({"role": "user", "content": conv['user_message']})
+                if conv.get('bot_response'):
+                    messages.append({"role": "assistant", "content": conv['bot_response']})
+            
+            # 現在のユーザー入力
+            messages.append({"role": "user", "content": context_prompt})
+            
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": context_prompt}
-                ],
-                temperature=0.8,  # より創造的な応答
-                max_tokens=1000,  # より詳細な応答を可能に
-                presence_penalty=0.1,  # 新しい話題への言及を促進
-                frequency_penalty=0.1  # 繰り返しを減らす
+                model="gpt-4o",  # 最新モデル（o3-mini/GPT-5が利用可能になったら更新）
+                messages=messages,
+                temperature=0.3,  # 理解力重視で温度を下げる
+                max_tokens=2000,  # コンテキスト長大幅増加
+                presence_penalty=0.2,
+                frequency_penalty=0.2,
+                response_format={"type": "text"}  # 構造化された応答
             )
             
             return response.choices[0].message.content

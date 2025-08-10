@@ -220,12 +220,14 @@ async def detect_todo_intent(command_text: str) -> dict:
         """
         
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o",  # 最新モデル使用
             messages=[
-                {"role": "system", "content": "あなたはユーザーの意図を正確に理解するAIアシスタントです。"},
+                {"role": "system", "content": "あなたは極めて高精度でユーザーの意図を理解する専門AIです。複雑な指示も正確に解析してください。"},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.2
+            temperature=0.1,  # 正確性最優先
+            max_tokens=1000,
+            response_format={"type": "json_object"}  # JSON強制モード
         )
         
         import json
