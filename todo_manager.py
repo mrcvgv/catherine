@@ -232,7 +232,11 @@ class TodoManager:
             )
             
             import json
-            result = json.loads(response.choices[0].message.content)
+            # ```json ブロックを除去
+            content = response.choices[0].message.content
+            if content.startswith('```json'):
+                content = content.replace('```json', '').replace('```', '').strip()
+            result = json.loads(content)
             
             # 期限の日時変換
             if result.get('due_date'):

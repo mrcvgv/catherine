@@ -38,10 +38,14 @@ async def on_message(message):
     if message.author.bot:
         return
     
-    # 二重実行防止
-    if hasattr(message, '_catherine_processed'):
+    # 二重実行防止（グローバル変数使用）
+    if not hasattr(process_command_with_memory, '_processed_messages'):
+        process_command_with_memory._processed_messages = set()
+    
+    message_key = f"{message.id}_{message.author.id}"
+    if message_key in process_command_with_memory._processed_messages:
         return
-    message._catherine_processed = True
+    process_command_with_memory._processed_messages.add(message_key)
     
     user_id = str(message.author.id)
     username = message.author.display_name
@@ -133,7 +137,11 @@ async def analyze_casual_message(message: str) -> dict:
         
         import json
         try:
-            return json.loads(response.choices[0].message.content)
+            # ```json ブロックを除去
+            content = response.choices[0].message.content
+            if content.startswith('```json'):
+                content = content.replace('```json', '').replace('```', '').strip()
+            return json.loads(content)
         except json.JSONDecodeError as e:
             print(f"❌ JSON parse error in message analysis: {e}")
             print(f"📄 Raw response: {response.choices[0].message.content}")

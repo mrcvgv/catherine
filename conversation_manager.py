@@ -147,7 +147,11 @@ class ConversationManager:
             )
             
             try:
-                result = json.loads(response.choices[0].message.content)
+                # ```json ブロックを除去
+                content = response.choices[0].message.content
+                if content.startswith('```json'):
+                    content = content.replace('```json', '').replace('```', '').strip()
+                result = json.loads(content)
             except json.JSONDecodeError as e:
                 print(f"❌ JSON parse error: {e}")
                 print(f"📄 Raw response: {response.choices[0].message.content}")
