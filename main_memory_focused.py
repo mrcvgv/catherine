@@ -63,33 +63,28 @@ async def on_message(message):
     command_text = message.content[2:].strip()
     print(f"📝 [{datetime.now(jst).strftime('%H:%M:%S')}] {username}: {command_text}")
     
+    response = None
     try:
         response = await process_command_with_memory(user_id, command_text, message)
         
-        # 会話を詳細記録
-        await conversation_manager.log_conversation(
-            user_id=user_id,
-            user_message=message.content,
-            bot_response=response,
-            command_type=await detect_command_type(command_text)
-        )
-        
+    except Exception as e:
+        response = "Catherine: 申し訳ありません。エラーが発生しました。"
+        print(f"❌ エラー: {e}")
+    
+    # レスポンス送信（1回のみ）
+    if response:
         await message.channel.send(response)
         
-    except Exception as e:
-        error_response = "Catherine: 申し訳ありません。エラーが発生しました。"
-        print(f"❌ エラー: {e}")
-        
-        # エラーも記録
-        await conversation_manager.log_conversation(
-            user_id=user_id,
-            user_message=message.content,
-            bot_response=error_response,
-            command_type="error",
-            error=str(e)
-        )
-        
-        await message.channel.send(error_response)
+        # 会話記録
+        try:
+            await conversation_manager.log_conversation(
+                user_id=user_id,
+                user_message=message.content,
+                bot_response=response,
+                command_type=await detect_command_type(command_text)
+            )
+        except Exception as log_error:
+            print(f"⚠️  記録エラー: {log_error}")
 
 async def record_casual_conversation(user_id: str, message_content: str):
     """通常の会話も記録"""
