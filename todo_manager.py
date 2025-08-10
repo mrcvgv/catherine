@@ -73,8 +73,20 @@ class TodoManager:
             )
             
             import json
-            result = json.loads(response.choices[0].message.content)
-            return result
+            try:
+                result = json.loads(response.choices[0].message.content)
+                return result
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON parse error in priority analysis: {e}")
+                print(f"📄 Raw response: {response.choices[0].message.content}")
+                return {
+                    'priority': 3,
+                    'category': 'general',
+                    'estimated_duration': 'unknown',
+                    'tags': [],
+                    'confidence': 0.0,
+                    'parse_error': True
+                }
             
         except Exception as e:
             print(f"❌ AI analysis error: {e}")

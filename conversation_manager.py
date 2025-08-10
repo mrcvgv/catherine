@@ -146,7 +146,24 @@ class ConversationManager:
                 temperature=0.2
             )
             
-            result = json.loads(response.choices[0].message.content)
+            try:
+                result = json.loads(response.choices[0].message.content)
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON parse error: {e}")
+                print(f"📄 Raw response: {response.choices[0].message.content}")
+                # デフォルト値を返す
+                result = {
+                    'helpfulness': 50,
+                    'clarity': 50,
+                    'appropriateness': 50,
+                    'engagement': 50,
+                    'humor_detected': 0,
+                    'intent': 'unknown',
+                    'sentiment': 'neutral',
+                    'satisfaction_predicted': 50,
+                    'topics': [],
+                    'parse_error': True
+                }
             result['analysis_timestamp'] = datetime.now(self.jst).isoformat()
             return result
             

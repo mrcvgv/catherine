@@ -127,7 +127,12 @@ async def analyze_casual_message(message: str) -> dict:
         )
         
         import json
-        return json.loads(response.choices[0].message.content)
+        try:
+            return json.loads(response.choices[0].message.content)
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON parse error in message analysis: {e}")
+            print(f"📄 Raw response: {response.choices[0].message.content}")
+            return {"should_record": True, "importance": 3, "parse_error": True}
         
     except Exception as e:
         print(f"❌ メッセージ分析エラー: {e}")
