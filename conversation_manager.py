@@ -190,8 +190,8 @@ class ConversationManager:
                               user_preferences: Dict, todo_detected: bool = False) -> str:
         """ユーザー設定に基づいて個人化された応答を生成"""
         try:
-            # 過去の会話履歴を取得（最新5件）
-            conversation_history = await self._get_recent_conversations(user_id, limit=5)
+            # 過去の会話履歴を取得（最新50件で深い文脈理解）
+            conversation_history = await self._get_recent_conversations(user_id, limit=50)
             
             # システムプロンプトを構築
             system_prompt = self._build_system_prompt(user_preferences, conversation_history)
@@ -205,8 +205,8 @@ class ConversationManager:
             # 過去の会話履歴も含めて、より長いコンテキストを提供
             messages = [{"role": "system", "content": system_prompt}]
             
-            # 最近の会話履歴を追加（コンテキスト長増加）
-            for conv in conversation_history[-5:]:  # 最新5件
+            # 最近の会話履歴を追加（コンテキスト長大幅増加）
+            for conv in conversation_history[-20:]:  # 最新20件の詳細な文脈
                 if conv.get('user_message'):
                     messages.append({"role": "user", "content": conv['user_message']})
                 if conv.get('bot_response'):
@@ -216,10 +216,10 @@ class ConversationManager:
             messages.append({"role": "user", "content": context_prompt})
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",  # 最新モデル（o3-mini/GPT-5が利用可能になったら更新）
+                model="gpt-5",  # GPT-5使用（リリース時に自動適用）
                 messages=messages,
-                temperature=0.3,  # 理解力重視で温度を下げる
-                max_tokens=2000,  # コンテキスト長大幅増加
+                temperature=0.1,  # 最高精度で理解力重視
+                max_tokens=4000,  # 超長文対応でコンテキスト長最大化
                 presence_penalty=0.2,
                 frequency_penalty=0.2,
                 response_format={"type": "text"}  # 構造化された応答
@@ -351,7 +351,7 @@ class ConversationManager:
 """
         return insights
     
-    async def _get_recent_conversations(self, user_id: str, limit: int = 5) -> List[Dict]:
+    async def _get_recent_conversations(self, user_id: str, limit: int = 50) -> List[Dict]:
         """最近の会話履歴を取得"""
         try:
             query = self.db.collection('conversations')\

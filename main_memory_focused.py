@@ -15,6 +15,8 @@ import pytz
 from firebase_config import firebase_manager
 from todo_manager import TodoManager
 from conversation_manager import ConversationManager
+from proactive_assistant import ProactiveAssistant
+from emotional_intelligence import EmotionalIntelligence
 
 # Discord設定
 intents = discord.Intents.default()
@@ -25,6 +27,8 @@ client = discord.Client(intents=intents)
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 todo_manager = TodoManager(openai_client)
 conversation_manager = ConversationManager(openai_client)
+proactive_assistant = ProactiveAssistant(openai_client)
+emotional_intelligence = EmotionalIntelligence(openai_client)
 jst = pytz.timezone('Asia/Tokyo')
 
 @client.event
@@ -122,7 +126,7 @@ async def analyze_casual_message(message: str) -> dict:
         """
         
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5",
             messages=[
                 {"role": "system", "content": "メッセージ分析の専門家として客観的に分析してください。"},
                 {"role": "user", "content": prompt}
@@ -186,7 +190,7 @@ async def process_command_with_memory(user_id: str, command_text: str, message) 
         if todo_action:
             return await handle_natural_todo_command(user_id, command_text, todo_action)
         
-        # 通常の自然言語会話（記憶活用）
+        # 通常の自然言語会話（記憶活用 + 感情知能 + 先読み）
         return await handle_conversation_with_memory(user_id, command_text, user_prefs)
 
 async def detect_todo_intent(command_text: str) -> dict:
@@ -220,7 +224,7 @@ async def detect_todo_intent(command_text: str) -> dict:
         """
         
         response = openai_client.chat.completions.create(
-            model="gpt-4o",  # 最新モデル使用
+            model="gpt-5",  # 最新モデル使用
             messages=[
                 {"role": "system", "content": "あなたは極めて高精度でユーザーの意図を理解する専門AIです。複雑な指示も正確に解析してください。"},
                 {"role": "user", "content": prompt}
@@ -467,18 +471,46 @@ async def suggest_todo_based_on_history(user_id: str) -> str:
 例: `C! todo 明日までに報告書作成`"""
 
 async def handle_conversation_with_memory(user_id: str, user_input: str, user_prefs: dict) -> str:
-    """完全記憶を活用した会話"""
+    """超優秀秘書による完全記憶・感情知能・先読み対応"""
     
-    # ToDo抽出の試行
+    # 1. 感情分析
+    emotion_state = await emotional_intelligence.analyze_emotional_state(
+        user_id=user_id,
+        text=user_input,
+        context=f"ユーザー設定: {user_prefs}"
+    )
+    
+    # 2. 感情危機の検出と対応
+    crisis_support = await emotional_intelligence.detect_emotional_crisis(user_id, emotion_state)
+    if crisis_support:
+        return crisis_support.get('immediate_support', '')
+    
+    # 3. ToDo抽出の試行
     todo_result = await todo_manager.parse_natural_language_todo(user_input)
     
-    # 記憶を活用した応答生成
-    response = await conversation_manager.generate_response(
+    # 4. 記憶を活用した基本応答生成
+    base_response = await conversation_manager.generate_response(
         user_id=user_id,
         user_input=user_input,
         user_preferences=user_prefs,
         todo_detected=todo_result.get('has_todo', False)
     )
+    
+    # 5. 感情に基づく応答適応
+    adapted_response = await emotional_intelligence.adapt_communication_style(
+        user_id=user_id,
+        emotion_state=emotion_state,
+        base_response=base_response
+    )
+    
+    # 6. 先読み提案の生成
+    proactive_suggestions = await proactive_assistant.generate_proactive_suggestions(
+        user_id=user_id,
+        context=user_input
+    )
+    
+    # 7. 最終応答の構築
+    final_response = adapted_response
     
     # ToDoが検出された場合は作成
     if todo_result.get('has_todo') and todo_result.get('confidence', 0) > 0.7:
@@ -489,9 +521,18 @@ async def handle_conversation_with_memory(user_id: str, user_input: str, user_pr
             due_date=todo_result.get('due_date')
         )
         
-        response += f"\n\n💡 「{todo_data['title']}」をToDoに記録しました！"
+        final_response += f"\n\n💡 「{todo_data['title']}」をToDoに記録しました！"
     
-    return response
+    # 先読み提案を追加（高ストレス時は控える）
+    if proactive_suggestions and emotion_state.get('stress_level', 0.5) < 0.7:
+        final_response += proactive_suggestions
+    
+    # 感情サポートが必要な場合
+    if emotion_state.get('support_need', 0.5) > 0.8:
+        emotional_support = await emotional_intelligence.provide_emotional_support(user_id, emotion_state)
+        final_response += f"\n\n💝 {emotional_support}"
+    
+    return final_response
 
 async def detect_command_type(command_text: str) -> str:
     """コマンドタイプ検出"""
