@@ -8,8 +8,10 @@ from openai import OpenAI
 class TodoManager:
     def __init__(self, openai_client: OpenAI):
         self.db = firebase_manager.get_db()
+        self.firebase_available = firebase_manager.is_available()
         self.openai_client = openai_client
         self.jst = pytz.timezone('Asia/Tokyo')
+        self.memory_todos = {}  # Firebase無効時のメモリストレージ
     
     async def create_todo(self, user_id: str, title: str, description: str = "", 
                          due_date: Optional[datetime] = None) -> Dict:
@@ -92,6 +94,7 @@ class TodoManager:
             query = query.where('status', '==', status)
         
         # 優先度でソート（降順）、次に作成日時（昇順）
+        from firebase_admin import firestore
         query = query.order_by('priority', direction=firestore.Query.DESCENDING)
         query = query.order_by('created_at', direction=firestore.Query.ASCENDING)
         
