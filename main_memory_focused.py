@@ -197,16 +197,23 @@ async def detect_todo_intent(command_text: str) -> dict:
         「{command_text}」
         
         検出すべき操作:
-        - delete/削除: 特定のToDoを削除したい
+        - delete/削除: 特定のToDoを削除したい（複数番号、範囲、内容での一括削除も含む）
         - edit/編集: ToDoの内容を変更したい
         - clear/全削除: すべてのToDoを削除したい
         - complete/完了: ToDoを完了にしたい
         - list/一覧: ToDoリストを見たい
+        - organize/整理: 同じ内容のToDoをまとめる、重複を削除など
+        
+        特に注意：
+        - 「1と2を消して」「1,2,3番削除」→ 複数の番号を検出
+        - 「台紙デザインを全部消して」→ 特定のキーワードで一括削除
+        - 「重複を整理して」→ organize アクション
         
         JSON形式で返してください：
         {{
-            "action": "delete/edit/clear/complete/list/none",
+            "action": "delete/edit/clear/complete/list/organize/none",
             "target": "対象となるToDo（番号や内容）",
+            "multiple_targets": ["複数の対象がある場合のリスト"],
             "new_content": "新しい内容（editの場合）",
             "confidence": 0.0-1.0
         }}
@@ -246,32 +253,93 @@ async def handle_natural_todo_command(user_id: str, command_text: str, todo_acti
         return await todo_manager.list_todos_formatted(user_id)
     
     elif action == 'delete':
-        # ターゲットから該当するToDoを探す
-        matched_todo = None
-        matched_index = -1
+        deleted_todos = []
         
-        # 番号で指定された場合
-        try:
-            num = int(''.join(filter(str.isdigit, target)))
-            if 1 <= num <= len(pending):
-                matched_todo = pending[num - 1]
-                matched_index = num
-        except:
-            pass
+        # 複数ターゲットがある場合
+        multiple_targets = todo_action.get('multiple_targets', [])
+        if multiple_targets:
+            for target_item in multiple_targets:
+                # 番号で削除
+                try:
+                    num = int(target_item.strip())
+                    if 1 <= num <= len(pending):
+                        todo = pending[num - 1]
+                        todo_manager.db.collection('todos').document(todo['todo_id']).delete()
+                        deleted_todos.append(todo['title'])
+                except:
+                    # 内容で削除
+                    for todo in pending:
+                        if target_item.lower() in todo.get('title', '').lower():
+                            todo_manager.db.collection('todos').document(todo['todo_id']).delete()
+                            deleted_todos.append(todo['title'])
+                            break
         
-        # 内容で検索
-        if not matched_todo:
-            for i, todo in enumerate(pending):
-                if target.lower() in todo.get('title', '').lower():
-                    matched_todo = todo
-                    matched_index = i + 1
-                    break
-        
-        if matched_todo:
-            todo_manager.db.collection('todos').document(matched_todo['todo_id']).delete()
-            return f"Catherine: ✅ 「{matched_todo['title']}」を削除しました。\n\n他に削除したいものがあれば、おっしゃってください。"
+        # 単一ターゲット処理
         else:
-            return f"Catherine: 「{target}」に該当するToDoが見つかりませんでした。\n\n現在のToDoリストを確認しますか？"
+            # キーワードで一括削除（例：「台紙デザイン」関連）
+            if '全部' in target or '全て' in target or '関連' in target:
+                keyword = target.replace('全部', '').replace('全て', '').replace('関連', '').strip()
+                for todo in pending:
+                    if keyword.lower() in todo.get('title', '').lower():
+                        todo_manager.db.collection('todos').document(todo['todo_id']).delete()
+                        deleted_todos.append(todo['title'])
+            else:
+                # 通常の単一削除
+                matched_todo = None
+                try:
+                    num = int(''.join(filter(str.isdigit, target)))
+                    if 1 <= num <= len(pending):
+                        matched_todo = pending[num - 1]
+                except:
+                    pass
+                
+                if not matched_todo:
+                    for todo in pending:
+                        if target.lower() in todo.get('title', '').lower():
+                            matched_todo = todo
+                            break
+                
+                if matched_todo:
+                    todo_manager.db.collection('todos').document(matched_todo['todo_id']).delete()
+                    deleted_todos.append(matched_todo['title'])
+        
+        if deleted_todos:
+            if len(deleted_todos) == 1:
+                return f"Catherine: ✅ 「{deleted_todos[0]}」を削除しました。\n\n他にも整理したいものがあれば教えてください。"
+            else:
+                return f"Catherine: ✅ {len(deleted_todos)}件のToDoを削除しました：\n" + "\n".join([f"・{title}" for title in deleted_todos]) + "\n\nリストがすっきりしましたね！"
+        else:
+            return f"Catherine: 「{target}」に該当するToDoが見つかりませんでした。現在のリストを確認して、正確な指示をお願いします。"
+    
+    elif action == 'organize':
+        # 重複や類似したToDoを整理
+        title_groups = {}
+        for todo in pending:
+            title = todo.get('title', '').lower()
+            # 類似したタイトルをグループ化
+            found_group = None
+            for key in title_groups.keys():
+                if title in key or key in title:
+                    found_group = key
+                    break
+            
+            if found_group:
+                title_groups[found_group].append(todo)
+            else:
+                title_groups[title] = [todo]
+        
+        # 重複があるグループを特定
+        duplicates_found = []
+        for title, todos_list in title_groups.items():
+            if len(todos_list) > 1:
+                duplicates_found.extend(todos_list[1:])  # 最初の1個を残して削除
+        
+        if duplicates_found:
+            for todo in duplicates_found:
+                todo_manager.db.collection('todos').document(todo['todo_id']).delete()
+            return f"Catherine: ✅ {len(duplicates_found)}件の重複ToDoを整理しました。\n\nリストがより見やすくなりましたね！"
+        else:
+            return "Catherine: 重複するToDoは見つかりませんでした。リストは既に整理されています。"
     
     elif action == 'edit':
         new_content = todo_action.get('new_content', '')
