@@ -77,7 +77,7 @@ class TodoManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたは優秀な秘書です。ToDoを分析して構造化された情報を返してください。"},
                     {"role": "user", "content": prompt}
@@ -273,12 +273,12 @@ class TodoManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたは優秀な秘書です。自然言語からToDoを正確に抽出してください。"},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.2
+                temperature=0.3
             )
             
             import json

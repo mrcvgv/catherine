@@ -53,7 +53,7 @@ class ProactiveAssistant:
         try:
             # 行動パターンを取得/更新
             if user_id not in self.behavior_patterns or \
-               (datetime.now(self.jst) - self.behavior_patterns[user_id]['last_updated']).hours > 6:
+               (datetime.now(self.jst) - self.behavior_patterns[user_id]['last_updated']).total_seconds() / 3600 > 6:
                 await self.analyze_user_patterns(user_id)
             
             patterns = self.behavior_patterns.get(user_id, {}).get('patterns', {})
@@ -85,13 +85,13 @@ class ProactiveAssistant:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたは超優秀な予測分析専門家です。ユーザーの行動パターンから未来のニーズを正確に予測してください。"},
                     {"role": "user", "content": prediction_prompt}
                 ],
-                temperature=0.2,
-                max_tokens=2000,
+                temperature=0.3,
+                max_completion_tokens=2000,
                 response_format={"type": "json_object"}
             )
             
@@ -198,13 +198,13 @@ class ProactiveAssistant:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたは優秀な行動分析心理学者です。データから深いインサイトを抽出してください。"},
                     {"role": "user", "content": analysis_prompt}
                 ],
-                temperature=0.2,
-                max_tokens=2000,
+                temperature=0.3,
+                max_completion_tokens=2000,
                 response_format={"type": "json_object"}
             )
             

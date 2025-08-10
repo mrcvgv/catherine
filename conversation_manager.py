@@ -143,14 +143,25 @@ class ConversationManager:
                     {"role": "system", "content": "あなたは会話分析の専門家です。客観的に分析してください。"},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.2
+                temperature=0.3
             )
             
             try:
-                # ```json ブロックを除去
+                # ```json ブロックを除去し、余分なテキストもクリーンアップ
                 content = response.choices[0].message.content
-                if content.startswith('```json'):
+                if '```json' in content:
+                    # JSONブロックを抽出
+                    json_start = content.find('{')
+                    json_end = content.rfind('}')
+                    if json_start != -1 and json_end != -1:
+                        content = content[json_start:json_end+1]
+                elif content.startswith('```'):
                     content = content.replace('```json', '').replace('```', '').strip()
+                
+                # 余分な解析テキストを削除
+                if '**Analysis:**' in content:
+                    content = content.split('**Analysis:**')[0].strip()
+                
                 result = json.loads(content)
             except json.JSONDecodeError as e:
                 print(f"❌ JSON parse error: {e}")
@@ -216,10 +227,10 @@ class ConversationManager:
             messages.append({"role": "user", "content": context_prompt})
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",  # GPT-5使用（リリース時に自動適用）
+                model="gpt-4o",  # 最新の実在モデル使用
                 messages=messages,
-                temperature=0.1,  # 最高精度で理解力重視
-                max_tokens=4000,  # 超長文対応でコンテキスト長最大化
+                temperature=0.3,  # 理解力重視
+                max_completion_tokens=4000,  # 超長文対応でコンテキスト長最大化
                 presence_penalty=0.2,
                 frequency_penalty=0.2,
                 response_format={"type": "text"}  # 構造化された応答

@@ -63,12 +63,12 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたは世界最高レベルの感情分析心理学者です。微細な感情変化も正確に読み取り、最適なサポート方法を提案してください。"},
                     {"role": "user", "content": analysis_prompt}
                 ],
-                temperature=0.2,
+                temperature=0.3,
                 max_tokens=2000,
                 response_format={"type": "json_object"}
             )
@@ -114,7 +114,7 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたは感情に配慮した高度なコミュニケーション専門家です。相手の心理状態に完璧に適応した応答を生成してください。"},
                     {"role": "user", "content": adaptation_prompt}
@@ -217,7 +217,7 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたは感情に深く共感し、的確な支援を提供する心理カウンセラーです。"},
                     {"role": "user", "content": support_prompt}
@@ -257,10 +257,8 @@ class EmotionalIntelligence:
         try:
             start_date = datetime.now(self.jst) - timedelta(days=days)
             
-            query = self.db.collection('emotion_analyses')\
-                          .where('user_id', '==', user_id)\
-                          .order_by('analyzed_at', direction='DESCENDING')\
-                          .limit(20)
+            # シンプルなクエリ（インデックス不要）
+            query = self.db.collection('emotion_analyses').where('user_id', '==', user_id)
             
             docs = query.get()
             
@@ -273,6 +271,9 @@ class EmotionalIntelligence:
                         'intensity': data.get('emotion_intensity', 0.5),
                         'date': data['analyzed_at'].strftime('%Y-%m-%d')
                     })
+            
+            # 日付でソート（新しい順）
+            emotions = sorted(emotions, key=lambda x: x.get('date', ''), reverse=True)
             
             if not emotions:
                 return "感情履歴なし"
@@ -340,7 +341,7 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたは危機介入の専門家です。安全で効果的な支援を提供してください。"},
                     {"role": "user", "content": crisis_prompt}
@@ -397,12 +398,12 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "感情パターン分析の専門家として、深いインサイトを提供してください。"},
                     {"role": "user", "content": pattern_prompt}
                 ],
-                temperature=0.2,
+                temperature=0.3,
                 max_tokens=1500,
                 response_format={"type": "json_object"}
             )

@@ -126,7 +126,7 @@ async def analyze_casual_message(message: str) -> dict:
         """
         
         response = openai_client.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "メッセージ分析の専門家として客観的に分析してください。"},
                 {"role": "user", "content": prompt}
@@ -224,13 +224,13 @@ async def detect_todo_intent(command_text: str) -> dict:
         """
         
         response = openai_client.chat.completions.create(
-            model="gpt-5",  # 最新モデル使用
+            model="gpt-4o",  # 最新モデル使用
             messages=[
                 {"role": "system", "content": "あなたは極めて高精度でユーザーの意図を理解する専門AIです。複雑な指示も正確に解析してください。"},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1,  # 正確性最優先
-            max_tokens=1000,
+            temperature=0.3,  # 理解力重視  
+            max_completion_tokens=1000,
             response_format={"type": "json_object"}  # JSON強制モード
         )
         
