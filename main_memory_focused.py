@@ -156,6 +156,7 @@ async def process_command_with_memory(user_id: str, command_text: str, message) 
     if command_text.lower().startswith("todo"):
         return await handle_todo_with_memory(user_id, command_text, user_prefs)
     elif command_text.lower().startswith("list"):
+        print(f"🔍 Listing TODOs for user_id: {user_id}")
         return await todo_manager.list_todos_formatted(user_id)
     elif command_text.lower().startswith("done"):
         return await handle_done_with_celebration(user_id, command_text)
@@ -200,16 +201,24 @@ async def handle_todo_with_memory(user_id: str, command_text: str, user_prefs: d
     """記憶を活用したToDo作成"""
     todo_content = command_text[4:].strip()
     
+    print(f"🔍 Creating TODO for user_id: {user_id}")
+    print(f"🔍 TODO content: {todo_content}")
+    
     if not todo_content:
         # 過去のパターンを参考に提案
         return await suggest_todo_based_on_history(user_id)
     
     # 通常のToDo作成
-    todo_data = await todo_manager.create_todo(
-        user_id=user_id,
-        title=todo_content,
-        description=f"記録日時: {datetime.now(jst).strftime('%Y/%m/%d %H:%M')}"
-    )
+    try:
+        todo_data = await todo_manager.create_todo(
+            user_id=user_id,
+            title=todo_content,
+            description=f"記録日時: {datetime.now(jst).strftime('%Y/%m/%d %H:%M')}"
+        )
+        print(f"✅ TODO created: {todo_data}")
+    except Exception as e:
+        print(f"❌ TODO creation failed: {e}")
+        return f"Catherine: 申し訳ございません。ToDoの作成中にエラーが発生しました: {str(e)}"
     
     priority_emoji = "🔥" if todo_data['priority'] >= 4 else "📌" if todo_data['priority'] >= 3 else "📝"
     
