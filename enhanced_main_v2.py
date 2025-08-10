@@ -11,6 +11,7 @@ from discord.ext import commands, tasks
 from openai import OpenAI
 import json
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 import pytz
 
 # カスタムモジュールのインポート
