@@ -143,7 +143,7 @@ async def process_command_with_memory(user_id: str, command_text: str, message) 
     if command_text.lower().startswith("todo"):
         return await handle_todo_with_memory(user_id, command_text, user_prefs)
     elif command_text.lower().startswith("list"):
-        return await handle_list_with_context(user_id, user_prefs)
+        return await todo_manager.list_todos_formatted(user_id)
     elif command_text.lower().startswith("done"):
         return await handle_done_with_celebration(user_id, command_text)
     elif command_text.lower().startswith("memory"):
