@@ -157,7 +157,15 @@ async def process_command_with_memory(user_id: str, command_text: str, message) 
         return await handle_todo_with_memory(user_id, command_text, user_prefs)
     elif command_text.lower().startswith("list"):
         print(f"🔍 Listing TODOs for user_id: {user_id}")
-        return await todo_manager.list_todos_formatted(user_id)
+        # ソートオプションをチェック
+        parts = command_text.lower().split()
+        sort_option = parts[1] if len(parts) > 1 else "priority_due"
+        
+        # ソートオプションに応じて処理
+        if sort_option in ["priority", "due", "category", "recent"]:
+            return await handle_sorted_list(user_id, sort_option)
+        else:
+            return await todo_manager.list_todos_formatted(user_id)
     elif command_text.lower().startswith("done"):
         return await handle_done_with_celebration(user_id, command_text)
     elif command_text.lower().startswith("memory"):
@@ -296,6 +304,72 @@ async def analyze_favorite_topics(user_id: str) -> str:
         
     except Exception as e:
         return f"Catherine: 話題分析中にエラーが発生しました: {e}"
+
+async def handle_sorted_list(user_id: str, sort_option: str) -> str:
+    """ソートオプション付きリスト表示"""
+    try:
+        todos = await todo_manager.get_user_todos(user_id)
+        
+        if not todos:
+            return "Catherine: 現在、登録されているToDoはありません。"
+        
+        # ステータス別に分類
+        pending = [t for t in todos if t.get('status') == 'pending']
+        in_progress = [t for t in todos if t.get('status') == 'in_progress']
+        completed = [t for t in todos if t.get('status') == 'completed']
+        
+        # ソートオプションに応じた処理
+        if sort_option == "priority":
+            # 優先度順（高い順）
+            pending.sort(key=lambda x: -x.get('priority', 3))
+            in_progress.sort(key=lambda x: -x.get('priority', 3))
+            title = "📊 **ToDoリスト（優先度順）**"
+            
+        elif sort_option == "due":
+            # 締切日順（早い順、締切なしは最後）
+            def due_sort_key(x):
+                if x.get('due_date'):
+                    return (0, x['due_date'])
+                return (1, datetime.max.replace(tzinfo=jst))
+            pending.sort(key=due_sort_key)
+            in_progress.sort(key=due_sort_key)
+            title = "📅 **ToDoリスト（締切日順）**"
+            
+        elif sort_option == "category":
+            # カテゴリ別にグループ化
+            categories = {}
+            for todo in pending + in_progress:
+                cat = todo.get('category', 'general')
+                if cat not in categories:
+                    categories[cat] = []
+                categories[cat].append(todo)
+            
+            result = f"Catherine: 📂 **ToDoリスト（カテゴリ別）** （全{len(todos)}件）\n\n"
+            for cat, cat_todos in sorted(categories.items()):
+                result += f"【{cat}】({len(cat_todos)}件)\n"
+                for i, todo in enumerate(cat_todos, 1):
+                    priority_mark = "🔥" if todo.get('priority', 3) >= 4 else "⚡" if todo.get('priority', 3) >= 3 else "📌"
+                    status = "🚀" if todo.get('status') == 'in_progress' else "⏰"
+                    result += f"{status} {priority_mark} {todo.get('title', 'タイトル不明')}\n"
+                result += "\n"
+            
+            result += f"✅ **完了済み** ({len(completed)}件)\n\n"
+            result += "💡 ToDoの追加: `C! todo [内容]`\n"
+            result += "📝 完了報告: `C! done [番号]`"
+            return result
+            
+        elif sort_option == "recent":
+            # 作成日順（新しい順）
+            pending.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
+            in_progress.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
+            title = "🆕 **ToDoリスト（新しい順）**"
+        
+        # 通常フォーマットで表示
+        return await todo_manager.list_todos_formatted(user_id)
+        
+    except Exception as e:
+        print(f"❌ Sorted list error: {e}")
+        return "Catherine: リストの表示でエラーが発生しました。"
 
 async def handle_personalized_help(user_id: str, user_prefs: dict) -> str:
     """個人化されたヘルプ"""

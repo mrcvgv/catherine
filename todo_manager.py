@@ -141,8 +141,8 @@ class TodoManager:
             print(f"❌ Todo update error: {e}")
             return False
     
-    async def list_todos_formatted(self, user_id: str) -> str:
-        """フォーマット済みToDoリストを取得"""
+    async def list_todos_formatted(self, user_id: str, sort_by: str = "priority_due") -> str:
+        """フォーマット済みToDoリストを取得（全ToDo表示、ソート対応）"""
         try:
             print(f"📋 Fetching todos for user: {user_id}")
             todos = await self.get_user_todos(user_id)
@@ -156,23 +156,56 @@ class TodoManager:
             in_progress = [t for t in todos if t.get('status') == 'in_progress']
             completed = [t for t in todos if t.get('status') == 'completed']
             
-            result = "Catherine: 📋 **あなたのToDoリスト**\n\n"
+            # ソート処理（優先度と締切日を最優先）
+            def sort_todos(todo_list):
+                return sorted(todo_list, key=lambda x: (
+                    # 締切日がある場合は最優先
+                    0 if x.get('due_date') else 1,
+                    # 締切日（早い順）
+                    x.get('due_date') if x.get('due_date') else datetime.max.replace(tzinfo=self.jst),
+                    # 優先度（高い順）
+                    -x.get('priority', 3),
+                    # 作成日（新しい順）
+                    -x.get('created_at', datetime.min).timestamp() if hasattr(x.get('created_at', datetime.min), 'timestamp') else 0
+                ))
             
-            if pending:
-                result += "⏰ **未着手**\n"
-                for i, todo in enumerate(pending[:5], 1):
-                    priority = "🔥" if todo.get('priority', 3) >= 4 else "📌"
-                    result += f"{priority} {i}. {todo.get('title', 'タイトル不明')}\n"
-                result += "\n"
+            pending = sort_todos(pending)
+            in_progress = sort_todos(in_progress)
             
+            result = "Catherine: 📋 **あなたのToDoリスト** （全" + str(len(todos)) + "件）\n\n"
+            
+            # 進行中タスク（全て表示）
             if in_progress:
-                result += "🚀 **進行中**\n"
-                for i, todo in enumerate(in_progress[:3], 1):
-                    result += f"▶️ {i}. {todo.get('title', 'タイトル不明')}\n"
+                result += "🚀 **進行中** (" + str(len(in_progress)) + "件)\n"
+                for i, todo in enumerate(in_progress, 1):
+                    priority_mark = "🔥" if todo.get('priority', 3) >= 4 else "⚡" if todo.get('priority', 3) >= 3 else "📌"
+                    due_date_str = ""
+                    if todo.get('due_date'):
+                        due_date_str = f" 📅{todo['due_date'].strftime('%m/%d')}"
+                    result += f"{priority_mark} {i}. {todo.get('title', 'タイトル不明')}{due_date_str}\n"
                 result += "\n"
             
+            # 未着手タスク（全て表示）
+            if pending:
+                result += "⏰ **未着手** (" + str(len(pending)) + "件)\n"
+                for i, todo in enumerate(pending, 1):
+                    priority_mark = "🔥" if todo.get('priority', 3) >= 4 else "⚡" if todo.get('priority', 3) >= 3 else "📌"
+                    due_date_str = ""
+                    if todo.get('due_date'):
+                        due_date_str = f" 📅{todo['due_date'].strftime('%m/%d')}"
+                    category_str = f" [{todo.get('category', 'general')}]"
+                    result += f"{priority_mark} {i}. {todo.get('title', 'タイトル不明')}{due_date_str}{category_str}\n"
+                result += "\n"
+            
+            # 完了済み（件数のみ）
             if completed:
                 result += f"✅ **完了済み** ({len(completed)}件)\n\n"
+            
+            result += "📊 **表示オプション:**\n"
+            result += "• `C! list priority` - 優先度順\n"
+            result += "• `C! list due` - 締切日順\n"
+            result += "• `C! list category` - カテゴリ別\n"
+            result += "• `C! list recent` - 作成日順（新しい順）\n\n"
             
             result += "💡 ToDoの追加: `C! todo [内容]`\n"
             result += "📝 完了報告: `C! done [番号]`"
