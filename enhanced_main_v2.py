@@ -106,7 +106,7 @@ async def process_command(message, user_id: str, username: str):
         command_text = message.content[len("C!"):].strip()
         
         # 会話履歴を取得
-        conversation_history = await conversation_manager.get_recent_conversations(user_id, limit=10)
+        conversation_history = await conversation_manager._get_recent_conversations(user_id, limit=10)
         
         # 深層コンテキスト分析
         context_analysis = await context_system.analyze_deep_context(
@@ -1108,13 +1108,18 @@ async def check_reminders():
     try:
         # アクティブなリマインダーをチェック
         now = datetime.now(JST)
+        # シンプルなクエリに変更（インデックス不要）
         reminders = firebase_manager.get_db().collection('reminders')\
             .where('status', '==', 'active')\
-            .where('next_reminder', '<=', now)\
             .stream()
         
         for reminder_doc in reminders:
             reminder = reminder_doc.to_dict()
+            
+            # Pythonでフィルタリング
+            reminder_time = reminder.get('next_reminder')
+            if not reminder_time or reminder_time > now:
+                continue
             
             # 通知送信
             user_id = reminder['user_id']
