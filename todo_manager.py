@@ -34,8 +34,21 @@ class TodoManager:
         }
         
         # Firestoreに保存
-        doc_ref = self.db.collection('todos').document(todo_data['todo_id'])
-        doc_ref.set(todo_data)
+        try:
+            doc_ref = self.db.collection('todos').document(todo_data['todo_id'])
+            doc_ref.set(todo_data)
+            print(f"✅ Todo saved successfully: {todo_data['todo_id']} - {title}")
+            
+            # 保存確認
+            saved_doc = doc_ref.get()
+            if saved_doc.exists:
+                print(f"✅ Todo verified in Firebase: {saved_doc.id}")
+            else:
+                print(f"❌ Todo not found in Firebase after save!")
+                
+        except Exception as e:
+            print(f"❌ Firebase save error: {e}")
+            raise e
         
         # リマインダーを設定
         if due_date:
@@ -131,7 +144,9 @@ class TodoManager:
     async def list_todos_formatted(self, user_id: str) -> str:
         """フォーマット済みToDoリストを取得"""
         try:
+            print(f"📋 Fetching todos for user: {user_id}")
             todos = await self.get_user_todos(user_id)
+            print(f"📋 Found {len(todos)} todos")
             
             if not todos:
                 return "Catherine: 現在、登録されているToDoはありません。\n\n新しいToDoを追加するには `C! todo [内容]` を使用してください。"
