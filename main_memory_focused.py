@@ -122,7 +122,7 @@ async def analyze_casual_message(message: str) -> dict:
         """
         
         response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "メッセージ分析の専門家として客観的に分析してください。"},
                 {"role": "user", "content": prompt}
@@ -168,13 +168,159 @@ async def process_command_with_memory(user_id: str, command_text: str, message) 
             return await todo_manager.list_todos_formatted(user_id)
     elif command_text.lower().startswith("done"):
         return await handle_done_with_celebration(user_id, command_text)
+    elif command_text.lower().startswith("delete") or command_text.lower().startswith("削除"):
+        return await handle_todo_delete(user_id, command_text)
+    elif command_text.lower().startswith("edit") or command_text.lower().startswith("編集"):
+        return await handle_todo_edit(user_id, command_text)
+    elif command_text.lower().startswith("rename") or command_text.lower().startswith("リネーム"):
+        return await handle_todo_rename(user_id, command_text)
+    elif command_text.lower().startswith("clear"):
+        return await handle_todo_clear(user_id, command_text)
     elif command_text.lower().startswith("memory"):
         return await handle_memory_command(user_id, command_text)
     elif command_text.lower().startswith("help"):
         return await handle_personalized_help(user_id, user_prefs)
     else:
-        # 自然言語での会話（記憶活用）
+        # 自然言語でのToDo操作を検出
+        todo_action = await detect_todo_intent(command_text)
+        if todo_action:
+            return await handle_natural_todo_command(user_id, command_text, todo_action)
+        
+        # 通常の自然言語会話（記憶活用）
         return await handle_conversation_with_memory(user_id, command_text, user_prefs)
+
+async def detect_todo_intent(command_text: str) -> dict:
+    """自然言語からToDo操作の意図を検出"""
+    try:
+        prompt = f"""
+        以下のメッセージからToDo操作の意図を分析してください：
+        「{command_text}」
+        
+        検出すべき操作:
+        - delete/削除: 特定のToDoを削除したい
+        - edit/編集: ToDoの内容を変更したい
+        - clear/全削除: すべてのToDoを削除したい
+        - complete/完了: ToDoを完了にしたい
+        - list/一覧: ToDoリストを見たい
+        
+        JSON形式で返してください：
+        {{
+            "action": "delete/edit/clear/complete/list/none",
+            "target": "対象となるToDo（番号や内容）",
+            "new_content": "新しい内容（editの場合）",
+            "confidence": 0.0-1.0
+        }}
+        """
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "あなたはユーザーの意図を正確に理解するAIアシスタントです。"},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2
+        )
+        
+        import json
+        content = response.choices[0].message.content
+        if content.startswith('```json'):
+            content = content.replace('```json', '').replace('```', '').strip()
+        
+        result = json.loads(content)
+        return result if result.get('confidence', 0) > 0.7 else None
+        
+    except Exception as e:
+        print(f"❌ Intent detection error: {e}")
+        return None
+
+async def handle_natural_todo_command(user_id: str, command_text: str, todo_action: dict) -> str:
+    """自然言語でのToDo操作処理"""
+    action = todo_action.get('action')
+    target = todo_action.get('target', '')
+    
+    # ToDoリストを取得
+    todos = await todo_manager.get_user_todos(user_id)
+    pending = [t for t in todos if t.get('status') == 'pending']
+    
+    if action == 'list':
+        return await todo_manager.list_todos_formatted(user_id)
+    
+    elif action == 'delete':
+        # ターゲットから該当するToDoを探す
+        matched_todo = None
+        matched_index = -1
+        
+        # 番号で指定された場合
+        try:
+            num = int(''.join(filter(str.isdigit, target)))
+            if 1 <= num <= len(pending):
+                matched_todo = pending[num - 1]
+                matched_index = num
+        except:
+            pass
+        
+        # 内容で検索
+        if not matched_todo:
+            for i, todo in enumerate(pending):
+                if target.lower() in todo.get('title', '').lower():
+                    matched_todo = todo
+                    matched_index = i + 1
+                    break
+        
+        if matched_todo:
+            todo_manager.db.collection('todos').document(matched_todo['todo_id']).delete()
+            return f"Catherine: ✅ 「{matched_todo['title']}」を削除しました。\n\n他に削除したいものがあれば、おっしゃってください。"
+        else:
+            return f"Catherine: 「{target}」に該当するToDoが見つかりませんでした。\n\n現在のToDoリストを確認しますか？"
+    
+    elif action == 'edit':
+        new_content = todo_action.get('new_content', '')
+        if not new_content:
+            return "Catherine: どのように変更したいか教えてください。"
+        
+        # ターゲットから該当するToDoを探す
+        matched_todo = None
+        for todo in pending:
+            if target.lower() in todo.get('title', '').lower():
+                matched_todo = todo
+                break
+        
+        if matched_todo:
+            # AI分析で優先度再評価
+            ai_analysis = await todo_manager._analyze_todo_with_ai(new_content, "")
+            
+            todo_manager.db.collection('todos').document(matched_todo['todo_id']).update({
+                'title': new_content,
+                'priority': ai_analysis.get('priority', 3),
+                'category': ai_analysis.get('category', 'general'),
+                'updated_at': datetime.now(jst)
+            })
+            
+            return f"Catherine: ✅ 「{matched_todo['title']}」を「{new_content}」に更新しました。"
+        else:
+            return f"Catherine: 「{target}」に該当するToDoが見つかりませんでした。"
+    
+    elif action == 'complete':
+        # ターゲットから該当するToDoを探す
+        matched_todo = None
+        for todo in pending:
+            if target.lower() in todo.get('title', '').lower():
+                matched_todo = todo
+                break
+        
+        if matched_todo:
+            await todo_manager.update_todo_status(matched_todo['todo_id'], 'completed')
+            return f"Catherine: 🎉 「{matched_todo['title']}」を完了しました！お疲れ様でした！\n\n次は何をしましょうか？"
+        else:
+            return f"Catherine: 「{target}」に該当するToDoが見つかりませんでした。"
+    
+    elif action == 'clear':
+        if len(pending) > 0:
+            return f"Catherine: 本当に{len(pending)}件のToDoをすべて削除しますか？\n\n削除する場合は「はい、全部削除して」と言ってください。"
+        else:
+            return "Catherine: 削除するToDoがありません。"
+    
+    return "Catherine: すみません、どのような操作をしたいか理解できませんでした。"
 
 async def handle_memory_command(user_id: str, command_text: str) -> str:
     """記憶関連コマンド"""
@@ -371,6 +517,131 @@ async def handle_sorted_list(user_id: str, sort_option: str) -> str:
         print(f"❌ Sorted list error: {e}")
         return "Catherine: リストの表示でエラーが発生しました。"
 
+async def handle_todo_delete(user_id: str, command_text: str) -> str:
+    """ToDo削除処理"""
+    parts = command_text.split()
+    
+    if len(parts) < 2:
+        return "Catherine: 削除するToDoの番号を指定してください。\n例: `C! delete 3` または `C! 削除 3`"
+    
+    try:
+        # リストを取得して番号と実際のTodoをマッピング
+        todos = await todo_manager.get_user_todos(user_id)
+        pending = [t for t in todos if t.get('status') == 'pending']
+        
+        todo_num = int(parts[1]) - 1
+        if 0 <= todo_num < len(pending):
+            todo = pending[todo_num]
+            todo_id = todo['todo_id']
+            title = todo['title']
+            
+            # Firebase から削除
+            todo_manager.db.collection('todos').document(todo_id).delete()
+            
+            return f"Catherine: ✅ 「{title}」を削除しました。"
+        else:
+            return f"Catherine: ❌ 番号が範囲外です。1～{len(pending)}の番号を指定してください。"
+            
+    except ValueError:
+        return "Catherine: ❌ 番号は数字で指定してください。"
+    except Exception as e:
+        print(f"❌ Delete error: {e}")
+        return "Catherine: 削除中にエラーが発生しました。"
+
+async def handle_todo_edit(user_id: str, command_text: str) -> str:
+    """ToDo編集処理"""
+    # 形式: C! edit 番号 新しい内容
+    parts = command_text.split(maxsplit=2)
+    
+    if len(parts) < 3:
+        return "Catherine: 編集するToDoの番号と新しい内容を指定してください。\n例: `C! edit 3 新しいタスク内容`"
+    
+    try:
+        todos = await todo_manager.get_user_todos(user_id)
+        pending = [t for t in todos if t.get('status') == 'pending']
+        
+        todo_num = int(parts[1]) - 1
+        new_content = parts[2]
+        
+        if 0 <= todo_num < len(pending):
+            todo = pending[todo_num]
+            todo_id = todo['todo_id']
+            
+            # AI分析で優先度再評価
+            ai_analysis = await todo_manager._analyze_todo_with_ai(new_content, "")
+            
+            # Firebase 更新
+            todo_manager.db.collection('todos').document(todo_id).update({
+                'title': new_content,
+                'priority': ai_analysis.get('priority', 3),
+                'category': ai_analysis.get('category', 'general'),
+                'updated_at': datetime.now(jst)
+            })
+            
+            return f"Catherine: ✅ ToDo #{parts[1]} を「{new_content}」に更新しました。"
+        else:
+            return f"Catherine: ❌ 番号が範囲外です。"
+            
+    except ValueError:
+        return "Catherine: ❌ 番号は数字で指定してください。"
+    except Exception as e:
+        print(f"❌ Edit error: {e}")
+        return "Catherine: 編集中にエラーが発生しました。"
+
+async def handle_todo_rename(user_id: str, command_text: str) -> str:
+    """ToDoリネーム処理（editと同じだが、より直感的）"""
+    return await handle_todo_edit(user_id, command_text.replace("rename", "edit").replace("リネーム", "edit"))
+
+async def handle_todo_clear(user_id: str, command_text: str) -> str:
+    """ToDo一括クリア処理"""
+    parts = command_text.split()
+    
+    if len(parts) > 1 and parts[1] == "all":
+        # 全ToDo削除の確認
+        todos = await todo_manager.get_user_todos(user_id)
+        pending = [t for t in todos if t.get('status') == 'pending']
+        
+        if not pending:
+            return "Catherine: 削除するToDoがありません。"
+        
+        # 一括削除
+        for todo in pending:
+            todo_manager.db.collection('todos').document(todo['todo_id']).delete()
+        
+        return f"Catherine: ✅ {len(pending)}件のToDoをすべて削除しました。"
+    else:
+        return "Catherine: 本当にすべてのToDoを削除しますか？\n実行する場合: `C! clear all`"
+
+async def handle_done_with_celebration(user_id: str, command_text: str) -> str:
+    """ToDo完了処理"""
+    parts = command_text.split()
+    
+    if len(parts) < 2:
+        return "Catherine: 完了するToDoの番号を指定してください。\n例: `C! done 3`"
+    
+    try:
+        todos = await todo_manager.get_user_todos(user_id)
+        pending = [t for t in todos if t.get('status') == 'pending']
+        
+        todo_num = int(parts[1]) - 1
+        if 0 <= todo_num < len(pending):
+            todo = pending[todo_num]
+            todo_id = todo['todo_id']
+            title = todo['title']
+            
+            # ステータス更新
+            await todo_manager.update_todo_status(todo_id, 'completed')
+            
+            return f"Catherine: 🎉 「{title}」を完了しました！お疲れ様でした！"
+        else:
+            return f"Catherine: ❌ 番号が範囲外です。"
+            
+    except ValueError:
+        return "Catherine: ❌ 番号は数字で指定してください。"
+    except Exception as e:
+        print(f"❌ Done error: {e}")
+        return "Catherine: 完了処理中にエラーが発生しました。"
+
 async def handle_personalized_help(user_id: str, user_prefs: dict) -> str:
     """個人化されたヘルプ"""
     return f"""Catherine: 📚 あなた専用のヘルプ（記憶活用型）
@@ -380,6 +651,18 @@ async def handle_personalized_help(user_id: str, user_prefs: dict) -> str:
 • `C! todo [内容]` - AI分析付きToDo作成
 • `C! list` - 優先度順ToDoリスト
 • `C! done [番号]` - ToDo完了
+
+**ToDo管理:**
+• `C! delete [番号]` - ToDo削除
+• `C! edit [番号] [新内容]` - ToDo編集
+• `C! rename [番号] [新名前]` - ToDoリネーム
+• `C! clear all` - 全ToDo削除
+
+**リスト表示:**
+• `C! list priority` - 優先度順
+• `C! list due` - 締切日順
+• `C! list category` - カテゴリ別
+• `C! list recent` - 作成日順
 
 **記憶機能:**
 • `C! memory stats` - 会話統計

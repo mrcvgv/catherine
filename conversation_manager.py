@@ -138,7 +138,7 @@ class ConversationManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたは会話分析の専門家です。客観的に分析してください。"},
                     {"role": "user", "content": prompt}
@@ -203,7 +203,7 @@ class ConversationManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": context_prompt}
