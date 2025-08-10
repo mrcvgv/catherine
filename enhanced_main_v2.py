@@ -27,7 +27,7 @@ from action_summary_system import ActionSummarySystem
 from progress_nudge_engine import ProgressNudgeEngine
 from attachment_ocr_system import AttachmentOCRSystem
 from voice_optimized_system import VoiceOptimizedSystem
-from voice_channel_system import VoiceChannelSystem
+# from voice_channel_system import VoiceChannelSystem  # 一時的に無効化（discord.sinks互換性問題）
 
 # Railway用ポート設定
 PORT = int(os.environ.get("PORT", 8080))
@@ -58,7 +58,7 @@ action_summary = ActionSummarySystem(client_oa)
 nudge_engine = ProgressNudgeEngine(client_oa)
 ocr_system = AttachmentOCRSystem(client_oa)
 voice_system = VoiceOptimizedSystem(client_oa)
-voice_channel = VoiceChannelSystem(client_oa, bot)
+# voice_channel = VoiceChannelSystem(client_oa, bot)  # 一時的に無効化
 
 # タイムゾーン設定
 JST = pytz.timezone('Asia/Tokyo')
@@ -232,17 +232,17 @@ async def route_command(user_id: str, command_text: str,
     elif command_lower.startswith("decision") or command_lower.startswith("決裁"):
         return await handle_decision_memo(user_id, command_text)
     
-    # ボイスチャンネル関連
+    # ボイスチャンネル関連（一時的に無効化）
     elif command_lower.startswith("join"):
-        return await handle_voice_join(message)
+        return "🎤 ボイスチャンネル機能は現在メンテナンス中です。"
     elif command_lower.startswith("leave"):
-        return await handle_voice_leave(message)
+        return "🎤 ボイスチャンネル機能は現在メンテナンス中です。"
     elif command_lower.startswith("listen"):
-        return await handle_voice_listen(message)
+        return "🎤 ボイスチャンネル機能は現在メンテナンス中です。"
     elif command_lower.startswith("stop"):
-        return await handle_voice_stop(message)
+        return "🎤 ボイスチャンネル機能は現在メンテナンス中です。"
     elif command_lower.startswith("status"):
-        return await handle_voice_status(message)
+        return "🎤 ボイスチャンネル機能は現在メンテナンス中です。"
     
     # ヘルプ
     elif command_lower.startswith("help"):
@@ -966,117 +966,7 @@ async def process_attachments(message, user_id: str, username: str):
         print(f"❌ Attachment processing error: {e}")
         await message.channel.send("添付ファイルの処理中にエラーが発生しました。")
 
-# ボイスチャンネルハンドラー
-async def handle_voice_join(message) -> str:
-    """ボイスチャンネル参加"""
-    try:
-        # 擬似ctxオブジェクト作成
-        class MockCtx:
-            def __init__(self, message):
-                self.author = message.author
-                self.guild = message.guild
-                self.channel = message.channel
-                self.send = message.channel.send
-        
-        ctx = MockCtx(message)
-        success = await voice_channel.join_voice_channel(ctx)
-        
-        if success:
-            return ""  # メッセージは既にvoice_channel内で送信済み
-        else:
-            return "ボイスチャンネル参加に失敗しました。"
-            
-    except Exception as e:
-        print(f"❌ Voice join handler error: {e}")
-        return "ボイスチャンネル参加処理中にエラーが発生しました。"
-
-async def handle_voice_leave(message) -> str:
-    """ボイスチャンネル退出"""
-    try:
-        class MockCtx:
-            def __init__(self, message):
-                self.author = message.author
-                self.guild = message.guild
-                self.channel = message.channel
-                self.send = message.channel.send
-        
-        ctx = MockCtx(message)
-        success = await voice_channel.leave_voice_channel(ctx)
-        
-        if success:
-            return ""
-        else:
-            return "ボイスチャンネル退出に失敗しました。"
-            
-    except Exception as e:
-        print(f"❌ Voice leave handler error: {e}")
-        return "ボイスチャンネル退出処理中にエラーが発生しました。"
-
-async def handle_voice_listen(message) -> str:
-    """音声認識開始"""
-    try:
-        class MockCtx:
-            def __init__(self, message):
-                self.author = message.author
-                self.guild = message.guild
-                self.channel = message.channel
-                self.send = message.channel.send
-        
-        ctx = MockCtx(message)
-        success = await voice_channel.start_listening(ctx)
-        
-        if success:
-            return ""
-        else:
-            return "音声認識開始に失敗しました。"
-            
-    except Exception as e:
-        print(f"❌ Voice listen handler error: {e}")
-        return "音声認識開始処理中にエラーが発生しました。"
-
-async def handle_voice_stop(message) -> str:
-    """音声認識停止"""
-    try:
-        class MockCtx:
-            def __init__(self, message):
-                self.author = message.author
-                self.guild = message.guild
-                self.channel = message.channel
-                self.send = message.channel.send
-        
-        ctx = MockCtx(message)
-        success = await voice_channel.stop_listening(ctx)
-        
-        if success:
-            return ""
-        else:
-            return "音声認識停止に失敗しました。"
-            
-    except Exception as e:
-        print(f"❌ Voice stop handler error: {e}")
-        return "音声認識停止処理中にエラーが発生しました。"
-
-async def handle_voice_status(message) -> str:
-    """ボイス状態確認"""
-    try:
-        guild_id = message.guild.id
-        status = voice_channel.get_voice_status(guild_id)
-        
-        if not status['connected']:
-            return "🔇 ボイスチャンネルに接続していません。\n`C! join` で参加してください。"
-        
-        response = f"🎤 **ボイスチャンネル状態**\n"
-        response += f"📍 接続中: {status['channel']}\n"
-        response += f"👂 リスニング中: {status['listening_count']}人\n"
-        
-        if status['active_listeners']:
-            response += f"🎧 アクティブユーザー: {', '.join(f'<@{uid}>' for uid in status['active_listeners'])}\n"
-        
-        return response
-        
-    except Exception as e:
-        print(f"❌ Voice status handler error: {e}")
-        return "ボイス状態確認中にエラーが発生しました。"
+# ボイスチャンネルハンドラー（一時的に削除 - discord.sinks互換性問題）
 
 # ヘルプ機能
 async def handle_help() -> str:

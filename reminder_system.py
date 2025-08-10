@@ -333,15 +333,19 @@ class ReminderSystem:
                 # 過去のリマインダーをチェックして実行
                 current_time = datetime.now(self.jst)
                 
+                # シンプルなクエリに変更（インデックス不要）
                 query = self.db.collection('reminders')\
-                              .where('status', '==', 'active')\
-                              .where('next_reminder', '<=', current_time)
+                              .where('status', '==', 'active')
                 
                 docs = query.get()
                 
                 for doc in docs:
                     reminder_data = doc.to_dict()
-                    if reminder_data['reminder_id'] not in self.active_reminders:
+                    reminder_time = reminder_data.get('next_reminder')
+                    
+                    # Pythonでフィルタリング
+                    if (reminder_time and reminder_time <= current_time and
+                        reminder_data['reminder_id'] not in self.active_reminders):
                         await self._execute_reminder(reminder_data)
                 
             except Exception as e:
