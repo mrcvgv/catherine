@@ -17,6 +17,7 @@ from todo_manager import TodoManager
 from conversation_manager import ConversationManager
 from proactive_assistant import ProactiveAssistant
 from emotional_intelligence import EmotionalIntelligence
+from prompt_system import PromptSystem
 
 # Discord設定
 intents = discord.Intents.default()
@@ -29,6 +30,7 @@ todo_manager = TodoManager(openai_client)
 conversation_manager = ConversationManager(openai_client)
 proactive_assistant = ProactiveAssistant(openai_client)
 emotional_intelligence = EmotionalIntelligence(openai_client)
+prompt_system = PromptSystem(openai_client)
 jst = pytz.timezone('Asia/Tokyo')
 
 @client.event
@@ -190,8 +192,8 @@ async def process_command_with_memory(user_id: str, command_text: str, message) 
         if todo_action:
             return await handle_natural_todo_command(user_id, command_text, todo_action)
         
-        # 通常の自然言語会話（記憶活用 + 感情知能 + 先読み）
-        return await handle_conversation_with_memory(user_id, command_text, user_prefs)
+        # 通常の自然言語会話（構造化レスポンス + 記憶活用 + 感情知能 + 先読み）
+        return await handle_structured_conversation(user_id, command_text, user_prefs)
 
 async def detect_todo_intent(command_text: str) -> dict:
     """自然言語からToDo操作の意図を検出"""
@@ -533,6 +535,54 @@ async def handle_conversation_with_memory(user_id: str, user_input: str, user_pr
         final_response += f"\n\n💝 {emotional_support}"
     
     return final_response
+
+async def handle_structured_conversation(user_id: str, user_input: str, user_prefs: dict) -> str:
+    """構造化レスポンス（JSON二部構成）による高精度会話処理"""
+    try:
+        # コンテキスト準備
+        context = {
+            "user_id": user_id,
+            "preferences": user_prefs,
+            "current_time": datetime.now(jst).isoformat()
+        }
+        
+        # 構造化レスポンス生成
+        structured_response = await prompt_system.generate_structured_response(user_input, context)
+        
+        # user_idを一時的に設定
+        todo_manager._current_user_id = user_id
+        
+        # アクション実行
+        action_results = await prompt_system.execute_actions(
+            structured_response.get("actions", []),
+            todo_manager,
+            conversation_manager
+        )
+        
+        # 実行結果を含めた最終応答
+        talk = structured_response.get("talk", "")
+        
+        # 成功したアクションの報告
+        successful_actions = [r for r in action_results if r.get("status") == "success"]
+        if successful_actions:
+            action_summary = []
+            for action in successful_actions:
+                if action["type"] == "todo.add":
+                    action_summary.append(f"✅ ToDo「{action['title']}」を追加")
+                elif action["type"] == "reminder.set":
+                    action_summary.append("⏰ リマインダーを設定")
+                elif action["type"] == "note.save":
+                    action_summary.append("📝 メモを保存")
+            
+            if action_summary:
+                talk += "\n\n" + "\n".join(action_summary)
+        
+        return f"Catherine: {talk}"
+        
+    except Exception as e:
+        print(f"❌ Structured conversation error: {e}")
+        # フォールバック：従来の処理
+        return await handle_conversation_with_memory(user_id, user_input, user_prefs)
 
 async def detect_command_type(command_text: str) -> str:
     """コマンドタイプ検出"""
