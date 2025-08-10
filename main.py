@@ -22,8 +22,8 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    if message.content.startswith("!catherine"):
-        prompt = message.content[len("!catherine"):].strip()
+    if message.content.startswith("C!"):
+        prompt = message.content[len("C!"):].strip()
         print(f"📝 Prompt received: {prompt}")
 
         try:
