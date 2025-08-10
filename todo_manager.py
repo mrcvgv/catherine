@@ -100,18 +100,20 @@ class TodoManager:
     
     async def get_user_todos(self, user_id: str, status: Optional[str] = None) -> List[Dict]:
         """ユーザーのToDoリストを取得"""
+        # シンプルなクエリ（インデックス不要）
         query = self.db.collection('todos').where('user_id', '==', user_id)
         
+        docs = query.get()
+        todos = [doc.to_dict() for doc in docs]
+        
+        # Pythonでフィルタリング・ソート
         if status:
-            query = query.where('status', '==', status)
+            todos = [t for t in todos if t.get('status') == status]
         
         # 優先度でソート（降順）、次に作成日時（昇順）
-        from firebase_admin import firestore
-        query = query.order_by('priority', direction=firestore.Query.DESCENDING)
-        query = query.order_by('created_at', direction=firestore.Query.ASCENDING)
+        todos.sort(key=lambda x: (-x.get('priority', 3), x.get('created_at')))
         
-        docs = query.get()
-        return [doc.to_dict() for doc in docs]
+        return todos
     
     async def update_todo_status(self, todo_id: str, status: str) -> bool:
         """ToDoのステータスを更新"""
