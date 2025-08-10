@@ -38,6 +38,11 @@ async def on_message(message):
     if message.author.bot:
         return
     
+    # 二重実行防止
+    if hasattr(message, '_catherine_processed'):
+        return
+    message._catherine_processed = True
+    
     user_id = str(message.author.id)
     username = message.author.display_name
     
