@@ -316,12 +316,17 @@ class ConversationManager:
             
             start_date = datetime.now(self.jst) - timedelta(days=days)
             
-            query = self.db.collection('conversations')\
-                          .where('user_id', '==', user_id)\
-                          .where('created_at', '>=', start_date)
+            # シンプルなクエリ（インデックス不要）
+            query = self.db.collection('conversations').where('user_id', '==', user_id)
             
             docs = query.get()
-            conversations = [doc.to_dict() for doc in docs]
+            all_conversations = [doc.to_dict() for doc in docs]
+            
+            # Pythonで日付フィルタリング
+            conversations = [
+                conv for conv in all_conversations 
+                if conv.get('created_at') and conv['created_at'] >= start_date
+            ]
             
             if not conversations:
                 return {'total_conversations': 0}
