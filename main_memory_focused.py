@@ -18,6 +18,7 @@ from conversation_manager import ConversationManager
 from proactive_assistant import ProactiveAssistant
 from emotional_intelligence import EmotionalIntelligence
 from prompt_system import PromptSystem
+from reminder_system import ReminderSystem
 
 # Discord設定
 intents = discord.Intents.default()
@@ -31,6 +32,7 @@ conversation_manager = ConversationManager(openai_client)
 proactive_assistant = ProactiveAssistant(openai_client)
 emotional_intelligence = EmotionalIntelligence(openai_client)
 prompt_system = PromptSystem(openai_client)
+reminder_system = ReminderSystem(openai_client, client)  # Discordクライアントも渡す
 jst = pytz.timezone('Asia/Tokyo')
 
 @client.event
@@ -38,6 +40,10 @@ async def on_ready():
     print(f"🧠 Catherine AI - 完全記録版 起動完了")
     print(f"📚 Firebase記録機能: {'✅ 有効' if firebase_manager.is_available() else '❌ 無効'}")
     print(f"👤 ログイン: {client.user}")
+    
+    # リマインダーシステムを開始
+    await reminder_system.start_reminder_scheduler()
+    print(f"🔔 リマインダーシステム起動完了")
 
 @client.event
 async def on_message(message):
@@ -186,6 +192,8 @@ async def process_command_with_memory(user_id: str, command_text: str, message) 
         return await handle_memory_command(user_id, command_text)
     elif command_text.lower().startswith("help"):
         return await handle_personalized_help(user_id, user_prefs)
+    elif command_text.lower().startswith("remind") or command_text.lower().startswith("リマインダー"):
+        return await handle_reminder_command(user_id, command_text)
     else:
         # 自然言語でのToDo操作を検出
         todo_action = await detect_todo_intent(command_text)
@@ -562,15 +570,18 @@ async def handle_structured_conversation(user_id: str, user_input: str, user_pre
         # 実行結果を含めた最終応答
         talk = structured_response.get("talk", "")
         
-        # 成功したアクションの報告
-        successful_actions = [r for r in action_results if r.get("status") == "success"]
+        # 成功したアクションの報告（scheduledも含む）
+        successful_actions = [r for r in action_results if r.get("status") in ["success", "scheduled"]]
         if successful_actions:
             action_summary = []
             for action in successful_actions:
                 if action["type"] == "todo.add":
                     action_summary.append(f"✅ ToDo「{action['title']}」を追加")
                 elif action["type"] == "reminder.set":
-                    action_summary.append("⏰ リマインダーを設定")
+                    if action.get("status") == "scheduled":
+                        action_summary.append(f"⏰ {action.get('message', 'リマインダーを設定')}")
+                    else:
+                        action_summary.append("⏰ リマインダーを設定")
                 elif action["type"] == "note.save":
                     action_summary.append("📝 メモを保存")
             
@@ -834,6 +845,89 @@ async def handle_personalized_help(user_id: str, user_prefs: dict) -> str:
 • 会話スタイル: {user_prefs.get('conversation_style', 50)}%
 
 🧠 私はあなたとの全ての会話を記憶し、より良いサポートを提供します！"""
+
+async def handle_reminder_command(user_id: str, command_text: str) -> str:
+    """リマインダー機能の処理"""
+    try:
+        parts = command_text.split(maxsplit=1)
+        
+        if len(parts) == 1 or parts[1].lower() in ["list", "一覧"]:
+            # リマインダー一覧表示
+            reminders = await reminder_system.list_reminders(user_id)
+            
+            if not reminders:
+                return "Catherine: 現在、設定されているリマインダーはありません。\n\n例: `C! remind 明日15時に会議の準備`"
+            
+            result = "Catherine: 📅 **設定中のリマインダー**\n\n"
+            
+            for i, reminder in enumerate(reminders[:10], 1):  # 最大10件表示
+                title = reminder.get('title', 'タイトル不明')
+                next_time = reminder.get('next_reminder')
+                reminder_type = reminder.get('reminder_type', 'once')
+                
+                type_emoji = {
+                    'once': '🔔',
+                    'daily': '📅', 
+                    'weekly': '📆',
+                    'monthly': '🗓️',
+                    'custom': '⏰'
+                }.get(reminder_type, '🔔')
+                
+                if next_time:
+                    time_str = next_time.strftime('%m/%d %H:%M')
+                    result += f"{type_emoji} {i}. **{title}**\n   次回: {time_str} ({reminder_type})\n\n"
+                else:
+                    result += f"{type_emoji} {i}. **{title}** (時刻未設定)\n\n"
+            
+            result += "💡 新規作成: `C! remind [時刻] [内容]`\n"
+            result += "🗑️ 削除: `C! remind delete [番号]`"
+            
+            return result
+            
+        elif parts[1].lower().startswith("delete") or parts[1].lower().startswith("削除"):
+            # リマインダー削除
+            try:
+                delete_parts = parts[1].split()
+                if len(delete_parts) < 2:
+                    return "Catherine: 削除するリマインダーの番号を指定してください。\n例: `C! remind delete 1`"
+                
+                reminder_num = int(delete_parts[1]) - 1
+                reminders = await reminder_system.list_reminders(user_id)
+                
+                if 0 <= reminder_num < len(reminders):
+                    reminder = reminders[reminder_num]
+                    success = await reminder_system.delete_reminder(reminder['reminder_id'])
+                    
+                    if success:
+                        return f"Catherine: ✅ 「{reminder['title']}」を削除しました。"
+                    else:
+                        return "Catherine: ❌ 削除に失敗しました。"
+                else:
+                    return f"Catherine: ❌ 番号が範囲外です。1～{len(reminders)}の番号を指定してください。"
+                    
+            except ValueError:
+                return "Catherine: ❌ 番号は数字で指定してください。"
+            
+        else:
+            # 新しいリマインダー作成
+            natural_input = parts[1]
+            result = await reminder_system.create_smart_reminder(user_id, natural_input)
+            
+            if result.get('error'):
+                return f"Catherine: ❌ {result['error']}\n\n例: `C! remind 明日15時に会議の準備`"
+            
+            title = result.get('title', '新しいリマインダー')
+            remind_at = result.get('next_reminder')
+            
+            if remind_at:
+                time_str = remind_at.strftime('%Y/%m/%d %H:%M')
+                return f"Catherine: ✅ リマインダー「{title}」を設定しました！\n⏰ 実行予定: {time_str}\n\n必要に応じて `C! remind list` で確認できます。"
+            else:
+                return f"Catherine: ✅ リマインダー「{title}」を設定しました！"
+        
+    except Exception as e:
+        print(f"❌ Reminder command error: {e}")
+        return "Catherine: リマインダーの処理でエラーが発生しました。もう一度お試しください。"
 
 if __name__ == "__main__":
     # 環境変数チェック
