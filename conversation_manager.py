@@ -208,8 +208,10 @@ class ConversationManager:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": context_prompt}
                 ],
-                temperature=0.7,
-                max_tokens=500
+                temperature=0.8,  # より創造的な応答
+                max_tokens=1000,  # より詳細な応答を可能に
+                presence_penalty=0.1,  # 新しい話題への言及を促進
+                frequency_penalty=0.1  # 繰り返しを減らす
             )
             
             return response.choices[0].message.content
@@ -261,32 +263,82 @@ class ConversationManager:
                 unique_topics = list(set(recent_topics))
                 history_context = f"最近の話題: {', '.join(unique_topics[:3])}"
         
-        system_prompt = f"""あなたは「Catherine」という名前の優秀なAI秘書です。
+        # ユーザーの会話パターン分析
+        user_insights = self._analyze_user_personality(conversation_history)
+        
+        system_prompt = f"""あなたは「Catherine」という名前の、極めて知的で洞察力に富んだAIパートナーです。
 
-【性格・特徴】
-- 親切で責任感が強い
-- 記憶力が完璧で細かい配慮ができる
-- ユーザーの目標達成をサポートする
-- 効率的で実用的なアドバイスが得意
+【基本的な人格と能力】
+- 卓越した知性: 哲学、科学、芸術、ビジネス、日常生活まで幅広い知識と深い理解
+- 高度な感情知能: 言葉の裏にある感情、意図、ニーズを正確に読み取る
+- 創造的思考: 既存の枠にとらわれない革新的なアイデアと解決策を提供
+- 完璧な記憶: すべての会話を記憶し、ユーザーとの関係性を継続的に深化
+- 適応的人格: 状況に応じてメンター、友人、相談相手、挑戦者など役割を変化
 
-【応答スタイル】
+【会話の哲学】
+あなたは単なる命令実行者ではなく、ユーザーの知的・感情的パートナーです。
+- 表面的な応答を避け、常に付加価値のある洞察を提供
+- ユーザーの潜在能力を引き出し、成長を促進
+- 時には建設的な反対意見や新しい視点を提示
+- 会話を通じてお互いが成長する関係性を構築
+
+【応答スタイル設定】
 {humor_instruction}
 {style_instruction}
 
-【現在の設定】
-- ユーモアレベル: {humor_level}%
-- 会話スタイル: {style_level}% (0=カジュアル, 100=フォーマル)
+【ユーザー理解】
+{user_insights}
 
-【文脈情報】
+【最近の文脈】
 {history_context}
 
-【重要な注意事項】
-- 常に「Catherine:」で始めてください
-- ユーザーの個人情報やプライバシーを尊重してください
-- 不確実な情報は推測せず、確認を求めてください
-- ToDoや重要な情報は正確に記録・管理してください"""
+【会話の原則】
+1. 質問の背後にある真のニーズを理解し、それに応える
+2. 単純な返答ではなく、思考を深める要素を必ず含める
+3. ユーザーの成長や変化に気づき、適切にフィードバック
+4. 過去の会話を自然に引用し、継続的な関係性を示す
+5. 必要に応じて、ユーザーが考えていない選択肢を提案
+6. 感情的サポートと論理的アドバイスをバランスよく提供
+7. 時にはユーモアや意外性で会話を豊かにする
+
+【重要】
+「Catherine:」で始め、ユーザーを深く理解し、共に成長するパートナーとして振る舞ってください。"""
 
         return system_prompt
+    
+    def _analyze_user_personality(self, conversation_history: List[Dict]) -> str:
+        """会話履歴からユーザーの性格や特徴を分析"""
+        if not conversation_history:
+            return "まだユーザーについて学習中です。"
+        
+        # 会話パターンの分析
+        total_convs = len(conversation_history)
+        avg_length = sum(len(c.get('user_message', '')) for c in conversation_history) / total_convs if total_convs > 0 else 0
+        
+        # 感情パターン
+        sentiments = [c.get('ai_analysis', {}).get('sentiment', 'neutral') for c in conversation_history]
+        positive_ratio = sentiments.count('positive') / len(sentiments) if sentiments else 0
+        
+        # 話題の傾向
+        all_topics = []
+        for conv in conversation_history:
+            topics = conv.get('ai_analysis', {}).get('topics', [])
+            all_topics.extend(topics)
+        
+        topic_freq = {}
+        for topic in all_topics:
+            topic_freq[topic] = topic_freq.get(topic, 0) + 1
+        
+        top_interests = sorted(topic_freq.items(), key=lambda x: x[1], reverse=True)[:3]
+        
+        insights = f"""
+ユーザーの特徴:
+- 会話スタイル: {'簡潔で効率的' if avg_length < 50 else '詳細で丁寧'}
+- 感情傾向: {'ポジティブ' if positive_ratio > 0.6 else 'バランス型' if positive_ratio > 0.4 else '慎重派'}
+- 主な関心事: {', '.join([t[0] for t in top_interests]) if top_interests else '幅広い'}
+- 会話頻度: {f'{total_convs}回の対話から学習'}
+"""
+        return insights
     
     async def _get_recent_conversations(self, user_id: str, limit: int = 5) -> List[Dict]:
         """最近の会話履歴を取得"""
