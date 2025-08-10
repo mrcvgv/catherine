@@ -114,6 +114,46 @@ class TodoManager:
             print(f"❌ Todo update error: {e}")
             return False
     
+    async def list_todos_formatted(self, user_id: str) -> str:
+        """フォーマット済みToDoリストを取得"""
+        try:
+            todos = await self.get_user_todos(user_id)
+            
+            if not todos:
+                return "Catherine: 現在、登録されているToDoはありません。\n\n新しいToDoを追加するには `C! todo [内容]` を使用してください。"
+            
+            # ステータス別に分類
+            pending = [t for t in todos if t.get('status') == 'pending']
+            in_progress = [t for t in todos if t.get('status') == 'in_progress']
+            completed = [t for t in todos if t.get('status') == 'completed']
+            
+            result = "Catherine: 📋 **あなたのToDoリスト**\n\n"
+            
+            if pending:
+                result += "⏰ **未着手**\n"
+                for i, todo in enumerate(pending[:5], 1):
+                    priority = "🔥" if todo.get('priority', 3) >= 4 else "📌"
+                    result += f"{priority} {i}. {todo.get('title', 'タイトル不明')}\n"
+                result += "\n"
+            
+            if in_progress:
+                result += "🚀 **進行中**\n"
+                for i, todo in enumerate(in_progress[:3], 1):
+                    result += f"▶️ {i}. {todo.get('title', 'タイトル不明')}\n"
+                result += "\n"
+            
+            if completed:
+                result += f"✅ **完了済み** ({len(completed)}件)\n\n"
+            
+            result += "💡 ToDoの追加: `C! todo [内容]`\n"
+            result += "📝 完了報告: `C! done [番号]`"
+            
+            return result
+            
+        except Exception as e:
+            print(f"❌ List todos error: {e}")
+            return "Catherine: ToDoリストの取得でエラーが発生しました。しばらくしてからお試しください。"
+    
     async def _create_reminders(self, todo_data: Dict):
         """ToDoのリマインダーを作成"""
         due_date = todo_data['due_date']
