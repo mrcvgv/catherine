@@ -64,6 +64,7 @@ try:
     from super_natural_chat import SuperNaturalChat
     from mega_human_chat import MegaHumanChat
     from ultra_human_communication import UltraHumanCommunication
+    from instant_response_system import InstantResponseSystem
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -141,6 +142,7 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     super_natural_chat = SuperNaturalChat()
     mega_human_chat = MegaHumanChat()
     ultra_human_communication = UltraHumanCommunication()
+    instant_response_system = InstantResponseSystem()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
     print("   Fast Greeting System: Loaded for instant casual responses")
@@ -153,6 +155,8 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     print("       - 50k+ basic patterns, 100k+ situational, 50k+ emotional, 100k+ contextual")
     print("       - Real-time learning, emotional intelligence, regional dialects")
     print("       - Contextual awareness, personality adaptation")
+    print(f"   ⚡ INSTANT Response System: {instant_response_system.get_response_count()} instant patterns (0.001s)")
+    print("       - 即座に返事、遅延ゼロ、最高速カジュアル会話")
 else:
     evolved_human_ai = None
     fast_greeting = None
@@ -162,6 +166,7 @@ else:
     super_natural_chat = None
     mega_human_chat = None
     ultra_human_communication = None
+    instant_response_system = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -347,7 +352,25 @@ async def process_command(message, user_id: str, username: str):
             ])
         )
         
-        # 🌟⚡ ULTRA人間コミュニケーション - 最最最最優先 (500k+パターン完全汎用)
+        # ⚡⚡⚡ 瞬間応答システム - 最最最最最優先 (0.001秒応答)
+        if instant_response_system and instant_response_system.is_instant_response_target(command_text):
+            try:
+                start_time = time.time()
+                response = instant_response_system.get_instant_response(command_text)
+                if response:
+                    processing_time = (time.time() - start_time) * 1000
+                    print(f"[INSTANT] Input: {command_text} -> Response: {response} ({processing_time:.2f}ms)")
+                    
+                    bot_message = await message.channel.send(response)
+                    await _handle_post_response_processing(
+                        message, bot_message, user_id, command_text, response,
+                        context, 1.0
+                    )
+                    return
+            except Exception as e:
+                print(f"[ERROR] Instant response error: {e}")
+        
+        # 🌟⚡ ULTRA人間コミュニケーション - 次優先 (500k+パターン完全汎用)
         if ultra_human_communication and ultra_human_communication.is_ultra_human_communication(command_text):
             try:
                 response = ultra_human_communication.get_ultra_response(command_text, user_id)
