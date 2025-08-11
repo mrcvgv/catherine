@@ -92,7 +92,17 @@ intents.voice_states = True  # ボイスチャンネル機能のため追加
 bot = commands.Bot(command_prefix='C!', intents=intents)
 
 # OpenAI クライアント初期化
-client_oa = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if not openai_api_key:
+    print("[WARNING] OPENAI_API_KEY not set - using placeholder")
+    openai_api_key = "sk-placeholder"  # Railway起動時のプレースホルダー
+
+try:
+    client_oa = OpenAI(api_key=openai_api_key)
+except Exception as e:
+    print(f"[WARNING] OpenAI client initialization warning: {e}")
+    # プレースホルダーでクライアント作成
+    client_oa = OpenAI(api_key="sk-placeholder")
 
 # 各マネージャーの初期化
 todo_manager = TodoManager(client_oa)
@@ -2241,15 +2251,34 @@ async def update_learning():
 
 # Bot起動
 if __name__ == "__main__":
-    token = os.getenv("DISCORD_TOKEN")
-    if not token:
-        print("[ERROR] DISCORD_TOKEN が設定されていません")
+    try:
+        token = os.getenv("DISCORD_TOKEN")
+        if not token:
+            print("[ERROR] DISCORD_TOKEN が設定されていません")
+            print("[INFO] Railway環境の場合、Variables設定でDISCORD_TOKENを追加してください")
+            exit(1)
+        
+        openai_key = os.getenv("OPENAI_API_KEY")
+        if not openai_key:
+            print("[WARNING] OPENAI_API_KEY が設定されていません")
+            print("[INFO] Railway環境の場合、Variables設定でOPENAI_API_KEYを追加してください")
+            print("[INFO] BotはGPT機能なしで起動します")
+            openai_key = "sk-placeholder"
+        
+        print("[STARTUP] Catherine AI v2.0 starting...")
+        print(f"[INFO] Discord Token: {'*' * 10}{token[-5:] if len(token) > 5 else 'SHORT'}")
+        print(f"[INFO] OpenAI Key: {'*' * 10}{openai_key[-5:] if len(openai_key) > 5 else 'SHORT'}")
+        print(f"[INFO] Human Level Chat: {human_level_chat.get_pattern_count() if human_level_chat else 0} patterns loaded")
+        print(f"[INFO] Simple Todo: Ready")
+        
+        bot.run(token)
+        
+    except discord.LoginFailure as e:
+        print(f"[CRITICAL] Discord login failed: {e}")
+        print("[INFO] トークンが正しいか確認してください")
         exit(1)
-    
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if not openai_key:
-        print("[ERROR] OPENAI_API_KEY が設定されていません")
+    except Exception as e:
+        print(f"[CRITICAL] Bot startup failed: {e}")
+        import traceback
+        traceback.print_exc()
         exit(1)
-    
-    print("[STARTUP] Catherine AI v2.0 starting...")
-    bot.run(token)
