@@ -67,6 +67,8 @@ try:
     from instant_response_system import InstantResponseSystem
     from simple_human_chat import SimpleHumanChat
     from mega_universal_chat import MegaUniversalChat
+    from human_level_chat import HumanLevelChat
+    from simple_todo import SimpleTodo
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -147,6 +149,8 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     instant_response_system = InstantResponseSystem()
     simple_human_chat = SimpleHumanChat()
     mega_universal_chat = MegaUniversalChat()
+    human_level_chat = HumanLevelChat()
+    simple_todo = SimpleTodo()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
     print("   Fast Greeting System: Loaded for instant casual responses")
@@ -165,6 +169,10 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     print("       - 普通の友達みたい、気持ち理解、共感重視、頭良すぎない")
     print(f"   🌌 MEGA Universal Chat: {mega_universal_chat.get_pattern_count()} universal patterns")
     print("       - 日常生活のあらゆる会話を網羅、異次元レベルの汎用性、人間らしさMAX")
+    print(f"   👨 Human Level Chat: {human_level_chat.get_pattern_count()} human patterns")
+    print("       - 頭良すぎず、普通の人間みたいな会話、シンプルで自然")
+    print(f"   📝 Simple Todo: {simple_todo.get_todo_count()} active todos")
+    print("       - 複雑なことはしないシンプルTODO管理")
 else:
     evolved_human_ai = None
     fast_greeting = None
@@ -177,6 +185,8 @@ else:
     instant_response_system = None
     simple_human_chat = None
     mega_universal_chat = None
+    human_level_chat = None
+    simple_todo = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -362,7 +372,23 @@ async def process_command(message, user_id: str, username: str):
             ])
         )
         
-        # 🌌⚡ MEGA汎用会話 - 最最最最最最最優先 (異次元レベル汎用性)
+        # 👨⚡ 人間レベル会話 - 最最最最最最最最優先 (普通の人間みたい)
+        if human_level_chat and human_level_chat.is_human_chat(command_text):
+            try:
+                response = human_level_chat.get_human_response(command_text)
+                if response:
+                    print(f"[HUMAN_LEVEL] Input: {command_text} -> Response: {response} (人間レベル)")
+                    
+                    bot_message = await message.channel.send(response)
+                    await _handle_post_response_processing(
+                        message, bot_message, user_id, command_text, response,
+                        context, 1.0
+                    )
+                    return
+            except Exception as e:
+                print(f"[ERROR] Human level chat error: {e}")
+        
+        # 🌌⚡ MEGA汎用会話 - 次優先 (異次元レベル汎用性)
         if mega_universal_chat and mega_universal_chat.is_universal_chat(command_text):
             try:
                 response = mega_universal_chat.get_universal_response(command_text)
