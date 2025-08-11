@@ -105,6 +105,17 @@ async def on_message(message):
         await process_command(message, user_id, username)
         return  # C!コマンドの場合は、二重処理を防ぐためにここで終了
     
+    # 特定チャンネルでの自動反応（タグなし）
+    # 環境変数から設定可能、デフォルトは基本的なチャンネル名
+    auto_channels_env = os.getenv("AUTO_RESPONSE_CHANNELS", "todo,catherine,タスク,やること")
+    auto_response_channels = [ch.strip().lower() for ch in auto_channels_env.split(",")]
+    channel_name = message.channel.name.lower() if hasattr(message.channel, 'name') else ''
+    
+    if any(ch in channel_name for ch in auto_response_channels):
+        # todoチャンネル等では C! なしでも反応
+        await process_command(message, user_id, username)
+        return
+    
     # その他のコマンド処理（commands.Botの機能を使用）
     await bot.process_commands(message)
 
@@ -113,8 +124,9 @@ async def process_command(message, user_id: str, username: str):
     try:
         start_time = datetime.now()
         
-        # C!がどこにあっても対応する抽出ロジック
-        content = message.content
+        # C!がどこにあっても対応する抽出ロジック（特定チャンネルではタグなしも対応）
+        content = message.content.strip()
+        
         if "C!" in content:
             # C!以降の部分を抽出（C!が文の途中にある場合に対応）
             c_index = content.find("C!")
@@ -125,7 +137,8 @@ async def process_command(message, user_id: str, username: str):
                 # C!の前の部分を使用
                 command_text = content[:c_index].strip()
         else:
-            command_text = content.strip()
+            # C!がない場合はそのまま使用（特定チャンネルの場合）
+            command_text = content
         
         # 会話コンテキスト取得
         conversation_history = await conversation_manager._get_recent_conversations(user_id, limit=5)
