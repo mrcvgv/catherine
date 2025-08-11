@@ -1,0 +1,174 @@
+intents:
+  - name: todo_add
+    weight: 2.0  # 重要なインテントには高スコア
+    patterns:
+      # 基本動詞パターン
+      - "(?P<task>.+?)を?(?P<aux>やる|やっといて|やって|お願い|追加|登録|投入|入れ(?:て|と)おいて|To-?Do化|todo化)"
+      - "(?P<task>.+?)する"
+      - "(?P<task>.+?)つくる"
+      - "(?P<task>.+?)作る"
+      - "(?P<task>.+?)しなきゃ"
+      - "(?P<task>.+?)しないと"
+      - "(?P<task>.+?)やらなきゃ"
+      # TODO関連
+      - "(?:todo|to-?do).*?(?P<task>.+)"
+      - "(?:todoに?)(?P<task>.+)"
+      - "todoいれたい"
+      - "(?P<task>.+?)っての?todo"
+      - "(?P<task>.+?)を?todo"
+      - "(?P<task>.+?)を?追加"
+      - "(?P<task>.+?)を?登録"
+      - "(?P<task>.+?)入れといて"
+      # 口語・カジュアル表現
+      - "(?P<task>.+?)ぶち込んで"
+      - "(?P<task>.+?)投げて"
+      - "(?P<task>.+?)ピン留め"
+    slot_filters:
+      due_relative:
+        - "(?P<due_rel>今日中|明日中|明後日中|今週中|来週中|来月中|年内)"
+      due_absolute:
+        - "(?:(?P<month>\\d{1,2})/)?(?P<day>\\d{1,2})(?:\\(\\w\\))?(?: (?P<hour>\\d{1,2})[:：](?P<minute>\\d{2}))?"
+        - "(?:(?P<hour_pre>午前|午後)?(?P<hour2>\\d{1,2})時(?:(?P<minute2>\\d{2})分)?)"
+      deadline:
+        - ".*?まで|締?切|〆切"
+      priority:
+        - "(?P<priority>最優先|至急|なるはや|優先|低優先|あとで|明日回し)"
+      tags:
+        - "#(?P<tag>[\\w\\-ぁ-んァ-ヶ一-龥０-９A-Za-z]+)"
+
+  - name: todo_list
+    weight: 1.5
+    patterns:
+      - "やること.*見せて"
+      - "タスク.*表示"
+      - "(?:todo|to-?do).*list"
+      - "全リスト"
+      - "リスト.*(?:だして|出して|表示|見せて)"
+      - "list"
+      - "一覧"
+      - "今日のやること"
+      - "締切順|優先順|カテゴリ別"
+      - "何があったっけ"
+      - "やることある？"
+      - "タスクは？"
+
+  - name: todo_done
+    weight: 1.8
+    patterns:
+      - "(?P<task>.+?)(?:が)?完了"
+      - "(?P<task>.+?)終(?:わった|了)"
+      - "(?P<task>.+?)消化"
+      - "(?P<task>.+?)done"
+      - "(?P<task>.+?)できた"
+      - "(?P<task>.+?)おわり"
+      - "(?P<id>#?\\d{1,6})\\s*(?:完了|done|チェック|消化|終わった|できた)"
+
+  - name: todo_delete
+    weight: 1.7
+    patterns:
+      - "(?P<task>.+?)削除"
+      - "(?P<task>.+?)消去"
+      - "(?P<task>.+?)取り消し"
+      - "(?P<task>.+?)消して"
+      - "(?P<task>.+?)いらない"
+      - "(?P<task>.+?)やめる"
+      - "(?P<task>.+?)キャンセル"
+      - "(?P<id>#?\\d{1,6})\\s*(?:削除|消去|取り消し|消して)"
+
+  - name: todo_update
+    weight: 1.6
+    patterns:
+      - "(?P<task>.+?)の?名前(?:変更|リネーム)→(?P<new>.+)"
+      - "(?P<task>.+?)(?:の|を)?(?P<field>期日|締切|期限)→(?P<due>.+)"
+      - "(?P<task>.+?)の?優先度→(?P<priority>最優先|高|中|低)"
+      - "(?P<task>.+?)を?(?P<due>今日|明日|\\d{1,2}/\\d{1,2})まで"
+
+  - name: reminder_set
+    weight: 1.4
+    patterns:
+      - "(?P<what>.+?)を?(?P<when>.+?)にリマインド"
+      - "(?P<when>.+?)に(?P<what>.+?)教えて"
+      - "(?P<when>.+?)起こして"
+      - "(?P<what>.+?)リマインド"
+      - "(?P<what>.+?)思い出させて"
+      - "(?P<what>.+?)忘れないように"
+      - "(?P<what>.+?)通知して"
+      - "明日.*(?P<what>.+)"
+      - "(?P<time>\\d+)時.*(?P<what>.+)"
+      - "(?P<time>\\d+)分後.*(?P<what>.+)"
+
+  - name: greeting
+    weight: 1.0
+    patterns:
+      - "おはよう"
+      - "こんにちは"
+      - "こんばんは"
+      - "hello"
+      - "hi"
+      - "やっほー"
+      - "よう"
+      - "元気？"
+      - "調子どう"
+
+  - name: help_request
+    weight: 1.0
+    patterns:
+      - "help"
+      - "ヘルプ"
+      - "使い方"
+      - "どうやって"
+      - "できること"
+      - "何ができる"
+
+  - name: growth_status
+    weight: 1.0
+    patterns:
+      - "成長"
+      - "レベル"
+      - "ステータス"
+      - "進化"
+      - "学習状況"
+      - "どれくらい成長した"
+      - "どれくらい賢くなった"
+
+  - name: briefing
+    weight: 1.2
+    patterns:
+      - "ブリーフィング"
+      - "朝の.*報告"
+      - "今日の.*予定"
+      - "今日.*何"
+      - "朝会"
+
+  - name: schedule_add
+    weight: 1.3
+    patterns:
+      - "(?P<what>.+?)の?(?P<when>予定|予約)入れて"
+      - "(?P<when>.+?)に(?P<what>.+?)の予定"
+
+  - name: note_add
+    weight: 1.1
+    patterns:
+      - "(?P<text>.+?)覚えて"
+      - "(?P<text>.+?)メモ"
+      - "(?P<text>.+?)記録"
+
+  - name: search_request
+    weight: 1.0
+    patterns:
+      - "(?P<topic>.+?)調べて"
+      - "(?P<topic>.+?)比較"
+      - "(?P<topic>.+?)候補出して"
+      - "(?P<topic>.+?)おすすめ"
+
+  - name: voice_command
+    weight: 1.2
+    patterns:
+      - "(?P<action>join|参加).*voice"
+      - "voice.*(?P<action>join|参加)"
+      - "(?P<action>leave|退出).*voice"
+      - "voice.*(?P<action>leave|退出)"
+      - "(?P<text>.+?)(?P<action>読み上げ|say)"
+      - "(?P<action>stop|停止)"
+      - "volume.*(?P<level>\\d+)"
+      - "音量.*(?P<level>\\d+)"

@@ -31,6 +31,7 @@ from attachment_ocr_system import AttachmentOCRSystem
 from voice_optimized_system import VoiceOptimizedSystem
 from adaptive_learning_system import AdaptiveLearningSystem
 from natural_language_engine import NaturalLanguageEngine
+from fast_nlp_engine import FastNLPEngine
 from voice_channel_alternative import VoiceChannelAlternative  # 代替音声システム
 
 # Railway用ポート設定
@@ -64,6 +65,7 @@ ocr_system = AttachmentOCRSystem(client_oa)
 voice_system = VoiceOptimizedSystem(client_oa)
 adaptive_learning = AdaptiveLearningSystem(client_oa)
 natural_language = NaturalLanguageEngine(client_oa)
+fast_nlp = FastNLPEngine("intent_registry.yaml", client_oa)  # 新高速エンジン
 voice_channel = VoiceChannelAlternative(client_oa, bot)  # 代替音声システム
 
 # タイムゾーン設定
@@ -119,8 +121,8 @@ async def process_command(message, user_id: str, username: str):
             'history': conversation_history
         }
         
-        # 自然言語から意図を理解
-        intent = await natural_language.understand_intent(command_text, context)
+        # 高速NLP エンジンで意図を理解（決め打ち → LLM補完）
+        intent = await fast_nlp.understand_intent(command_text, context)
         
         # 意図に基づいてアクション実行
         response = await execute_natural_action(user_id, command_text, intent, message)
@@ -188,56 +190,105 @@ async def process_command(message, user_id: str, username: str):
 async def execute_natural_action(user_id: str, command_text: str, intent: Dict, message) -> str:
     """自然言語理解に基づくアクション実行"""
     try:
-        primary_intent = intent.get('primary_intent', 'chat')
-        parameters = intent.get('parameters', {})
+        primary_intent = intent.get('intent', intent.get('primary_intent', 'chat'))
+        parameters = intent.get('slots', intent.get('parameters', {}))
         
-        # ToDo管理
-        if primary_intent == 'todo_management' or 'todo' in primary_intent:
-            specific_action = intent.get('specific_action', '')
+        # ToDo追加
+        if primary_intent == 'todo_add':
+            task_content = parameters.get('task', parameters.get('content', command_text))
             
-            if 'add' in specific_action or 'create' in specific_action:
-                # ToDo追加
-                todo_info = natural_language.extract_todo_info(command_text, intent)
+            # タスク内容の抽出・クリーニング
+            if not task_content or task_content.strip() == "":
+                # パターンマッチングでタスク部分を抽出
+                import re
+                patterns = [
+                    r'(.+?)(?:する|つくる|作る|やる|todo|を?追加|を?登録)',
+                    r'(.+?)(?:しなきゃ|しないと|やらなきゃ)',
+                    r'(?:todo|タスク).*?(.+)',
+                ]
+                
+                for pattern in patterns:
+                    match = re.search(pattern, command_text, re.IGNORECASE)
+                    if match:
+                        task_content = match.group(1).strip()
+                        break
+                
+                if not task_content:
+                    task_content = command_text
+            
+            # 優先度・期限の設定
+            priority = 3  # デフォルト中優先度
+            if any(word in command_text for word in ['緊急', '至急', '最優先']):
+                priority = 5
+            elif any(word in command_text for word in ['重要', '優先']):
+                priority = 4
+            
+            try:
                 result = await team_todo_manager.add_team_todo(
                     user_id=user_id,
-                    title=todo_info['title'],
-                    priority=todo_info['priority'],
-                    due_date=todo_info['due_date'],
-                    category=todo_info['category']
+                    title=task_content[:100],
+                    priority=priority,
+                    due_date=None,  # TODO: 期限解析を後で実装
+                    category='general'
                 )
-                return await natural_language.generate_action_response(intent, f"「{todo_info['title'][:30]}」を追加しました")
-            
-            elif 'list' in specific_action or 'show' in specific_action or primary_intent == 'todo_list':
-                # ToDo一覧
+                return f"✅ 「**{task_content[:30]}**」をToDoに追加しました！"
+            except Exception as e:
+                print(f"❌ Todo add error: {e}")
+                return "ToDo追加中にエラーが発生しました。"
+        
+        # ToDoリスト表示
+        elif primary_intent == 'todo_list':
+            try:
                 todos = await team_todo_manager.get_team_todos()
                 if not todos:
                     return "今のところToDoはありません。何か追加しますか？"
                 
                 response = "📊 **ToDoリスト**\n\n"
                 for i, todo in enumerate(todos[:20], 1):
-                    # シンプルに番号と太字のタイトルのみ
                     response += f"{i}. **{todo['title'][:50]}**\n"
                 
                 return response
+            except Exception as e:
+                print(f"❌ Todo list error: {e}")
+                return "ToDoリスト取得中にエラーが発生しました。"
+        
+        # ToDo完了
+        elif primary_intent == 'todo_done':
+            task_info = parameters.get('task', parameters.get('id', ''))
             
-            elif 'complete' in specific_action or 'done' in specific_action:
-                # ToDo完了
-                content = parameters.get('content', command_text)
-                # 番号または内容で特定
-                if content.isdigit():
-                    result = await team_todo_manager.complete_todo_by_index(int(content) - 1)
-                else:
-                    result = await team_todo_manager.complete_todo_by_title(content)
-                return await natural_language.generate_action_response(intent, result)
+            if task_info.isdigit():
+                # 番号で指定
+                try:
+                    index = int(task_info) - 1
+                    result = await team_todo_manager.complete_todo_by_index(index)
+                    return f"✅ {task_info}番目のToDoを完了しました！"
+                except Exception as e:
+                    return f"❌ {task_info}番目のToDoが見つかりません。"
+            else:
+                # タスク名で指定
+                try:
+                    result = await team_todo_manager.complete_todo_by_title(task_info)
+                    return f"✅ 「**{task_info}**」を完了しました！"
+                except Exception as e:
+                    return f"❌ 「{task_info}」が見つかりません。"
+        
+        # ToDo削除
+        elif primary_intent == 'todo_delete':
+            task_info = parameters.get('task', parameters.get('id', ''))
             
-            elif 'delete' in specific_action or 'remove' in specific_action:
-                # ToDo削除
-                content = parameters.get('content', command_text)
-                if content.isdigit():
-                    result = await team_todo_manager.delete_todo_by_index(int(content) - 1)
-                else:
-                    result = await team_todo_manager.delete_todo_by_title(content)
-                return await natural_language.generate_action_response(intent, result)
+            if task_info.isdigit():
+                try:
+                    index = int(task_info) - 1
+                    result = await team_todo_manager.delete_todo_by_index(index)
+                    return f"🗑️ {task_info}番目のToDoを削除しました。"
+                except Exception as e:
+                    return f"❌ {task_info}番目のToDoが見つかりません。"
+            else:
+                try:
+                    result = await team_todo_manager.delete_todo_by_title(task_info)
+                    return f"🗑️ 「**{task_info}**」を削除しました。"
+                except Exception as e:
+                    return f"❌ 「{task_info}」が見つかりません。"
         
         # リマインダー
         elif primary_intent == 'reminder':
