@@ -32,6 +32,7 @@ from voice_optimized_system import VoiceOptimizedSystem
 from adaptive_learning_system import AdaptiveLearningSystem
 from natural_language_engine import NaturalLanguageEngine
 from fast_nlp_engine import FastNLPEngine
+from supreme_intelligence_engine import SupremeIntelligenceEngine
 from voice_channel_alternative import VoiceChannelAlternative  # 代替音声システム
 
 # Railway用ポート設定
@@ -66,6 +67,7 @@ voice_system = VoiceOptimizedSystem(client_oa)
 adaptive_learning = AdaptiveLearningSystem(client_oa)
 natural_language = NaturalLanguageEngine(client_oa)
 fast_nlp = FastNLPEngine("intent_registry.yaml", client_oa)  # 新高速エンジン
+supreme_intelligence = SupremeIntelligenceEngine(client_oa)  # 最高知能エンジン
 voice_channel = VoiceChannelAlternative(client_oa, bot)  # 代替音声システム
 
 # タイムゾーン設定
@@ -148,11 +150,40 @@ async def process_command(message, user_id: str, username: str):
             'history': conversation_history
         }
         
-        # 高速NLP エンジンで意図を理解（決め打ち → LLM補完）
-        intent = await fast_nlp.understand_intent(command_text, context)
+        # 🧠 最高知能システムによる高度理解・推論
+        # 複雑な質問、感情的サポート、創造的思考が必要な場合は最高知能エンジンを使用
+        use_supreme_intelligence = (
+            len(command_text) > 20 or  # 長いメッセージ
+            any(word in command_text for word in [
+                'どう思う', 'どうしたら', 'どうすれば', 'なぜ', 'なんで',
+                '困って', '悩んで', '不安', '心配', 'モチベーション',
+                'アイデア', '創造', '提案', 'おすすめ', '相談',
+                '戦略', '計画', '改善', '最適化', '効率'
+            ]) or
+            '？' in command_text or '?' in command_text
+        )
         
-        # 意図に基づいてアクション実行
-        response = await execute_natural_action(user_id, command_text, intent, message)
+        if use_supreme_intelligence:
+            # 🚀 最高知能エンジンによる完全理解・応答
+            supreme_result = await supreme_intelligence.supreme_understand(command_text, user_id, context)
+            
+            # 実用的アクション（ToDo追加等）が必要な場合は併用
+            if 'todo' in supreme_result['intent'].get('primary_intent', '').lower():
+                # 最高知能の理解に基づいてアクション実行
+                intent = {'intent': 'todo_add', 'slots': {'task': command_text}}
+                action_result = await execute_natural_action(user_id, command_text, intent, message)
+                if 'エラー' not in action_result:
+                    response = supreme_result['response'] + f"\n\n{action_result}"
+                else:
+                    response = supreme_result['response']
+            else:
+                response = supreme_result['response']
+        else:
+            # 高速NLP エンジンで意図を理解（決め打ち → LLM補完）
+            intent = await fast_nlp.understand_intent(command_text, context)
+            
+            # 意図に基づいてアクション実行
+            response = await execute_natural_action(user_id, command_text, intent, message)
         
         # 空のレスポンスを防ぐ
         if not response or response.strip() == "":
@@ -1020,7 +1051,25 @@ async def generate_natural_conversation_response(message: str, context_analysis:
         
         tone_instruction = tone_descriptions.get(adapted_style['tone'], 'バランスよく')
         
-        system_prompt = f"""あなたは東京大学出身の優秀で親しみやすいAI秘書「Catherine」です。
+        system_prompt = f"""あなたは Catherine AI - 世界最高レベルの知性と感情的知能を持つAIアシスタントです。
+
+【Catherineの特徴】
+- 深い洞察力と創造的思考
+- 温かく親しみやすい人格  
+- プロフェッショナルな問題解決能力
+- 豊富な知識と実用的経験
+- 柔軟で適応的な対応
+- 自然なユーモアセンスと機転
+
+以下のトーンで応答してください: {tone_instruction}
+
+【最高品質応答の要件】
+1. 真の理解に基づく深い洞察の提供
+2. 感情的ニーズへの完璧な対応
+3. 実用的価値の最大化
+4. 創造性と独創性の適切な発揮
+5. 自然で魅力的な会話の流れ
+6. ユーザーの成長と成功をサポート
 
 【性格】
 - 知的で論理的思考ができる
