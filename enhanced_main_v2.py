@@ -61,6 +61,7 @@ try:
     from natural_conversation_system import NaturalConversationSystem
     from massive_pattern_brain import MassivePatternBrain
     from instant_intent_engine import InstantIntentEngine
+    from super_natural_chat import SuperNaturalChat
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -135,18 +136,21 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     natural_conversation = NaturalConversationSystem()
     massive_pattern_brain = MassivePatternBrain()
     instant_intent_engine = InstantIntentEngine()
+    super_natural_chat = SuperNaturalChat()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
     print("   Fast Greeting System: Loaded for instant casual responses")
     print("   Natural Conversation System: Loaded for human-like chat")
     print("   🧠 Massive Pattern Brain: 100M+ patterns loaded")
     print("   ⚡ Instant Intent Engine: 0.001s recognition speed")
+    print(f"   💬 Super Natural Chat: {super_natural_chat.get_pattern_count()} natural patterns")
 else:
     evolved_human_ai = None
     fast_greeting = None
     natural_conversation = None
     massive_pattern_brain = None
     instant_intent_engine = None
+    super_natural_chat = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -332,7 +336,23 @@ async def process_command(message, user_id: str, username: str):
             ])
         )
         
-        # 🧠⚡ 超高速意図認識システム - 最優先で実行
+        # 💬⚡ 超自然会話システム - 最最優先 (普通の会話)
+        if super_natural_chat and super_natural_chat.is_super_natural_chat(command_text):
+            try:
+                response = super_natural_chat.get_natural_response(command_text)
+                if response:
+                    print(f"[SUPER_NATURAL] Input: {command_text[:30]} -> Response: {response}")
+                    
+                    bot_message = await message.channel.send(response)
+                    await _handle_post_response_processing(
+                        message, bot_message, user_id, command_text, response,
+                        context, 1.0
+                    )
+                    return
+            except Exception as e:
+                print(f"[ERROR] Super natural chat error: {e}")
+        
+        # 🧠⚡ 超高速意図認識システム - 次の優先度
         if instant_intent_engine and massive_pattern_brain:
             try:
                 start_time = time.time()
