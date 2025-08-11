@@ -164,14 +164,18 @@ class HumanLevelChat:
         """人間チャット判定 - とにかく広く受け入れる"""
         clean_text = text.strip().lower()
         
+        # 明らかな機能要求は除外（TODOなど）
+        excluded = [
+            'リスト出して', 'リスト表示', 'todo一覧', '一覧表示',
+            'todo', 'タスク', 'やること', '入れて', '追加', '登録',
+            'db', 'データベース', 'つながって', '接続'
+        ]
+        if any(ex in clean_text for ex in excluded):
+            return False
+        
         # 短い文章は基本的に対象
         if len(clean_text) <= 30:
             return True
-        
-        # 明らかな機能要求のみ除外
-        excluded = ['リスト出して', 'リスト表示', 'todo一覧', '一覧表示']
-        if any(ex in clean_text for ex in excluded):
-            return False
             
         return True
     

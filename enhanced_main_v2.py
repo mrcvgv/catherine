@@ -367,23 +367,24 @@ async def process_command(message, user_id: str, username: str):
                 print("[WARNING] Falling back to standard system")
                 # エラーの場合は既存システムにフォールバック
         
-        # 具体的な機能要求の検出
-        is_functional_request = any(keyword in command_text.lower() for keyword in [
+        # TODO関連コマンドの検出（最優先）
+        is_todo_command = any(keyword in command_text.lower() for keyword in [
+            'todo', 'タスク', 'やること', '入れて', '追加', '登録',
             'リスト出', 'リスト表示', 'リスト見せ', 'タスク一覧', 'todo一覧', 
-            'リスト教', 'やること見せ', 'タスク出し', 'list', '一覧出し'
+            'リスト教', 'やること見せ', 'タスク出し', 'list', '一覧出し', 'done'
         ])
         
-        # シンプルな挨拶・カジュアル会話の検出
-        is_simple_greeting = (
-            len(command_text) <= 10 and 
-            any(greeting in command_text.lower() for greeting in [
-                'よう', 'おっす', 'おい', 'やあ', 'はい', 'うん', 'そう', 'へー',
-                'こんにちは', 'こんばんは', 'おはよう', 'hi', 'hello', 'hey'
-            ])
-        )
+        # DB接続確認コマンド
+        is_db_check = any(keyword in command_text.lower() for keyword in [
+            'db', 'データベース', 'つながって', '接続', 'チェック'
+        ])
         
-        # 👨⚡ 人間レベル会話 - 最最最最最最最最優先 (普通の人間みたい)
-        if human_level_chat and human_level_chat.is_human_chat(command_text):
+        # TODOまたはDB確認の場合は会話システムをスキップ
+        if is_todo_command or is_db_check:
+            # TODO/DBコマンドとして処理を続行
+            print(f"[TODO/DB] Command detected: {command_text}")
+        # 👨⚡ 人間レベル会話 - 次優先 (普通の人間みたい)
+        elif human_level_chat and human_level_chat.is_human_chat(command_text):
             try:
                 response = human_level_chat.get_human_response(command_text)
                 if response:
