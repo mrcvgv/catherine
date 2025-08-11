@@ -393,42 +393,28 @@ async def handle_team_list(command_text: str) -> str:
         todos = await team_todo_manager.get_team_todos(filters)
         
         if not todos:
-            return "📋 該当するチームToDoはありません。"
+            return "📋 該当するToDoはありません。"
         
         # リスト作成
-        response = "📊 **チームToDoリスト**\n\n"
+        response = "📊 **ToDoリスト**\n\n"
         
-        # 担当者別にグループ化
-        by_assignee = {}
-        for todo in todos[:30]:  # 最大30件
-            assignee = todo.get('assignee', 'unassigned')
-            if assignee not in by_assignee:
-                by_assignee[assignee] = []
-            by_assignee[assignee].append(todo)
-        
-        # 表示
-        for assignee, assignee_todos in by_assignee.items():
-            assignee_name = team_todo_manager.team_members[assignee]['name']
-            response += f"**👤 {assignee_name}**\n"
+        # シンプルな番号付きリスト表示
+        for i, todo in enumerate(todos[:30], 1):  # 最大30件
+            priority_emoji = "🔥" if todo['priority'] >= 4 else "⚡" if todo['priority'] >= 3 else "📌"
+            status_emoji = {
+                'pending': '⏳',
+                'in_progress': '🔄',
+                'review': '👀',
+                'blocked': '🚫',
+                'completed': '✅',
+                'cancelled': '❌'
+            }.get(todo['status'], '❓')
             
-            for i, todo in enumerate(assignee_todos, 1):
-                priority_emoji = "🔥" if todo['priority'] >= 4 else "⚡" if todo['priority'] >= 3 else "📌"
-                status_emoji = {
-                    'pending': '⏳',
-                    'in_progress': '🔄',
-                    'review': '👀',
-                    'blocked': '🚫',
-                    'completed': '✅',
-                    'cancelled': '❌'
-                }.get(todo['status'], '❓')
-                
-                due_text = ""
-                if todo.get('due_date'):
-                    due_text = f" 📅{todo['due_date'].strftime('%m/%d')}"
-                
-                response += f"  {i}. {priority_emoji}{status_emoji} {todo['title'][:50]}{due_text}\n"
+            due_text = ""
+            if todo.get('due_date'):
+                due_text = f" 📅{todo['due_date'].strftime('%m/%d')}"
             
-            response += "\n"
+            response += f"{i}. {priority_emoji}{status_emoji} {todo['title'][:50]}{due_text}\n"
         
         if len(todos) > 30:
             response += f"... 他{len(todos) - 30}件\n"
