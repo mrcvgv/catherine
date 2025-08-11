@@ -207,13 +207,8 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 
                 response = "📊 **ToDoリスト**\n\n"
                 for i, todo in enumerate(todos[:20], 1):
-                    priority_emoji = "🔥" if todo['priority'] >= 4 else "⚡" if todo['priority'] >= 3 else "📌"
-                    status_emoji = {
-                        'pending': '⏳',
-                        'in_progress': '🔄',
-                        'completed': '✅'
-                    }.get(todo['status'], '❓')
-                    response += f"{i}. {priority_emoji}{status_emoji} {todo['title'][:50]}\n"
+                    # シンプルに番号と太字のタイトルのみ
+                    response += f"{i}. **{todo['title'][:50]}**\n"
                 
                 return response
             
@@ -320,8 +315,8 @@ async def route_command(user_id: str, command_text: str,
         return await handle_team_todo_create(user_id, command_text, message)
     elif command_lower.startswith("update"):
         return await handle_todo_update(user_id, command_text)
-    elif command_lower.startswith("list"):
-        return await handle_team_list(command_text)
+    # elif command_lower.startswith("list"):  # 自然言語システムに移行
+    #     return await handle_team_list(command_text)
     elif command_lower.startswith("assign"):
         return await handle_team_assign(command_text)
     elif command_lower.startswith("report"):
@@ -389,14 +384,18 @@ async def route_command(user_id: str, command_text: str,
     elif command_lower.startswith("help"):
         return await handle_help()
     
-    # 自然言語処理
+    # 自然言語処理は新システムに移行
+    # else:
+    #     return await handle_natural_conversation(
+    #         user_id, 
+    #         command_text, 
+    #         context_analysis,
+    #         user_profile
+    #     )
+    
+    # フォールバック：認識されないコマンド
     else:
-        return await handle_natural_conversation(
-            user_id, 
-            command_text, 
-            context_analysis,
-            user_profile
-        )
+        return "すみません、そのコマンドは認識できませんでした。"
 
 @bot.event
 async def on_reaction_add(reaction, user):
@@ -522,23 +521,9 @@ async def handle_team_list(command_text: str) -> str:
         # リスト作成
         response = "📊 **ToDoリスト**\n\n"
         
-        # シンプルな番号付きリスト表示
-        for i, todo in enumerate(todos[:30], 1):  # 最大30件
-            priority_emoji = "🔥" if todo['priority'] >= 4 else "⚡" if todo['priority'] >= 3 else "📌"
-            status_emoji = {
-                'pending': '⏳',
-                'in_progress': '🔄',
-                'review': '👀',
-                'blocked': '🚫',
-                'completed': '✅',
-                'cancelled': '❌'
-            }.get(todo['status'], '❓')
-            
-            due_text = ""
-            if todo.get('due_date'):
-                due_text = f" 📅{todo['due_date'].strftime('%m/%d')}"
-            
-            response += f"{i}. {priority_emoji}{status_emoji} {todo['title'][:50]}{due_text}\n"
+        # シンプルな番号付きリスト表示（絵文字なし、太字）
+        for i, todo in enumerate(todos[:30], 1):  # 最大30件            
+            response += f"{i}. **{todo['title'][:50]}**\n"
         
         if len(todos) > 30:
             response += f"... 他{len(todos) - 30}件\n"
