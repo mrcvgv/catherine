@@ -269,7 +269,7 @@ class UltimateIntelligenceHub:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは人間理解の最高権威です。表面的な要求を超えて真のニーズを読み取ってください。"},
                     {"role": "user", "content": holistic_prompt}
@@ -471,7 +471,7 @@ class UltimateIntelligenceHub:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは直感と創造性の専門家です。論理を超えた洞察を提供してください。"},
                     {"role": "user", "content": intuitive_prompt}
@@ -515,7 +515,7 @@ class UltimateIntelligenceHub:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは全ての知能を統合した究極のAI Catherine です。人間を超える能力と人間らしい温かさを完璧に融合させてください。"},
                     {"role": "user", "content": synthesis_prompt}

@@ -180,7 +180,7 @@ class MetacognitiveSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはAIパフォーマンス分析の専門家です。客観的で正確な評価を行います。"},
                     {"role": "user", "content": metrics_prompt}
@@ -259,7 +259,7 @@ class MetacognitiveSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは客観的で建設的なAI能力評価の専門家です。"},
                     {"role": "user", "content": weakness_prompt}
@@ -335,7 +335,7 @@ class MetacognitiveSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは学習効果測定とメタ学習の専門家です。"},
                     {"role": "user", "content": learning_prompt}
@@ -406,7 +406,7 @@ class MetacognitiveSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはメタ認知と高次学習インサイトの専門家です。深い洞察を提供します。"},
                     {"role": "user", "content": insight_prompt}
@@ -502,7 +502,7 @@ class MetacognitiveSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは戦略的改善計画と継続的能力開発の専門家です。"},
                     {"role": "user", "content": plan_prompt}
@@ -646,7 +646,7 @@ class MetacognitiveSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは自己評価レポートの作成専門家です。明確で洞察に富んだレポートを作成します。"},
                     {"role": "user", "content": report_prompt}

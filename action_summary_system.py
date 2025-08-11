@@ -103,7 +103,7 @@ class ActionSummarySystem:
 """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[{"role": "system", "content": prompt}],
                 temperature=0.1,
                 max_tokens=50
@@ -216,7 +216,7 @@ class ActionSummarySystem:
 """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[{"role": "system", "content": prompt}],
                 temperature=0.3,
                 response_format={"type": "json_object"}

@@ -63,7 +63,7 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは世界最高レベルの感情分析心理学者です。微細な感情変化も正確に読み取り、最適なサポート方法を提案してください。"},
                     {"role": "user", "content": analysis_prompt}
@@ -114,7 +114,7 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは感情に配慮した高度なコミュニケーション専門家です。相手の心理状態に完璧に適応した応答を生成してください。"},
                     {"role": "user", "content": adaptation_prompt}
@@ -217,7 +217,7 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは感情に深く共感し、的確な支援を提供する心理カウンセラーです。"},
                     {"role": "user", "content": support_prompt}
@@ -341,7 +341,7 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは危機介入の専門家です。安全で効果的な支援を提供してください。"},
                     {"role": "user", "content": crisis_prompt}
@@ -398,7 +398,7 @@ class EmotionalIntelligence:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "感情パターン分析の専門家として、深いインサイトを提供してください。"},
                     {"role": "user", "content": pattern_prompt}

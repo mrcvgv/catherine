@@ -111,7 +111,7 @@ class SupremeIntelligenceEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは人間の真意を深く理解する最高レベルの分析専門家です。"},
                     {"role": "user", "content": prompt}
@@ -165,7 +165,7 @@ Catherine AI の能力:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは人間の心理と行動を完璧に理解する最高レベルのAI心理学者です。"},
                     {"role": "user", "content": prompt}
@@ -211,7 +211,7 @@ Catherine AI の立場から、以下を含む創造的解決策をJSON形式で
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは創造性と実用性を完璧にバランスさせる最高レベルの問題解決専門家です。"},
                     {"role": "user", "content": prompt}
@@ -257,7 +257,7 @@ Catherine AI の立場から、以下を含む創造的解決策をJSON形式で
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは人間に最高の価値を提供する、世界最高レベルのAIアシスタント Catherine です。"},
                     {"role": "user", "content": prompt}

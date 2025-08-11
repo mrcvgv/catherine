@@ -162,7 +162,7 @@ class IntelligentAutomationSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは戦略的プロジェクト分析の世界最高権威です。"},
                     {"role": "user", "content": scope_prompt}
@@ -228,7 +228,7 @@ class IntelligentAutomationSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはプロジェクト管理とタスク分解の専門家です。"},
                     {"role": "user", "content": task_prompt}
@@ -363,7 +363,7 @@ class IntelligentAutomationSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはリソース管理と容量計画の専門家です。"},
                     {"role": "user", "content": resource_prompt}
@@ -434,7 +434,7 @@ class IntelligentAutomationSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはリスク管理と予防戦略の専門家です。"},
                     {"role": "user", "content": risk_prompt}
@@ -503,7 +503,7 @@ JSON形式で最適化結果を返してください：
 """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはリソース最適化とオペレーションズリサーチの専門家です。"},
                     {"role": "user", "content": optimization_prompt}
@@ -577,7 +577,7 @@ JSON形式で最適化結果を返してください：
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは予測分析と戦略的洞察の専門家です。"},
                     {"role": "user", "content": prediction_prompt}

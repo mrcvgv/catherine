@@ -1643,7 +1643,7 @@ async def generate_natural_conversation_response(message: str, context_analysis:
 """
 
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_context}

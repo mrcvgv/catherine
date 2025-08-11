@@ -174,7 +174,7 @@ JSON形式で回答：
 """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[{"role": "system", "content": prompt}],
                 temperature=0.4,
                 response_format={"type": "json_object"}
@@ -257,7 +257,7 @@ JSON形式で回答：
 """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[{"role": "system", "content": prompt}],
                 temperature=0.6,
                 max_tokens=60

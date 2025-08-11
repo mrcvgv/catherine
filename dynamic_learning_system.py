@@ -129,7 +129,7 @@ class DynamicLearningSystem:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは人間行動とコミュニケーションパターンの分析専門家です。"},
                     {"role": "user", "content": prompt}
@@ -204,7 +204,7 @@ JSON形式で詳細な評価を返してください：
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはAIインタラクションの品質評価専門家です。"},
                     {"role": "user", "content": prompt}
@@ -275,7 +275,7 @@ JSON形式で詳細な評価を返してください：
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは心理学・性格分析の専門家です。"},
                     {"role": "user", "content": analysis_prompt}
@@ -358,7 +358,7 @@ JSON形式で詳細な評価を返してください：
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはAI学習とパーソナライゼーションの専門家です。"},
                     {"role": "user", "content": insight_prompt}
@@ -526,7 +526,7 @@ JSON形式で戦略を返してください：
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは個人適応型コミュニケーション戦略の専門家です。"},
                     {"role": "user", "content": strategy_prompt}

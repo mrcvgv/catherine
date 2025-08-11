@@ -100,7 +100,7 @@ class AdvancedReasoningEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは複雑な問題を完璧に分析する世界最高の専門家です。"},
                     {"role": "user", "content": prompt}
@@ -154,7 +154,7 @@ class AdvancedReasoningEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは仮説生成と科学的推論の世界最高権威です。"},
                     {"role": "user", "content": prompt}
@@ -198,7 +198,7 @@ class AdvancedReasoningEngine:
             
             try:
                 response = self.client.chat.completions.create(
-                    model="gpt-4o",
+                    model="gpt-4.1",
                     messages=[
                         {"role": "system", "content": f"あなたは論理的推論の専門家です。ステップ{i+1}の推論を構築してください。"},
                         {"role": "user", "content": step_prompt}
@@ -255,7 +255,7 @@ class AdvancedReasoningEngine:
             
             try:
                 response = self.client.chat.completions.create(
-                    model="gpt-4o",
+                    model="gpt-4.1",
                     messages=[
                         {"role": "system", "content": "あなたは論理学と推論の妥当性検証の専門家です。"},
                         {"role": "user", "content": validation_prompt}
@@ -313,7 +313,7 @@ class AdvancedReasoningEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは複雑な推論を明確で実用的な結論にまとめる専門家です。"},
                     {"role": "user", "content": synthesis_prompt}

@@ -29,7 +29,7 @@ async def on_message(message):
         try:
             # v1 系の書き方に変更
             resp = client_oa.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a helpful secretary named Catherine."},
                     {"role": "user", "content": prompt}

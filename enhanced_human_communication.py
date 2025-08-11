@@ -141,7 +141,7 @@ class EnhancedHumanCommunication:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "会話分析の専門家として、詳細な分析を行ってください。"},
                     {"role": "user", "content": analysis_prompt}
@@ -311,7 +311,7 @@ class EnhancedHumanCommunication:
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}

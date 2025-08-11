@@ -192,7 +192,7 @@ class AdvancedContextEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは多層文脈分析の世界最高権威です。人間のコミュニケーションの全ての層を理解します。"},
                     {"role": "user", "content": layers_prompt}
@@ -258,7 +258,7 @@ class AdvancedContextEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは人間のコミュニケーションの暗示・行間・サブテキストを完璧に理解する専門家です。"},
                     {"role": "user", "content": implicit_prompt}
@@ -333,7 +333,7 @@ JSON形式で関係性分析を返してください：
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは人間関係とコミュニケーションダイナミクスの専門家です。"},
                     {"role": "user", "content": relationship_prompt}
@@ -418,7 +418,7 @@ JSON形式で文化的文脈を返してください：
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは文化人類学と異文化コミュニケーションの専門家です。"},
                     {"role": "user", "content": cultural_prompt}
@@ -488,7 +488,7 @@ JSON形式でパターン分析を返してください：
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは長期的行動パターンと予測分析の専門家です。"},
                     {"role": "user", "content": pattern_prompt}
@@ -551,7 +551,7 @@ JSON形式でパターン分析を返してください：
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは複雑な文脈情報を統合して最適な理解と戦略を生成する専門家です。"},
                     {"role": "user", "content": integration_prompt}

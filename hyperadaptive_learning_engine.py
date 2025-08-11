@@ -221,7 +221,7 @@ class HyperAdaptiveLearningEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは瞬間的パターン認識の専門家です。即座に適応すべき要素を特定してください。"},
                     {"role": "user", "content": recognition_prompt}
@@ -300,7 +300,7 @@ class HyperAdaptiveLearningEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは行動予測と適応戦略の専門家です。精緻な予測分析を行ってください。"},
                     {"role": "user", "content": prediction_prompt}
@@ -375,7 +375,7 @@ class HyperAdaptiveLearningEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは動的知識統合の専門家です。知識グラフを効率的に更新・拡張してください。"},
                     {"role": "user", "content": knowledge_prompt}
@@ -448,7 +448,7 @@ class HyperAdaptiveLearningEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはリアルタイム最適化の専門家です。即座に適用可能な最適化を提案してください。"},
                     {"role": "user", "content": optimization_prompt}
@@ -515,7 +515,7 @@ class HyperAdaptiveLearningEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは進化的学習システムの専門家です。システムの進化的成長を促進してください。"},
                     {"role": "user", "content": evolution_prompt}

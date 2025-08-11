@@ -85,7 +85,7 @@ class ProactiveAssistant:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは超優秀な予測分析専門家です。ユーザーの行動パターンから未来のニーズを正確に予測してください。"},
                     {"role": "user", "content": prediction_prompt}
@@ -198,7 +198,7 @@ class ProactiveAssistant:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは優秀な行動分析心理学者です。データから深いインサイトを抽出してください。"},
                     {"role": "user", "content": analysis_prompt}

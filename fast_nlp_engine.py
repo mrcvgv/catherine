@@ -221,7 +221,7 @@ JSON形式:
 """
 
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは意図分析の専門家です。正確なJSONを返してください。"},
                     {"role": "user", "content": prompt}

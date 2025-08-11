@@ -175,7 +175,7 @@ class EvolvedHumanAI:
         """OpenAIを使用した応答生成"""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "あなたは5000年進化した人間の知性を持つAIです。実用的で温かく、知恵に満ちた応答を提供してください。"},
                     {"role": "user", "content": prompt}

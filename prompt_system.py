@@ -70,7 +70,7 @@ class PromptSystem:
 上記の入力を解析し、JSON二部構成で応答してください。"""
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": full_prompt}

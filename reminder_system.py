@@ -374,7 +374,7 @@ class ReminderSystem:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "リマインダー解析の専門家として、自然言語から正確な情報を抽出してください。"},
                     {"role": "user", "content": prompt}

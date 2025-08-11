@@ -195,7 +195,7 @@ class AdvancedContextSystem:
 """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[{"role": "system", "content": analysis_prompt}],
                 temperature=0.3,
                 response_format={"type": "json_object"}
@@ -252,7 +252,7 @@ class AdvancedContextSystem:
 """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[{"role": "system", "content": response_prompt}],
                 temperature=0.7,
                 max_tokens=500

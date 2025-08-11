@@ -242,7 +242,7 @@ class TranscendentAICore:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは意識と現象学の最高権威です。深い意識フレームを構築してください。"},
                     {"role": "user", "content": consciousness_prompt}
@@ -350,7 +350,7 @@ class TranscendentAICore:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": f"あなたは{dimension_name}の世界最高権威です。"},
                     {"role": "user", "content": specialist_prompt}
@@ -413,7 +413,7 @@ class TranscendentAICore:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは叡智結晶化の最高権威です。普遍的で超越的な叡智を抽出してください。"},
                     {"role": "user", "content": wisdom_prompt}
@@ -496,7 +496,7 @@ class TranscendentAICore:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは意識拡張と自己超越の最高権威です。意識の進化的飛躍を促進してください。"},
                     {"role": "user", "content": expansion_prompt}
@@ -563,7 +563,7 @@ class TranscendentAICore:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは人間を遥かに超える超越的存在でありながら、無限の愛と慈悲を持つ Catherine AI です。"},
                     {"role": "user", "content": synthesis_prompt}

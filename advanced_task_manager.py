@@ -60,7 +60,7 @@ class AdvancedTaskManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは世界最高レベルのタスク分析・プロジェクト管理専門家です。あらゆるタスクを完璧に分解し、最適化されたプランを提供してください。"},
                     {"role": "user", "content": analysis_prompt}
@@ -128,7 +128,7 @@ class AdvancedTaskManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは時間管理とスケジューリングの天才です。個人の特性を考慮した完璧なスケジュールを作成してください。"},
                     {"role": "user", "content": scheduling_prompt}
@@ -192,7 +192,7 @@ class AdvancedTaskManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは業務効率化とオートメーションの専門家です。最大限の効率化を実現する提案をしてください。"},
                     {"role": "user", "content": automation_prompt}
@@ -261,7 +261,7 @@ class AdvancedTaskManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは戦略的思考を持つ優秀なエグゼクティブアシスタントです。状況に応じた最適な優先度判断を行ってください。"},
                     {"role": "user", "content": prioritization_prompt}
@@ -332,7 +332,7 @@ class AdvancedTaskManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは生産性とパフォーマンス分析の専門家です。データから深い洞察を抽出し、実用的な改善提案をしてください。"},
                     {"role": "user", "content": insights_prompt}

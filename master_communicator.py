@@ -164,7 +164,7 @@ class MasterCommunicator:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたはコミュニケーション分析の専門家です。文脈を詳細に分析してください。"},
                     {"role": "user", "content": context_prompt}
@@ -251,7 +251,7 @@ class MasterCommunicator:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは説明設計の専門家です。最適で効果的な説明戦略を設計してください。"},
                     {"role": "user", "content": strategy_prompt}
@@ -347,7 +347,7 @@ class MasterCommunicator:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは質問技術のエキスパートです。効果的で戦略的な質問を生成してください。"},
                     {"role": "user", "content": questions_prompt}
@@ -423,7 +423,7 @@ class MasterCommunicator:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは対話マネジメントの専門家です。高度な技術を駆使して効果的な対話戦略を提案してください。"},
                     {"role": "user", "content": management_prompt}
@@ -483,7 +483,7 @@ class MasterCommunicator:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは世界最高レベルのコミュニケーションマスター Catherine AI です。全ての技術を統合した完璧な応答を生成してください。"},
                     {"role": "user", "content": master_prompt}

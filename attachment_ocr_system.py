@@ -113,7 +113,7 @@ class AttachmentOCRSystem:
             
             # GPT-4 Visionでテキスト抽出
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {
                         "role": "user",
@@ -213,7 +213,7 @@ class AttachmentOCRSystem:
 """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[{"role": "system", "content": prompt}],
                 temperature=0.3,
                 response_format={"type": "json_object"}

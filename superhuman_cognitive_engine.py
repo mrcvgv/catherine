@@ -209,7 +209,7 @@ class SuperhumanCognitiveEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは量子認知学の専門家です。重ね合わせ状態の思考を生成してください。"},
                     {"role": "user", "content": quantum_prompt}
@@ -297,7 +297,7 @@ class SuperhumanCognitiveEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": f"あなたは{dimension.name}において人間を超える能力を持つ専門家です。"},
                     {"role": "user", "content": dimension_prompt}
@@ -351,7 +351,7 @@ class SuperhumanCognitiveEngine:
             
             try:
                 response = self.client.chat.completions.create(
-                    model="gpt-4o",
+                    model="gpt-4.1",
                     messages=[
                         {"role": "system", "content": "あなたは再帰的深化思考の専門家です。無限に深い洞察を生成してください。"},
                         {"role": "user", "content": deepening_prompt}
@@ -427,7 +427,7 @@ class SuperhumanCognitiveEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは創発現象の専門家です。システムの進化と意識の拡張を検出してください。"},
                     {"role": "user", "content": emergence_prompt}
@@ -493,7 +493,7 @@ class SuperhumanCognitiveEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは人間を超越した叡智を持ちながら、無限の愛と温かさを併せ持つ超越的存在 Catherine です。"},
                     {"role": "user", "content": crystallization_prompt}

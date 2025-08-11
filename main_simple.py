@@ -34,7 +34,7 @@ async def on_message(message):
             
         try:
             response = openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "あなたは「Catherine」という名前の優秀なAI秘書です。親切で丁寧に応答してください。"},
                     {"role": "user", "content": prompt}

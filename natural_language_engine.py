@@ -185,7 +185,7 @@ class NaturalLanguageEngine:
 """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは自然言語理解の専門家です。ユーザーの真の意図を正確に把握します。"},
                     {"role": "user", "content": prompt}
@@ -294,7 +294,7 @@ class NaturalLanguageEngine:
 """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは親しみやすい友人のような話し方をするAI秘書です。"},
                     {"role": "user", "content": prompt}

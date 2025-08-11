@@ -138,7 +138,7 @@ class ConversationManager:
             """
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは会話分析の専門家です。客観的に分析してください。"},
                     {"role": "user", "content": prompt}
@@ -227,7 +227,7 @@ class ConversationManager:
             messages.append({"role": "user", "content": context_prompt})
             
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",  # 最新の実在モデル使用
+                model="gpt-4.1",  # 最新の実在モデル使用
                 messages=messages,
                 temperature=0.3,  # 理解力重視
                 max_completion_tokens=4000,  # 超長文対応でコンテキスト長最大化

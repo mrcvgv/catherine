@@ -118,7 +118,7 @@ class PhDLevelIntelligence:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは複数の博士号を持つ学際的研究者です。知的複雑性を専門的に分析してください。"},
                     {"role": "user", "content": analysis_prompt}
@@ -180,7 +180,7 @@ class PhDLevelIntelligence:
             
             try:
                 response = self.client.chat.completions.create(
-                    model="gpt-4o",
+                    model="gpt-4.1",
                     messages=[
                         {"role": "system", "content": f"あなたは{domain}分野の博士号を持つ世界的権威です。最新の研究知見を踏まえた深い洞察を提供してください。"},
                         {"role": "user", "content": insight_prompt}
@@ -264,7 +264,7 @@ class PhDLevelIntelligence:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは批判的思考の専門家です。厳密で建設的な分析を行ってください。"},
                     {"role": "user", "content": critical_analysis_prompt}
@@ -324,7 +324,7 @@ class PhDLevelIntelligence:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "あなたは複数分野の博士号を持つ世界最高レベルの学者でありながら、人間らしい温かさも併せ持つCatherine AIです。"},
                     {"role": "user", "content": synthesis_prompt}
