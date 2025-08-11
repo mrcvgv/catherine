@@ -31,7 +31,7 @@ from attachment_ocr_system import AttachmentOCRSystem
 from voice_optimized_system import VoiceOptimizedSystem
 from adaptive_learning_system import AdaptiveLearningSystem
 from natural_language_engine import NaturalLanguageEngine
-# from voice_channel_system import VoiceChannelSystem  # 一時的に無効化（discord.sinks互換性問題）
+from voice_channel_alternative import VoiceChannelAlternative  # 代替音声システム
 
 # Railway用ポート設定
 PORT = int(os.environ.get("PORT", 8080))
@@ -64,7 +64,7 @@ ocr_system = AttachmentOCRSystem(client_oa)
 voice_system = VoiceOptimizedSystem(client_oa)
 adaptive_learning = AdaptiveLearningSystem(client_oa)
 natural_language = NaturalLanguageEngine(client_oa)
-# voice_channel = VoiceChannelSystem(client_oa, bot)  # 一時的に無効化
+voice_channel = VoiceChannelAlternative(client_oa, bot)  # 代替音声システム
 
 # タイムゾーン設定
 JST = pytz.timezone('Asia/Tokyo')
@@ -260,6 +260,38 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
         # ブリーフィング
         elif primary_intent == 'briefing':
             return await handle_morning_briefing(user_id)
+        
+        # 音声チャンネル
+        elif 'voice' in command_text.lower() or '音声' in command_text:
+            if 'join' in command_text or '参加' in command_text:
+                success = await voice_channel.join_voice_channel(message)
+                return "" if success else "ボイスチャンネル参加に失敗しました"
+            elif 'leave' in command_text or '退出' in command_text:
+                success = await voice_channel.leave_voice_channel(message)
+                return "" if success else "ボイスチャンネル退出に失敗しました"
+            elif 'say' in command_text or '読み上げ' in command_text:
+                text = command_text.replace('say', '').replace('読み上げ', '').strip()
+                if text:
+                    success = await voice_channel.text_to_speech(message, text)
+                    return "" if success else "読み上げに失敗しました"
+                return "読み上げるテキストを指定してください"
+            elif 'stop' in command_text or '停止' in command_text:
+                success = await voice_channel.stop_playback(message)
+                return "" if success else "停止に失敗しました"
+            elif 'volume' in command_text or '音量' in command_text:
+                import re
+                volume_match = re.search(r'(\d+)', command_text)
+                if volume_match:
+                    volume = int(volume_match.group(1))
+                    success = await voice_channel.adjust_volume(message, volume)
+                    return "" if success else "音量調整に失敗しました"
+                return "音量を0-100で指定してください"
+            else:
+                status = voice_channel.get_voice_status(message.guild.id)
+                if status['connected']:
+                    return f"🎤 接続中: {status['channel']}\n音量: {status['volume']}%\n再生中: {'はい' if status['is_playing'] else 'いいえ'}"
+                else:
+                    return "🔇 ボイスチャンネルに接続していません\n`C! join` で参加してください"
         
         # ヘルプ
         elif primary_intent == 'help_request':
@@ -1118,6 +1150,18 @@ async def process_attachments(message, user_id: str, username: str):
         all_created_todos = []
         
         for attachment in message.attachments:
+            # 音声ファイルの場合は文字起こし
+            audio_extensions = ['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.webm']
+            if any(attachment.filename.lower().endswith(ext) for ext in audio_extensions):
+                transcript = await voice_channel.transcribe_audio_file(attachment)
+                if transcript:
+                    await message.channel.send(f"🎤 **音声文字起こし**:\n```\n{transcript}\n```")
+                    
+                    # 文字起こし結果からToDoを抽出することも可能
+                    if 'todo' in transcript.lower() or 'やること' in transcript:
+                        await message.channel.send("💡 音声からToDoを作成しますか？ `C! todo [内容]`")
+                continue
+            
             # ファイルをダウンロード
             attachment_data = await attachment.read()
             
