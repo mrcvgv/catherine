@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import pytz
 from openai import OpenAI
 import re
+from dataclasses import dataclass, field
 
 JST = pytz.timezone('Asia/Tokyo')
 
