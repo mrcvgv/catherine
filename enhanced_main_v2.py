@@ -267,7 +267,9 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 
                 response = "📊 **ToDoリスト**\n\n"
                 for i, todo in enumerate(todos[:20], 1):
-                    response += f"{i}. **{todo['title'][:50]}**\n"
+                    # 改行を除去して、Discordマークダウンが正しく動作するように
+                    title = todo['title'][:50].replace('\n', ' ').replace('\r', ' ').strip()
+                    response += f"{i}. **{title}**\n"
                 
                 return response
             except Exception as e:
@@ -603,8 +605,9 @@ async def handle_team_list(command_text: str) -> str:
         response = "📊 **ToDoリスト**\n\n"
         
         # シンプルな番号付きリスト表示（絵文字なし、太字）
-        for i, todo in enumerate(todos[:30], 1):  # 最大30件            
-            response += f"{i}. **{todo['title'][:50]}**\n"
+        for i, todo in enumerate(todos[:30], 1):  # 最大30件
+            title = todo['title'][:50].replace('\n', ' ').replace('\r', ' ').strip()
+            response += f"{i}. **{title}**\n"
         
         if len(todos) > 30:
             response += f"... 他{len(todos) - 30}件\n"
