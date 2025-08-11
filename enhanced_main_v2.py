@@ -376,13 +376,115 @@ async def process_command(message, user_id: str, username: str):
         
         # DB接続確認コマンド
         is_db_check = any(keyword in command_text.lower() for keyword in [
-            'db', 'データベース', 'つながって', '接続', 'チェック'
+            'db', 'データベース', 'つながって', 'つながっています', '接続', 'チェック'
         ])
         
-        # TODOまたはDB確認の場合は会話システムをスキップ
-        if is_todo_command or is_db_check:
-            # TODO/DBコマンドとして処理を続行
-            print(f"[TODO/DB] Command detected: {command_text}")
+        # ✅ DB接続チェック - 最優先で処理
+        if is_db_check:
+            try:
+                print(f"[DB_CHECK] Processing: {command_text}")
+                # Firebase接続テスト
+                test_doc = firebase_manager.get_db().collection('connection_test').document('test')
+                test_doc.set({'timestamp': datetime.now().isoformat(), 'status': 'ok'})
+                
+                # Team todo manager テスト
+                todos_count = len(await team_todo_manager.get_team_todos())
+                
+                response = f"✅ **データベース接続状況**\n📊 現在のToDo数: {todos_count}件\n🔗 Firebase: 正常接続\n⏰ 接続確認時刻: {datetime.now().strftime('%H:%M:%S')}"
+                
+                bot_message = await message.channel.send(response)
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response,
+                    context, 1.0
+                )
+                return
+                
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                response = f"❌ **データベース接続エラー**\n詳細: {str(e)}\n🔧 Firebase設定を確認してください"
+                
+                bot_message = await message.channel.send(response)
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response,
+                    context, 1.0
+                )
+                return
+        
+        # 📋 TODO機能 - 実際に動作させる
+        elif is_todo_command:
+            try:
+                print(f"[TODO] Processing: {command_text}")
+                
+                # TODO追加の判定
+                if any(word in command_text.lower() for word in ['入れて', '追加', '登録', 'todo']):
+                    # コマンドからTODO内容を抽出
+                    todo_content = command_text.replace('todo', '').replace('入れて', '').replace('追加', '').replace('登録', '').strip()
+                    
+                    if not todo_content:
+                        response = "📋 TODOの内容を教えてください。\n例: `C! todo 明日の会議資料準備`"
+                    else:
+                        # Simple TODOで追加
+                        if simple_todo:
+                            result = simple_todo.add_todo(todo_content, user_id)
+                            response = result
+                        else:
+                            # フォールバック: team_todo_managerで追加
+                            result = await team_todo_manager.create_team_todo(
+                                user_id=user_id,
+                                title=todo_content[:100],
+                                priority=3,
+                                due_date=None,
+                                category='general'
+                            )
+                            response = f"✅ 「**{todo_content[:30]}**」をToDoに追加しました！"
+                
+                # TODOリスト表示の判定
+                elif any(word in command_text.lower() for word in ['リスト', '一覧', 'list']):
+                    if simple_todo:
+                        response = simple_todo.list_todos(user_id)
+                    else:
+                        # フォールバック
+                        todos = await team_todo_manager.get_team_todos()
+                        if not todos:
+                            response = "📋 今のところToDoはありません。"
+                        else:
+                            response = "📊 **ToDoリスト**\n\n"
+                            for i, todo in enumerate(todos[:10], 1):
+                                title = todo['title'][:50]
+                                response += f"{i}. **{title}**\n"
+                else:
+                    response = "📋 ToDo機能を使用します。\n• `todo 内容` - 追加\n• `todo list` - 一覧表示"
+                
+                bot_message = await message.channel.send(response)
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response,
+                    context, 1.0
+                )
+                return
+                
+            except Exception as e:
+                print(f"[ERROR] TODO processing error: {e}")
+                import traceback
+                traceback.print_exc()
+                response = f"❌ TODO処理エラー: {str(e)}"
+                
+                bot_message = await message.channel.send(response)
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response,
+                    context, 1.0
+                )
+                return
+        # 🙏 真摯な対応 - ユーザーの要求を理解して応える
+        # 何かがうまくいっていない場合のフォールバック
+        elif 'すみません' in command_text.lower() or 'ごめん' in command_text.lower():
+            response = "いえいえ、こちらこそすみません。どうすればお手伝いできますか？"
+            bot_message = await message.channel.send(response)
+            await _handle_post_response_processing(
+                message, bot_message, user_id, command_text, response, context, 1.0
+            )
+            return
+        
         # 👨⚡ 人間レベル会話 - 次優先 (普通の人間みたい)
         elif human_level_chat and human_level_chat.is_human_chat(command_text):
             try:

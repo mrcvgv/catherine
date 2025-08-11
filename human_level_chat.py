@@ -168,7 +168,7 @@ class HumanLevelChat:
         excluded = [
             'リスト出して', 'リスト表示', 'todo一覧', '一覧表示',
             'todo', 'タスク', 'やること', '入れて', '追加', '登録',
-            'db', 'データベース', 'つながって', '接続'
+            'db', 'データベース', 'つながって', 'つながっています', '接続'
         ]
         if any(ex in clean_text for ex in excluded):
             return False
