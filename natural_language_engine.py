@@ -22,18 +22,26 @@ class NaturalLanguageEngine:
             'todo_add': [
                 r'(.+?)をやる',
                 r'(.+?)する',
+                r'(.+?)つくる',
+                r'(.+?)作る', 
                 r'(.+?)しなきゃ',
                 r'(.+?)しないと',
                 r'(.+?)やらなきゃ',
                 r'todo.*(.+)',
+                r'todoに?(.+)',
+                r'todoいれたい',
                 r'タスク.*(.+)',
                 r'(.+?)を?追加',
-                r'(.+?)を?登録'
+                r'(.+?)を?登録',
+                r'(.+?)ってのtodo',
+                r'(.+?)をtodo'
             ],
             'todo_list': [
                 r'やること.*見せて',
                 r'タスク.*表示',
                 r'todo.*list',
+                r'全リスト',
+                r'リスト.*だして',
                 r'list',
                 r'一覧',
                 r'リスト',
@@ -207,11 +215,16 @@ class NaturalLanguageEngine:
             for pattern in patterns:
                 if re.search(pattern, message_lower):
                     match = re.search(pattern, message_lower)
+                    print(f"✅ Pattern matched: {intent} - {pattern}")
                     
                     # パラメータ抽出
                     parameters = {}
                     if match.groups():
-                        parameters['content'] = match.group(1) if match.group(1) else message
+                        content = match.group(1) if match.group(1) else message
+                        parameters['content'] = content.strip()
+                        print(f"📝 Extracted content: '{parameters['content']}'")
+                    else:
+                        parameters['content'] = message
                     
                     return {
                         'primary_intent': intent,

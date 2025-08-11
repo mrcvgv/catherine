@@ -125,8 +125,16 @@ async def process_command(message, user_id: str, username: str):
         # 意図に基づいてアクション実行
         response = await execute_natural_action(user_id, command_text, intent, message)
         
+        # 空のレスポンスを防ぐ
+        if not response or response.strip() == "":
+            response = "理解しました。"
+        
         # リアクション学習を適用
         response = await reaction_system.apply_learning_to_response(user_id, response)
+        
+        # 再度空チェック
+        if not response or response.strip() == "":
+            response = "申し訳ございません。うまく応答できませんでした。"
         
         # 音声モードの場合は音声最適化
         user_profile = await get_user_profile(user_id)
@@ -260,26 +268,26 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
         elif 'voice' in command_text.lower() or '音声' in command_text:
             if 'join' in command_text or '参加' in command_text:
                 success = await voice_channel.join_voice_channel(message)
-                return "" if success else "ボイスチャンネル参加に失敗しました"
+                return "ボイスチャンネルに参加しました" if success else "ボイスチャンネル参加に失敗しました"
             elif 'leave' in command_text or '退出' in command_text:
                 success = await voice_channel.leave_voice_channel(message)
-                return "" if success else "ボイスチャンネル退出に失敗しました"
+                return "ボイスチャンネルから退出しました" if success else "ボイスチャンネル退出に失敗しました"
             elif 'say' in command_text or '読み上げ' in command_text:
                 text = command_text.replace('say', '').replace('読み上げ', '').strip()
                 if text:
                     success = await voice_channel.text_to_speech(message, text)
-                    return "" if success else "読み上げに失敗しました"
+                    return f"「{text}」を読み上げました" if success else "読み上げに失敗しました"
                 return "読み上げるテキストを指定してください"
             elif 'stop' in command_text or '停止' in command_text:
                 success = await voice_channel.stop_playback(message)
-                return "" if success else "停止に失敗しました"
+                return "再生を停止しました" if success else "停止に失敗しました"
             elif 'volume' in command_text or '音量' in command_text:
                 import re
                 volume_match = re.search(r'(\d+)', command_text)
                 if volume_match:
                     volume = int(volume_match.group(1))
                     success = await voice_channel.adjust_volume(message, volume)
-                    return "" if success else "音量調整に失敗しました"
+                    return f"音量を{volume}%に設定しました" if success else "音量調整に失敗しました"
                 return "音量を0-100で指定してください"
             else:
                 status = voice_channel.get_voice_status(message.guild.id)
