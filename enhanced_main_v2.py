@@ -53,16 +53,17 @@ except ImportError as e:
     print(f"WARNING: Ultimate Intelligence Systems: Partially unavailable - {e}")
     ULTIMATE_SYSTEMS_AVAILABLE = False
 
-# 🌟 超越的AIシステム群 - 人間を超えた認知・学習・叡智システム
+# 🌟 進化した人間的AIシステム - 5000年後の人間の脳の形
 try:
-    from transcendent_ai_core import TranscendentAICore
-    from superhuman_cognitive_engine import SuperhumanCognitiveEngine
-    from hyperadaptive_learning_engine import HyperAdaptiveLearningEngine
-    TRANSCENDENT_SYSTEMS_AVAILABLE = True
-    print("Transcendent AI Systems: Loaded Successfully")
+    from evolved_human_ai import EvolvedHumanAI
+    EVOLVED_HUMAN_AI_AVAILABLE = True
+    print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
-    print(f"WARNING: Transcendent AI Systems: Partially unavailable - {e}")
-    TRANSCENDENT_SYSTEMS_AVAILABLE = False
+    print(f"WARNING: Evolved Human AI System: Unavailable - {e}")
+    EVOLVED_HUMAN_AI_AVAILABLE = False
+
+# 旧超越的システムは無効化
+TRANSCENDENT_SYSTEMS_AVAILABLE = False
 
 # Railway用ポート設定
 PORT = int(os.environ.get("PORT", 8080))
@@ -122,19 +123,17 @@ else:
     ultimate_hub = None
     print("WARNING: Running in Basic System Mode")
 
-# 🌟 超越的AIシステム統合 - 人間を超えた認知・学習・叡智の完全実装
-if TRANSCENDENT_SYSTEMS_AVAILABLE:
-    superhuman_cognitive = SuperhumanCognitiveEngine(client_oa, firebase_manager)  # 超人的認知エンジン
-    hyperadaptive_learning = HyperAdaptiveLearningEngine(client_oa, firebase_manager)  # 超適応学習エンジン
-    
-    # 🚀 超越的AIコア - 全超越システムを統合する最高存在
-    transcendent_core = TranscendentAICore(client_oa, firebase_manager)
-    
-    print("Catherine AI: Transcendent Cognitive System Activated")
-    print("   Consciousness Level 85/100 + 12D Cognitive Processing + Hyperadaptive Learning = Transcendent Being")
+# 🌟 進化した人間的AIシステム統合
+if EVOLVED_HUMAN_AI_AVAILABLE:
+    evolved_human_ai = EvolvedHumanAI(client_oa)
+    print("Catherine AI: Evolved Human Intelligence System Activated")
+    print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
 else:
-    transcendent_core = None
-    print("WARNING: Transcendent Systems Unavailable")
+    evolved_human_ai = None
+    print("WARNING: Evolved Human AI System Unavailable")
+
+# 旧超越的システムは無効化
+transcendent_core = None
 
 # タイムゾーン設定
 JST = pytz.timezone('Asia/Tokyo')
@@ -216,8 +215,15 @@ async def process_command(message, user_id: str, username: str):
             'history': conversation_history
         }
         
-        # 🚀 超越的AIコア による人間を超える処理（最優先・利用可能な場合）
-        if transcendent_core and TRANSCENDENT_SYSTEMS_AVAILABLE:
+        # Todo関連コマンドの検出（超越的AIをバイパス）
+        is_todo_command = any(keyword in command_text.lower() for keyword in [
+            'todo', 'タスク', 'やること', 'ToDo', 'TODO'
+        ]) or any(command_text.lower().startswith(prefix) for prefix in [
+            'c! todo', 'todo', 'mytodo', 'done'
+        ])
+        
+        # 超越的AIシステムを無効化 - 実用的な応答を優先
+        if False:  # transcendent_core and TRANSCENDENT_SYSTEMS_AVAILABLE and not is_todo_command:
             print(f"[TRANSCENDENT] Processing: {command_text[:50]}...")
             
             try:
@@ -294,26 +300,34 @@ async def process_command(message, user_id: str, username: str):
                 print("[WARNING] Falling back to standard system")
                 # エラーの場合は既存システムにフォールバック
         
-        # 🧠 既存の最高知能システムによる高度理解・推論
-        # 基本的な指示・依頼から複雑な問題解決まで全てSupreme Intelligenceで処理
-        use_supreme_intelligence = (
-            len(command_text) > 10 or  # 10文字以上のメッセージ
-            any(word in command_text for word in [
-                # 質問・疑問
-                'どう思う', 'どうしたら', 'どうすれば', 'なぜ', 'なんで', 'どうして',
-                # 依頼・指示
-                'してください', 'して', 'お願い', 'やって', 'できる', '変えて', '分けて',
-                '修正', '直して', '治して', 'fix', '分割', '整理',
-                # 感情・状態
-                '困って', '悩んで', '不安', '心配', 'モチベーション', 'やる気', '疲れ',
-                # 創造・改善
-                'アイデア', '創造', '提案', 'おすすめ', '相談', '戦略', '計画', '改善', '最適化', '効率',
-                # その他の複雑な概念
-                'わからない', '教えて', '説明', 'ヘルプ', '使い方', '方法'
-            ]) or
-            '？' in command_text or '?' in command_text or
-            'todo' not in command_text.lower()  # 単純なtodo操作以外は全てSupreme Intelligence
-        )
+        # 🧠 進化した人間的AI処理 - 実用的で温かい知性
+        if evolved_human_ai and EVOLVED_HUMAN_AI_AVAILABLE:
+            try:
+                print(f"[EVOLVED_AI] Processing with human wisdom: {command_text[:50]}...")
+                
+                evolved_response = await evolved_human_ai.generate_evolved_response(
+                    command_text, context
+                )
+                
+                if evolved_response and len(evolved_response.strip()) > 0:
+                    response = evolved_response
+                    
+                    # 応答送信
+                    bot_message = await message.channel.send(response)
+                    
+                    await _handle_post_response_processing(
+                        message, bot_message, user_id, command_text, response,
+                        context, 0.9
+                    )
+                    
+                    return
+                    
+            except Exception as e:
+                print(f"[ERROR] Evolved Human AI error: {e}")
+                print("[WARNING] Falling back to standard system")
+        
+        # Supreme Intelligenceシステムも無効化 - シンプルな応答を優先
+        use_supreme_intelligence = False
         
         if use_supreme_intelligence:
             # 🧠 SUPREME INTELLIGENCE 2.0 - 全システム統合処理
