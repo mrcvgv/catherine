@@ -286,7 +286,9 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 response = "📊 **ToDoリスト**\n\n"
                 for i, todo in enumerate(todos[:20], 1):
                     # 改行を除去して、Discordマークダウンが正しく動作するように
-                    title = todo['title'][:50].replace('\n', ' ').replace('\r', ' ').strip()
+                    title = todo['title'][:100].replace('\n', ' ').replace('\r', ' ').strip()
+                    # デバッグ情報
+                    print(f"Debug - Todo {i}: title='{todo['title']}', cleaned='{title}'")
                     response += f"{i}. **{title}**\n"
                 
                 return response
@@ -346,8 +348,14 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
         
         # 挨拶
         elif primary_intent == 'greeting':
-            user_profile = await get_user_profile(user_id)
-            return await generate_natural_conversation_response(command_text, intent, user_profile)
+            greetings = [
+                "こんにちは！今日も頑張りましょう！",
+                "お疲れ様です！何かお手伝いできることはありますか？",
+                "こんにちは！調子はいかがですか？",
+                "元気ですか？今日はどんなことをしましょうか？"
+            ]
+            import random
+            return random.choice(greetings)
         
         # 成長ステータス
         elif primary_intent == 'growth':
@@ -405,9 +413,21 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 else:
                     return "🔇 ボイスチャンネルに接続していません\n`C! join` で参加してください"
         
-        # ヘルプ
-        elif primary_intent == 'help_request':
-            return "何でも話しかけてください！\n例：\n• 「買い物リスト作って」\n• 「明日の会議をリマインドして」\n• 「やることリスト見せて」\n• 「1番終わった」"
+        # ヘルプ・使い方
+        elif primary_intent == 'help_request' or '話し方' in command_text or '使い方' in command_text:
+            return """🎯 **Catherine AI の使い方**
+
+**基本コマンド:**
+• `スタンプつくる` → ToDoに追加
+• `リスト出して` → ToDo一覧表示  
+• `1番終わった` → ToDo完了
+• `こんにちは` → 挨拶
+
+**特別機能:**
+• `DBつながってる？` → データベース診断
+• C! を使えば他のチャンネルでも利用可能
+
+todoチャンネルでは普通に話しかけるだけでOKです！"""
         
         # 自然な会話
         else:

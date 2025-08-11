@@ -98,12 +98,13 @@ intents:
       - "(?P<time>\\d+)分後.*(?P<what>.+)"
 
   - name: greeting
-    weight: 1.0
+    weight: 2.0  # 挨拶の重要度を上げる
     patterns:
       - "おはよう"
       - "こんにちは"
       - "こんちは"
       - "こんちわ"
+      - "こにちは"  # タイポ対応
       - "こんばんは"
       - "hello"
       - "hi"
@@ -112,6 +113,7 @@ intents:
       - "元気？"
       - "調子どう"
       - "挨拶"
+      - ".*挨拶.*"
 
   - name: help_request
     weight: 1.0
