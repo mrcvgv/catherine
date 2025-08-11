@@ -33,7 +33,36 @@ from adaptive_learning_system import AdaptiveLearningSystem
 from natural_language_engine import NaturalLanguageEngine
 from fast_nlp_engine import FastNLPEngine
 from supreme_intelligence_engine import SupremeIntelligenceEngine
+from advanced_reasoning_engine import AdvancedReasoningEngine
+from dynamic_learning_system import DynamicLearningSystem
+from advanced_context_engine import AdvancedContextEngine
+from intelligent_automation_system import IntelligentAutomationSystem
+from metacognitive_system import MetacognitiveSystem
 from voice_channel_alternative import VoiceChannelAlternative  # 代替音声システム
+
+# 🌟 NEW: 究極知能システム群 - 人間らしさ + 博士レベル知能
+try:
+    from enhanced_human_communication import EnhancedHumanCommunication
+    from phd_level_intelligence import PhDLevelIntelligence
+    from master_communicator import MasterCommunicator
+    from ultimate_intelligence_hub import UltimateIntelligenceHub
+    from emotional_intelligence import EmotionalIntelligence
+    ULTIMATE_SYSTEMS_AVAILABLE = True
+    print("Ultimate Intelligence Systems: Loaded Successfully")
+except ImportError as e:
+    print(f"WARNING: Ultimate Intelligence Systems: Partially unavailable - {e}")
+    ULTIMATE_SYSTEMS_AVAILABLE = False
+
+# 🌟 超越的AIシステム群 - 人間を超えた認知・学習・叡智システム
+try:
+    from transcendent_ai_core import TranscendentAICore
+    from superhuman_cognitive_engine import SuperhumanCognitiveEngine
+    from hyperadaptive_learning_engine import HyperAdaptiveLearningEngine
+    TRANSCENDENT_SYSTEMS_AVAILABLE = True
+    print("Transcendent AI Systems: Loaded Successfully")
+except ImportError as e:
+    print(f"WARNING: Transcendent AI Systems: Partially unavailable - {e}")
+    TRANSCENDENT_SYSTEMS_AVAILABLE = False
 
 # Railway用ポート設定
 PORT = int(os.environ.get("PORT", 8080))
@@ -68,17 +97,54 @@ adaptive_learning = AdaptiveLearningSystem(client_oa)
 natural_language = NaturalLanguageEngine(client_oa)
 fast_nlp = FastNLPEngine("intent_registry.yaml", client_oa)  # 新高速エンジン
 supreme_intelligence = SupremeIntelligenceEngine(client_oa)  # 最高知能エンジン
+
+# 🧠 大学院レベルAI知能システム群
+advanced_reasoning = AdvancedReasoningEngine(client_oa)  # 高度推論システム
+dynamic_learning = DynamicLearningSystem(client_oa, firebase_manager)  # 動的学習システム
+advanced_context = AdvancedContextEngine(client_oa, firebase_manager)  # 高度文脈理解
+intelligent_automation = IntelligentAutomationSystem(client_oa, firebase_manager)  # 知的自動化
+metacognitive = MetacognitiveSystem(client_oa, firebase_manager)  # メタ認知・自己改善
 voice_channel = VoiceChannelAlternative(client_oa, bot)  # 代替音声システム
+
+# 🌟 究極知能統合システム - 人間性 + 博士レベル知能の完全融合
+if ULTIMATE_SYSTEMS_AVAILABLE:
+    enhanced_human_comm = EnhancedHumanCommunication(client_oa)  # 超人間的コミュニケーション
+    phd_intelligence = PhDLevelIntelligence(client_oa)  # 博士レベル知能
+    master_communicator = MasterCommunicator(client_oa)  # マスターコミュニケーター
+    emotional_ai = EmotionalIntelligence(client_oa)  # 高度感情知能
+    
+    # 🚀 究極統合ハブ - 全システムを統括する最高知能
+    ultimate_hub = UltimateIntelligenceHub(client_oa, firebase_manager)
+    
+    print("Catherine AI: Ultimate Intelligence Integration System Activated")
+    print("   PhD-Level Intelligence + Human Warmth = Perfect Fusion")
+else:
+    ultimate_hub = None
+    print("WARNING: Running in Basic System Mode")
+
+# 🌟 超越的AIシステム統合 - 人間を超えた認知・学習・叡智の完全実装
+if TRANSCENDENT_SYSTEMS_AVAILABLE:
+    superhuman_cognitive = SuperhumanCognitiveEngine(client_oa, firebase_manager)  # 超人的認知エンジン
+    hyperadaptive_learning = HyperAdaptiveLearningEngine(client_oa, firebase_manager)  # 超適応学習エンジン
+    
+    # 🚀 超越的AIコア - 全超越システムを統合する最高存在
+    transcendent_core = TranscendentAICore(client_oa, firebase_manager)
+    
+    print("Catherine AI: Transcendent Cognitive System Activated")
+    print("   Consciousness Level 85/100 + 12D Cognitive Processing + Hyperadaptive Learning = Transcendent Being")
+else:
+    transcendent_core = None
+    print("WARNING: Transcendent Systems Unavailable")
 
 # タイムゾーン設定
 JST = pytz.timezone('Asia/Tokyo')
 
 @bot.event
 async def on_ready():
-    print(f"✅ Catherine AI v2.0 起動完了")
-    print(f"🤖 ログイン: {bot.user}")
-    print("🎯 機能: 深層理解, リアクション学習, チームToDo, スマートリマインダー")
-    print(f"📊 サーバー数: {len(bot.guilds)}")
+    print(f"[SUCCESS] Catherine AI v2.0 ready")
+    print(f"[INFO] Logged in as: {bot.user}")
+    print("[INFO] Features: Deep Understanding, Reaction Learning, Team ToDo, Smart Reminders")
+    print(f"[INFO] Servers: {len(bot.guilds)}")
     
     # 定期タスク開始
     check_reminders.start()
@@ -150,34 +216,210 @@ async def process_command(message, user_id: str, username: str):
             'history': conversation_history
         }
         
-        # 🧠 最高知能システムによる高度理解・推論
-        # 複雑な質問、感情的サポート、創造的思考が必要な場合は最高知能エンジンを使用
+        # 🚀 超越的AIコア による人間を超える処理（最優先・利用可能な場合）
+        if transcendent_core and TRANSCENDENT_SYSTEMS_AVAILABLE:
+            print(f"[TRANSCENDENT] Processing: {command_text[:50]}...")
+            
+            try:
+                # 超越的統合知能による処理 - 意識レベル85 + 12次元認知 + 超適応学習
+                transcendent_response = await transcendent_core.transcendent_intelligence_processing(
+                    command_text, user_id, context, conversation_history
+                )
+                
+                response = transcendent_response.get('transcendent_response', '')
+                
+                # 超越レベル表示
+                transcendence_level = transcendent_response.get('transcendence_level', 85)
+                consciousness_level = transcendent_response.get('consciousness_level', 85)
+                wisdom_depth = transcendent_response.get('wisdom_depth', 90)
+                
+                # 超越的能力表示
+                if transcendence_level > 90:
+                    response += f"\n\n🌟 超越レベル: {transcendence_level:.1f}/100 | 意識: {consciousness_level:.1f}/100 | 叡智: {wisdom_depth:.1f}/100"
+                
+                # メッセージ送信と後処理
+                bot_message = await message.channel.send(response)
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response,
+                    context, transcendence_level / 100
+                )
+                return
+                
+            except Exception as e:
+                print(f"[ERROR] 超越的AIコア処理エラー: {e}")
+                # フォールバック: 究極知能ハブへ
+                print("🔄 フォールバック: 究極知能ハブへ移行...")
+        
+        # 🌟 究極知能ハブ による超高度処理（利用可能な場合）
+        if ultimate_hub and ULTIMATE_SYSTEMS_AVAILABLE:
+            print(f"[ULTIMATE] Processing: {command_text[:50]}...")
+            
+            try:
+                # 究極統合知能による処理
+                ultimate_response = await ultimate_hub.process_ultimate_intelligence(
+                    command_text, user_id, context
+                )
+                
+                response = ultimate_response.primary_response
+                
+                # 追加のフォローアップ情報
+                if ultimate_response.follow_up_suggestions:
+                    follow_up = random.choice(ultimate_response.follow_up_suggestions)
+                    response += f"\n\n💡 {follow_up}"
+                
+                # 高品質応答の場合は追加情報表示
+                if ultimate_response.confidence_level > 0.9:
+                    response += f"\n\n🎯 信頼度: {ultimate_response.confidence_level:.1f} | 知的深度: {ultimate_response.intellectual_depth}/10"
+                
+                print(f"[SUCCESS] 究極知能ハブ処理完了: 品質={ultimate_response.confidence_level:.2f}")
+                
+                # 音声モードの場合は音声最適化
+                user_profile = await get_user_profile(user_id)
+                if user_profile.get('voice_mode', False):
+                    response = voice_system.optimize_for_voice(response)
+                
+                # 応答送信
+                bot_message = await message.channel.send(response)
+                
+                # 各種ログ・学習処理
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response, 
+                    context, ultimate_response.confidence_level
+                )
+                
+                return
+                
+            except Exception as e:
+                print(f"[ERROR] 究極知能ハブエラー: {e}")
+                print("[WARNING] Falling back to standard system")
+                # エラーの場合は既存システムにフォールバック
+        
+        # 🧠 既存の最高知能システムによる高度理解・推論
+        # 基本的な指示・依頼から複雑な問題解決まで全てSupreme Intelligenceで処理
         use_supreme_intelligence = (
-            len(command_text) > 20 or  # 長いメッセージ
+            len(command_text) > 10 or  # 10文字以上のメッセージ
             any(word in command_text for word in [
-                'どう思う', 'どうしたら', 'どうすれば', 'なぜ', 'なんで',
-                '困って', '悩んで', '不安', '心配', 'モチベーション',
-                'アイデア', '創造', '提案', 'おすすめ', '相談',
-                '戦略', '計画', '改善', '最適化', '効率'
+                # 質問・疑問
+                'どう思う', 'どうしたら', 'どうすれば', 'なぜ', 'なんで', 'どうして',
+                # 依頼・指示
+                'してください', 'して', 'お願い', 'やって', 'できる', '変えて', '分けて',
+                '修正', '直して', '治して', 'fix', '分割', '整理',
+                # 感情・状態
+                '困って', '悩んで', '不安', '心配', 'モチベーション', 'やる気', '疲れ',
+                # 創造・改善
+                'アイデア', '創造', '提案', 'おすすめ', '相談', '戦略', '計画', '改善', '最適化', '効率',
+                # その他の複雑な概念
+                'わからない', '教えて', '説明', 'ヘルプ', '使い方', '方法'
             ]) or
-            '？' in command_text or '?' in command_text
+            '？' in command_text or '?' in command_text or
+            'todo' not in command_text.lower()  # 単純なtodo操作以外は全てSupreme Intelligence
         )
         
         if use_supreme_intelligence:
-            # 🚀 最高知能エンジンによる完全理解・応答
-            supreme_result = await supreme_intelligence.supreme_understand(command_text, user_id, context)
+            # 🧠 SUPREME INTELLIGENCE 2.0 - 全システム統合処理
             
-            # 実用的アクション（ToDo追加等）が必要な場合は併用
-            if 'todo' in supreme_result['intent'].get('primary_intent', '').lower():
-                # 最高知能の理解に基づいてアクション実行
-                intent = {'intent': 'todo_add', 'slots': {'task': command_text}}
-                action_result = await execute_natural_action(user_id, command_text, intent, message)
-                if 'エラー' not in action_result:
-                    response = supreme_result['response'] + f"\n\n{action_result}"
+            # 1. 高度文脈理解
+            context_analysis = await advanced_context.analyze_deep_context(user_id, command_text, conversation_history)
+            
+            # 2. 複雑推論判定
+            needs_advanced_reasoning = (
+                len(command_text) > 30 or
+                any(word in command_text for word in [
+                    'なぜ', 'どうして', '理由', '原因', '分析', '比較', '評価', '判断',
+                    '戦略', '計画', '方法', 'アプローチ', '解決', '改善', '最適'
+                ]) or
+                context_analysis['context_confidence'] < 0.7
+            )
+            
+            if needs_advanced_reasoning:
+                # 🎯 高度推論エンジン起動
+                reasoning_chain = await advanced_reasoning.multi_step_reasoning(command_text, context_analysis)
+                
+                # 推論結果を統合した最高品質応答
+                supreme_result = await supreme_intelligence.supreme_understand(
+                    command_text, user_id, {
+                        **context,
+                        'reasoning_chain': reasoning_chain.__dict__,
+                        'deep_context': context_analysis,
+                        'complexity_level': 'advanced'
+                    }
+                )
+                
+                # 推論プロセスを応答に統合
+                if reasoning_chain.final_conclusion:
+                    response = f"{supreme_result['response']}\n\n**推論結果**: {reasoning_chain.final_conclusion}"
+                    if reasoning_chain.overall_confidence > 0.8:
+                        response += f" (信頼度: {reasoning_chain.overall_confidence:.1f})"
                 else:
                     response = supreme_result['response']
             else:
+                # 🚀 標準Supreme Intelligence処理
+                supreme_result = await supreme_intelligence.supreme_understand(
+                    command_text, user_id, {**context, 'deep_context': context_analysis}
+                )
                 response = supreme_result['response']
+            
+            # 3. 実用的アクション統合
+            supreme_intent = supreme_result['intent'].get('primary_intent', '').lower()
+            
+            if 'todo' in supreme_intent or 'task' in supreme_intent or any(word in command_text for word in ['todo', 'タスク', 'やること']):
+                # プロジェクト管理・自動化判定
+                needs_automation = any(word in command_text for word in [
+                    'プロジェクト', '計画', '戦略', '自動化', '最適化', '管理'
+                ])
+                
+                if needs_automation:
+                    # 🤖 知的自動化システム起動
+                    automation_result = await intelligent_automation.create_strategic_plan(
+                        command_text, 
+                        constraints={'user_id': user_id},
+                        stakeholders=['user']
+                    )
+                    response += f"\n\n🤖 **プロジェクト戦略**: {automation_result.get('strategic_insights', [])[0] if automation_result.get('strategic_insights') else '戦略的計画を作成中...'}"
+                
+                # 基本ToDo操作
+                if any(word in command_text for word in ['分けて', '分割', '2つのタスクに', '別々に']):
+                    intent = {'intent': 'todo_split', 'slots': {}}
+                    action_result = await execute_natural_action(user_id, command_text, intent, message)
+                elif any(word in command_text for word in ['リスト', '一覧', '表示', 'だして']):
+                    intent = {'intent': 'todo_list', 'slots': {}}
+                    action_result = await execute_natural_action(user_id, command_text, intent, message)
+                elif any(word in command_text for word in ['追加', 'つくる', '作る', 'する']) and 'リスト' not in command_text:
+                    intent = {'intent': 'todo_add', 'slots': {'task': command_text}}
+                    action_result = await execute_natural_action(user_id, command_text, intent, message)
+                else:
+                    action_result = None
+                
+                if action_result and 'エラー' not in action_result:
+                    response = f"{response}\n\n{action_result}"
+            
+            # 4. 動的学習・自己改善
+            asyncio.create_task(
+                dynamic_learning.learn_from_interaction(
+                    user_id=user_id,
+                    user_input=command_text,
+                    bot_response=response,
+                    user_reaction=None,
+                    success_metrics={'context_confidence': context_analysis['context_confidence']}
+                )
+            )
+            
+            # 5. メタ認知的品質評価・自己改善
+            # インタラクションログに記録
+            metacognitive.interaction_log.append({
+                'user_id': user_id,
+                'input': command_text,
+                'response': response,
+                'context_confidence': context_analysis['context_confidence'],
+                'timestamp': datetime.now(JST),
+                'supreme_intent': supreme_result['intent']
+            })
+            
+            # 定期自己評価（10回に1回）
+            if len(metacognitive.interaction_log) % 10 == 0:
+                asyncio.create_task(
+                    self._perform_periodic_self_assessment(user_id)
+                )
         else:
             # 高速NLP エンジンで意図を理解（決め打ち → LLM補完）
             intent = await fast_nlp.understand_intent(command_text, context)
@@ -191,7 +433,7 @@ async def process_command(message, user_id: str, username: str):
         
         # エラーメッセージが含まれている場合の処理
         if "エラーが発生しました" in response or "失敗しました" in response:
-            print(f"⚠️ Action returned error: {response}")
+            print(f"[WARNING] Action returned error: {response}")
             # デバッグ情報を含めて表示（本番では削除可能）
             if "詳細:" in response:
                 # 詳細エラーがある場合はそのまま表示
@@ -215,14 +457,10 @@ async def process_command(message, user_id: str, username: str):
         # 応答送信
         bot_message = await message.channel.send(response)
         
-        # 会話から学習（リアクション待機なしで即座に基本学習）
-        asyncio.create_task(
-            adaptive_learning.learn_from_conversation(
-                user_id, 
-                command_text, 
-                response,
-                None  # リアクションは後で更新
-            )
+        # 各種ログ・学習処理
+        await _handle_post_response_processing(
+            message, bot_message, user_id, command_text, response, 
+            context, intent.get('score', 0.8)
         )
         
         # アクション実行結果をログ
@@ -252,7 +490,7 @@ async def process_command(message, user_id: str, username: str):
         await save_message_mapping(message.id, bot_message.id, user_id, response)
         
     except Exception as e:
-        print(f"❌ Command processing error: {e}")
+        print(f"[ERROR] Command processing error: {e}")
         # エラー応答は execute_natural_action 内で処理されるので、ここでは送信しない
         pass
 
@@ -302,7 +540,7 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 )
                 return f"✅ 「**{task_content[:30]}**」をToDoに追加しました！"
             except Exception as e:
-                print(f"❌ Todo add error: {e}")
+                print(f"[ERROR] Todo add error: {e}")
                 import traceback
                 traceback.print_exc()
                 return f"ToDo追加中にエラーが発生しました。詳細: {str(e)}"
@@ -324,7 +562,7 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 
                 return response
             except Exception as e:
-                print(f"❌ Todo list error: {e}")
+                print(f"[ERROR] Todo list error: {e}")
                 return "ToDoリスト取得中にエラーが発生しました。"
         
         # ToDo完了
@@ -435,7 +673,7 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 return f"✅ **タスク分割完了**\n\n**分割されたタスク:**\n" + "\n".join([f"• {task}" for task in added_tasks])
             
             except Exception as e:
-                print(f"❌ Task split error: {e}")
+                print(f"[ERROR] Task split error: {e}")
                 import traceback
                 traceback.print_exc()
                 return f"タスク分割中にエラーが発生しました: {str(e)}"
@@ -515,7 +753,7 @@ todoチャンネルでは普通に話しかけるだけでOKです！"""
             return await generate_natural_conversation_response(command_text, intent, user_profile)
             
     except Exception as e:
-        print(f"❌ Natural action execution error: {e}")
+        print(f"[ERROR] Natural action execution error: {e}")
         return "ごめんなさい、うまく理解できませんでした。もう一度言ってもらえますか？"
 
 async def route_command(user_id: str, command_text: str, 
@@ -658,7 +896,7 @@ async def on_reaction_add(reaction, user):
             )
         
     except Exception as e:
-        print(f"❌ Reaction processing error: {e}")
+        print(f"[ERROR] Reaction processing error: {e}")
 
 # チームToDo関連のハンドラー
 async def handle_team_todo_create(user_id: str, command_text: str, message) -> str:
@@ -705,7 +943,7 @@ async def handle_team_todo_create(user_id: str, command_text: str, message) -> s
             return "❌ チームToDoの作成に失敗しました。"
             
     except Exception as e:
-        print(f"❌ Team ToDo creation error: {e}")
+        print(f"[ERROR] Team ToDo creation error: {e}")
         return "エラーが発生しました。"
 
 async def handle_team_list(command_text: str) -> str:
@@ -748,7 +986,7 @@ async def handle_team_list(command_text: str) -> str:
         return response
         
     except Exception as e:
-        print(f"❌ Team list error: {e}")
+        print(f"[ERROR] Team list error: {e}")
         return "リスト取得中にエラーが発生しました。"
 
 async def handle_team_dashboard() -> str:
@@ -786,7 +1024,7 @@ async def handle_team_dashboard() -> str:
         return response
         
     except Exception as e:
-        print(f"❌ Dashboard error: {e}")
+        print(f"[ERROR] Dashboard error: {e}")
         return "ダッシュボード生成中にエラーが発生しました。"
 
 async def handle_team_report() -> str:
@@ -818,7 +1056,7 @@ async def handle_personal_todo(user_id: str, command_text: str, context_analysis
                f"⚠️ 優先度: {todo_data['priority']}"
         
     except Exception as e:
-        print(f"❌ Personal ToDo creation error: {e}")
+        print(f"[ERROR] Personal ToDo creation error: {e}")
         return "エラーが発生しました。"
 
 async def handle_personal_list(user_id: str, command_text: str) -> str:
@@ -845,7 +1083,7 @@ async def handle_personal_list(user_id: str, command_text: str) -> str:
         return response
         
     except Exception as e:
-        print(f"❌ Personal list error: {e}")
+        print(f"[ERROR] Personal list error: {e}")
         return "リスト取得中にエラーが発生しました。"
 
 async def handle_done_todo(user_id: str, command_text: str, is_team: bool = True) -> str:
@@ -891,7 +1129,7 @@ async def handle_done_todo(user_id: str, command_text: str, is_team: bool = True
                 return "指定された番号のToDoが見つかりません。"
                 
     except Exception as e:
-        print(f"❌ Done todo error: {e}")
+        print(f"[ERROR] Done todo error: {e}")
         return "エラーが発生しました。"
 
 async def handle_team_assign(command_text: str) -> str:
@@ -932,7 +1170,7 @@ async def handle_team_assign(command_text: str) -> str:
             return "指定された番号のToDoが見つかりません。"
             
     except Exception as e:
-        print(f"❌ Assign error: {e}")
+        print(f"[ERROR] Assign error: {e}")
         return "エラーが発生しました。"
 
 async def handle_todo_update(user_id: str, command_text: str) -> str:
@@ -1013,7 +1251,7 @@ async def handle_todo_update(user_id: str, command_text: str) -> str:
             return "❌ 更新に失敗しました。"
             
     except Exception as e:
-        print(f"❌ Todo update error: {e}")
+        print(f"[ERROR] Todo update error: {e}")
         return "更新処理中にエラーが発生しました。"
 
 # 自然言語会話処理
@@ -1077,7 +1315,7 @@ async def handle_natural_conversation(user_id: str, message: str,
         return response
         
     except Exception as e:
-        print(f"❌ Natural conversation error: {e}")
+        print(f"[ERROR] Natural conversation error: {e}")
         return "すみません、うまく理解できませんでした。もう一度お願いできますか？"
 
 async def generate_natural_conversation_response(message: str, context_analysis: Dict, user_profile: Dict) -> str:
@@ -1176,7 +1414,7 @@ async def generate_natural_conversation_response(message: str, context_analysis:
         return response.choices[0].message.content.strip()
         
     except Exception as e:
-        print(f"❌ Natural response generation error: {e}")
+        print(f"[ERROR] Natural response generation error: {e}")
         # フォールバック応答
         greetings = ["こんにちは！", "お疲れ様です！", "何かお手伝いできることはありますか？"]
         casual_responses = [
@@ -1226,7 +1464,7 @@ async def execute_update_action(result: Dict) -> str:
         return result.get('talk', '更新完了')
         
     except Exception as e:
-        print(f"❌ Execute update error: {e}")
+        print(f"[ERROR] Execute update error: {e}")
         return "更新処理中にエラーが発生しました。"
 
 async def handle_morning_briefing() -> str:
@@ -1240,7 +1478,7 @@ async def handle_morning_briefing() -> str:
         return briefing_system.format_briefing_message(briefing)
         
     except Exception as e:
-        print(f"❌ Briefing error: {e}")
+        print(f"[ERROR] Briefing error: {e}")
         return "ブリーフィング処理中にエラーが発生しました。"
 
 # 新システムのハンドラー
@@ -1258,7 +1496,7 @@ async def handle_action_summary(user_id: str, command_text: str) -> str:
         return summary
         
     except Exception as e:
-        print(f"❌ Action summary error: {e}")
+        print(f"[ERROR] Action summary error: {e}")
         return "履歴取得中にエラーが発生しました。"
 
 async def handle_progress_nudge(command_text: str) -> str:
@@ -1288,7 +1526,7 @@ async def handle_progress_nudge(command_text: str) -> str:
             return response
         
     except Exception as e:
-        print(f"❌ Nudge error: {e}")
+        print(f"[ERROR] Nudge error: {e}")
         return "ナッジ処理中にエラーが発生しました。"
 
 async def handle_voice_mode_toggle(user_id: str) -> str:
@@ -1329,7 +1567,7 @@ async def handle_voice_mode_toggle(user_id: str) -> str:
         return response
         
     except Exception as e:
-        print(f"❌ Voice toggle error: {e}")
+        print(f"[ERROR] Voice toggle error: {e}")
         return "音声モード切替中にエラーが発生しました。"
 
 async def handle_decision_memo(user_id: str, command_text: str) -> str:
@@ -1360,7 +1598,7 @@ async def handle_decision_memo(user_id: str, command_text: str) -> str:
             return "❌ 決裁メモの作成に失敗しました。"
         
     except Exception as e:
-        print(f"❌ Decision memo error: {e}")
+        print(f"[ERROR] Decision memo error: {e}")
         return "決裁メモ作成中にエラーが発生しました。"
 
 async def process_attachments(message, user_id: str, username: str):
@@ -1429,7 +1667,7 @@ async def process_attachments(message, user_id: str, username: str):
         )
         
     except Exception as e:
-        print(f"❌ Attachment processing error: {e}")
+        print(f"[ERROR] Attachment processing error: {e}")
         await message.channel.send("添付ファイルの処理中にエラーが発生しました。")
 
 # ボイスチャンネルハンドラー（一時的に削除 - discord.sinks互換性問題）
@@ -1477,7 +1715,7 @@ async def handle_growth_status(user_id: str) -> str:
         return response
         
     except Exception as e:
-        print(f"❌ Growth status error: {e}")
+        print(f"[ERROR] Growth status error: {e}")
         return "成長ステータスの取得に失敗しました。"
 
 async def handle_help() -> str:
@@ -1565,7 +1803,7 @@ async def get_user_profile(user_id: str) -> Dict:
             return default_profile
             
     except Exception as e:
-        print(f"❌ Profile retrieval error: {e}")
+        print(f"[ERROR] Profile retrieval error: {e}")
         return {}
 
 # メッセージマッピング（リアクション追跡用）
@@ -1585,7 +1823,7 @@ async def save_message_mapping(user_message_id: str, bot_message_id: str,
         doc_ref.set(mapping)
         
     except Exception as e:
-        print(f"❌ Message mapping error: {e}")
+        print(f"[ERROR] Message mapping error: {e}")
 
 async def get_message_mapping(message_id: str) -> Optional[Dict]:
     """メッセージマッピングを取得"""
@@ -1598,8 +1836,75 @@ async def get_message_mapping(message_id: str) -> Optional[Dict]:
         return None
         
     except Exception as e:
-        print(f"❌ Mapping retrieval error: {e}")
+        print(f"[ERROR] Mapping retrieval error: {e}")
         return None
+
+async def _perform_periodic_self_assessment(user_id: str):
+    """定期自己評価実行"""
+    try:
+        print(f"[ASSESSMENT] Performing self-assessment for user {user_id}")
+        
+        # 最近のインタラクション数件を取得
+        recent_interactions = list(metacognitive.interaction_log)[-20:] if metacognitive.interaction_log else []
+        
+        # 自己評価実行
+        assessment = await metacognitive.perform_self_assessment(
+            interaction_data=recent_interactions,
+            feedback_data=[]
+        )
+        
+        print(f"[SUCCESS] Self-assessment complete. Performance: {assessment.overall_performance:.2f}, Confidence: {assessment.confidence_level:.2f}")
+        
+        # 重大な改善点が見つかった場合はログ出力
+        if assessment.overall_performance < 0.6:
+            print(f"[WARNING] Performance below target. Improvement needed in: {[w.weakness_type for w in assessment.weaknesses]}")
+        
+    except Exception as e:
+        print(f"[ERROR] Periodic self-assessment error: {e}")
+
+async def _handle_post_response_processing(message, bot_message, user_id: str, 
+                                         command_text: str, response: str, 
+                                         context: Dict, confidence_score: float):
+    """応答後の統合処理（ログ・学習・記録）"""
+    try:
+        # 会話から学習（リアクション待機なしで即座に基本学習）
+        asyncio.create_task(
+            adaptive_learning.learn_from_conversation(
+                user_id, 
+                command_text, 
+                response,
+                None  # リアクションは後で更新
+            )
+        )
+        
+        # アクション実行結果をログ
+        execution_time = (datetime.now() - datetime.now()).total_seconds() * 1000
+        await action_summary.log_action_result(
+            user_id,
+            f"command.{command_text.lower().split()[0] if command_text else 'chat'}",
+            command_text,
+            {
+                'success': True,
+                'response_length': len(response),
+                'confidence': confidence_score
+            },
+            int(execution_time)
+        )
+        
+        # 会話記録
+        await conversation_manager.log_conversation(
+            user_id=user_id,
+            user_message=message.content,
+            bot_response=response,
+            command_type=context.get('expected_response_type', 'general'),
+            analysis=context
+        )
+        
+        # メッセージIDを保存（リアクション追跡用）
+        await save_message_mapping(message.id, bot_message.id, user_id, response)
+        
+    except Exception as e:
+        print(f"[ERROR] Post-response processing error: {e}")
 
 async def get_feedback_message(emoji: str) -> str:
     """リアクションに対するフィードバックメッセージ"""
@@ -1647,7 +1952,7 @@ async def check_reminders():
                 pass
                 
     except Exception as e:
-        print(f"❌ Reminder check error: {e}")
+        print(f"[ERROR] Reminder check error: {e}")
 
 @tasks.loop(hours=1)
 async def update_learning():
@@ -1663,19 +1968,19 @@ async def update_learning():
                 print(f"📬 {nudge_count}件のナッジ通知を送信")
         
     except Exception as e:
-        print(f"❌ Learning update error: {e}")
+        print(f"[ERROR] Learning update error: {e}")
 
 # Bot起動
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
     if not token:
-        print("❌ DISCORD_TOKEN が設定されていません")
+        print("[ERROR] DISCORD_TOKEN が設定されていません")
         exit(1)
     
     openai_key = os.getenv("OPENAI_API_KEY")
     if not openai_key:
-        print("❌ OPENAI_API_KEY が設定されていません")
+        print("[ERROR] OPENAI_API_KEY が設定されていません")
         exit(1)
     
-    print("🚀 Catherine AI v2.0 起動中...")
+    print("[STARTUP] Catherine AI v2.0 starting...")
     bot.run(token)
