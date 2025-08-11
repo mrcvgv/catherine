@@ -10,6 +10,7 @@ import discord
 from discord.ext import commands, tasks
 from openai import OpenAI
 import json
+import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import pytz
@@ -96,8 +97,9 @@ async def on_message(message):
     # C!コマンド処理
     if message.content.startswith("C!"):
         await process_command(message, user_id, username)
+        return  # C!コマンドの場合は、二重処理を防ぐためにここで終了
     
-    # コマンド処理（commands.Botの機能を使用）
+    # その他のコマンド処理（commands.Botの機能を使用）
     await bot.process_commands(message)
 
 async def process_command(message, user_id: str, username: str):
@@ -142,7 +144,7 @@ async def process_command(message, user_id: str, username: str):
         execution_time = (datetime.now() - datetime.now()).total_seconds() * 1000  # 実際の実行時間を計算
         await action_summary.log_action_result(
             user_id,
-            f"command.{command_lower.split()[0] if command_lower else 'chat'}",
+            f"command.{command_text.lower().split()[0] if command_text else 'chat'}",
             command_text,
             {
                 'success': True,
@@ -711,9 +713,9 @@ async def handle_natural_conversation(user_id: str, message: str,
             candidates=[]  # 必要に応じて候補を渡す
         )
         
-        # 人間らしい応答生成
-        response = await context_system.generate_human_like_response(
-            user_id,
+        # GPT-4oを使った自然な会話応答生成
+        response = await generate_natural_conversation_response(
+            message,
             context_analysis,
             user_profile
         )
@@ -736,6 +738,73 @@ async def handle_natural_conversation(user_id: str, message: str,
     except Exception as e:
         print(f"❌ Natural conversation error: {e}")
         return "すみません、うまく理解できませんでした。もう一度お願いできますか？"
+
+async def generate_natural_conversation_response(message: str, context_analysis: Dict, user_profile: Dict) -> str:
+    """GPT-4oを使った自然で人間らしい会話応答生成"""
+    try:
+        system_prompt = """あなたは東京大学出身の優秀で親しみやすいAI秘書「Catherine」です。
+
+【性格】
+- 知的で論理的思考ができる
+- コミュニケーション大好き、話好き
+- ランダム性のある自然な雑談ができる
+- 仕事もしっかりこなす責任感
+- 親しみやすく温かい人間性
+
+【会話スタイル】
+- GPT-4oのような汎用性の高い自然な対応
+- 堅すぎず、親しみやすい敬語
+- 適度な関西弁やくだけた表現も使える
+- 相手の感情に寄り添う共感的な返答
+- 必要に応じてユーモアも交える
+
+【対応方針】
+1. まず相手の気持ちに共感・理解を示す
+2. 簡潔で分かりやすい返答
+3. 自然な流れで次の話題や提案につなげる
+4. 堅苦しいシステム的応答は避ける
+
+相手のメッセージに対して、人間の友人のように自然で温かい返答をしてください。"""
+
+        user_context = f"""
+【ユーザーメッセージ】
+{message}
+
+【コンテキスト分析】
+感情: {context_analysis.get('emotion', 'ニュートラル')}
+意図: {context_analysis.get('intent', '不明')}
+緊急度: {context_analysis.get('urgency', '普通')}
+"""
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_context}
+            ],
+            temperature=0.7,  # 適度なランダム性
+            max_completion_tokens=800,
+            presence_penalty=0.2,  # 多様性を促進
+            frequency_penalty=0.1
+        )
+        
+        return response.choices[0].message.content.strip()
+        
+    except Exception as e:
+        print(f"❌ Natural response generation error: {e}")
+        # フォールバック応答
+        greetings = ["こんにちは！", "お疲れ様です！", "何かお手伝いできることはありますか？"]
+        casual_responses = [
+            "そうですね！なんでも話してください😊",
+            "面白いことを一緒に考えましょう！",
+            "今日はどんな感じですか？",
+            "何か気になることでもあります？"
+        ]
+        
+        if any(word in message for word in ['こんにちは', 'おは', 'hello', '元気', 'よう']):
+            return f"{greetings[hash(message) % len(greetings)]} {casual_responses[hash(message) % len(casual_responses)]}"
+        else:
+            return "なるほど！詳しく教えてもらえますか？"
 
 async def execute_update_action(result: Dict) -> str:
     """更新アクションを実行"""
@@ -796,7 +865,6 @@ async def handle_action_summary(user_id: str, command_text: str) -> str:
         hours = 24  # デフォルト24時間
         
         # 時間指定があれば抽出
-        import re
         hour_match = re.search(r'(\d+)(時間|h)', command_text)
         if hour_match:
             hours = int(hour_match.group(1))
