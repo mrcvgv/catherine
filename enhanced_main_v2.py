@@ -111,6 +111,8 @@ async def on_message(message):
 async def process_command(message, user_id: str, username: str):
     """完全自然言語理解によるコマンド処理"""
     try:
+        start_time = datetime.now()
+        
         # C!がどこにあっても対応する抽出ロジック
         content = message.content
         if "C!" in content:
@@ -143,6 +145,12 @@ async def process_command(message, user_id: str, username: str):
         if not response or response.strip() == "":
             response = "理解しました。"
         
+        # エラーメッセージが含まれている場合の処理
+        if "エラーが発生しました" in response or "失敗しました" in response:
+            print(f"⚠️ Action returned error: {response}")
+            # エラー詳細を残しつつ、ユーザーフレンドリーなメッセージに統一
+            response = "申し訳ございません。処理中に問題が発生しました。しばらくしてから再度お試しください。"
+        
         # リアクション学習を適用
         response = await reaction_system.apply_learning_to_response(user_id, response)
         
@@ -169,7 +177,7 @@ async def process_command(message, user_id: str, username: str):
         )
         
         # アクション実行結果をログ
-        execution_time = (datetime.now() - datetime.now()).total_seconds() * 1000  # 実際の実行時間を計算
+        execution_time = (datetime.now() - start_time).total_seconds() * 1000
         await action_summary.log_action_result(
             user_id,
             f"command.{command_text.lower().split()[0] if command_text else 'chat'}",
@@ -177,7 +185,7 @@ async def process_command(message, user_id: str, username: str):
             {
                 'success': True,
                 'response_length': len(response),
-                'confidence': context_analysis.get('confidence_score', 0.8)
+                'confidence': intent.get('score', 0.8)
             },
             int(execution_time)
         )
@@ -196,8 +204,8 @@ async def process_command(message, user_id: str, username: str):
         
     except Exception as e:
         print(f"❌ Command processing error: {e}")
-        error_msg = "申し訳ございません。処理中にエラーが発生しました。"
-        await message.channel.send(error_msg)
+        # エラー応答は execute_natural_action 内で処理されるので、ここでは送信しない
+        pass
 
 async def execute_natural_action(user_id: str, command_text: str, intent: Dict, message) -> str:
     """自然言語理解に基づくアクション実行"""
@@ -246,7 +254,9 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 return f"✅ 「**{task_content[:30]}**」をToDoに追加しました！"
             except Exception as e:
                 print(f"❌ Todo add error: {e}")
-                return "ToDo追加中にエラーが発生しました。"
+                import traceback
+                traceback.print_exc()
+                return f"ToDo追加中にエラーが発生しました。詳細: {str(e)}"
         
         # ToDoリスト表示
         elif primary_intent == 'todo_list':
