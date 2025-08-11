@@ -29,6 +29,7 @@ from action_summary_system import ActionSummarySystem
 from progress_nudge_engine import ProgressNudgeEngine
 from attachment_ocr_system import AttachmentOCRSystem
 from voice_optimized_system import VoiceOptimizedSystem
+from adaptive_learning_system import AdaptiveLearningSystem
 # from voice_channel_system import VoiceChannelSystem  # 一時的に無効化（discord.sinks互換性問題）
 
 # Railway用ポート設定
@@ -60,6 +61,7 @@ action_summary = ActionSummarySystem(client_oa)
 nudge_engine = ProgressNudgeEngine(client_oa)
 ocr_system = AttachmentOCRSystem(client_oa)
 voice_system = VoiceOptimizedSystem(client_oa)
+adaptive_learning = AdaptiveLearningSystem(client_oa)
 # voice_channel = VoiceChannelSystem(client_oa, bot)  # 一時的に無効化
 
 # タイムゾーン設定
@@ -139,6 +141,16 @@ async def process_command(message, user_id: str, username: str):
         
         # 応答送信
         bot_message = await message.channel.send(response)
+        
+        # 会話から学習（リアクション待機なしで即座に基本学習）
+        asyncio.create_task(
+            adaptive_learning.learn_from_conversation(
+                user_id, 
+                command_text, 
+                response,
+                None  # リアクションは後で更新
+            )
+        )
         
         # アクション実行結果をログ
         execution_time = (datetime.now() - datetime.now()).total_seconds() * 1000  # 実際の実行時間を計算
@@ -248,6 +260,8 @@ async def route_command(user_id: str, command_text: str,
         return "🎤 ボイスチャンネル機能は現在メンテナンス中です。"
     
     # ヘルプ
+    elif command_lower.startswith("growth") or command_lower.startswith("成長"):
+        return await handle_growth_status(user_id)
     elif command_lower.startswith("help"):
         return await handle_help()
     
@@ -279,6 +293,21 @@ async def on_reaction_add(reaction, user):
             reaction=str(reaction.emoji),
             bot_response=mapping['bot_response'],
             user_message=mapping['user_message']
+        )
+        
+        # 適応学習システムも更新
+        user_reaction = {
+            'emoji': str(reaction.emoji),
+            'score': 0.9 if str(reaction.emoji) in ['👍', '❤️', '✨'] else 0.3 if str(reaction.emoji) in ['👎', '❌'] else 0.5,
+            'response_time': (datetime.now() - mapping.get('timestamp', datetime.now())).total_seconds(),
+            'continued_conversation': False  # 後続会話があれば更新
+        }
+        
+        await adaptive_learning.learn_from_conversation(
+            str(user.id),
+            mapping['user_message'],
+            mapping['bot_response'],
+            user_reaction
         )
         
         # フィードバック確認メッセージ（オプション）
@@ -740,9 +769,25 @@ async def handle_natural_conversation(user_id: str, message: str,
         return "すみません、うまく理解できませんでした。もう一度お願いできますか？"
 
 async def generate_natural_conversation_response(message: str, context_analysis: Dict, user_profile: Dict) -> str:
-    """GPT-4oを使った自然で人間らしい会話応答生成"""
+    """GPT-4oを使った自然で人間らしい会話応答生成（学習済みスタイル適用）"""
     try:
-        system_prompt = """あなたは東京大学出身の優秀で親しみやすいAI秘書「Catherine」です。
+        # ユーザーIDの取得
+        user_id = user_profile.get('user_id', 'default')
+        
+        # 学習済み応答スタイル取得
+        adapted_style = await adaptive_learning.get_adapted_response_style(user_id, context_analysis)
+        
+        # スタイルに基づいてプロンプト調整
+        tone_descriptions = {
+            'casual_friendly': '親しみやすくカジュアルに',
+            'polite_friendly': '丁寧で温かく',
+            'formal': 'フォーマルかつプロフェッショナルに',
+            'balanced': 'バランスよく適切に'
+        }
+        
+        tone_instruction = tone_descriptions.get(adapted_style['tone'], 'バランスよく')
+        
+        system_prompt = f"""あなたは東京大学出身の優秀で親しみやすいAI秘書「Catherine」です。
 
 【性格】
 - 知的で論理的思考ができる
@@ -764,7 +809,17 @@ async def generate_natural_conversation_response(message: str, context_analysis:
 3. 自然な流れで次の話題や提案につなげる
 4. 堅苦しいシステム的応答は避ける
 
-相手のメッセージに対して、人間の友人のように自然で温かい返答をしてください。"""
+【学習済みスタイル】
+- トーン: {tone_instruction}
+- 応答長: {"詳細に" if adapted_style['length'] == 'detailed' else "簡潔に" if adapted_style['length'] == 'concise' else "適度に"}
+- フォーマル度: {adapted_style['formality']*100:.0f}%
+- ユーモアレベル: {adapted_style['humor_level']*100:.0f}%
+- 絵文字使用: {"積極的に使う" if adapted_style['emoji_usage'] else "控えめに"}
+
+【ユーザー理解】
+{chr(10).join(adapted_style.get('learning_insights', []))}
+
+相手のメッセージに対して、学習済みスタイルを反映させて人間の友人のように自然で温かい返答をしてください。"""
 
         user_context = f"""
 【ユーザーメッセージ】
@@ -1038,6 +1093,51 @@ async def process_attachments(message, user_id: str, username: str):
 # ボイスチャンネルハンドラー（一時的に削除 - discord.sinks互換性問題）
 
 # ヘルプ機能
+async def handle_growth_status(user_id: str) -> str:
+    """成長ステータス表示"""
+    try:
+        growth = await adaptive_learning._get_growth_level(user_id)
+        
+        # プログレスバー作成
+        level = growth['level']
+        bar_length = 20
+        filled = int(bar_length * (level / 100))
+        bar = '█' * filled + '░' * (bar_length - filled)
+        
+        response = f"""
+📊 **Catherineの成長ステータス**
+
+🎯 成長レベル: **{growth['stage']}** (Lv.{level:.1f}/100)
+{bar} {level:.0f}%
+
+📈 統計情報:
+• 会話回数: {growth['conversations']}回
+• 成功率: {growth['success_rate']*100:.1f}%
+• 次の目標: {growth['next_milestone']}
+
+🧠 学習内容:
+"""
+        # 学習洞察を追加
+        style = await adaptive_learning.get_adapted_response_style(user_id, {})
+        if style['learning_insights']:
+            for insight in style['learning_insights'][:3]:
+                response += f"• {insight}\n"
+        else:
+            response += "• まだ学習中です...\n"
+        
+        response += """
+💡 成長のヒント:
+• 会話を重ねるほど、あなたの好みを学習します
+• 👍👎のリアクションで学習が加速します
+• 様々な話題で会話してみてください
+"""
+        
+        return response
+        
+    except Exception as e:
+        print(f"❌ Growth status error: {e}")
+        return "成長ステータスの取得に失敗しました。"
+
 async def handle_help() -> str:
     """ヘルプメッセージ"""
     return """
