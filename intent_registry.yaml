@@ -83,6 +83,14 @@ intents:
       - "(?P<task>.+?)の?優先度→(?P<priority>最優先|高|中|低)"
       - "(?P<task>.+?)を?(?P<due>今日|明日|\\d{1,2}/\\d{1,2})まで"
 
+  - name: todo_split
+    weight: 1.8
+    patterns:
+      - "(?P<action>分けて|分割|タスクに分けて|2つのタスクに分けて)"
+      - "todo.*(?P<action>分けて|分割)"
+      - "タスク.*(?P<action>分けて|分割)"
+      - "(?P<action>別のタスクに.*変えて|別々にして)"
+
   - name: reminder_set
     weight: 1.4
     patterns:

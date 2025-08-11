@@ -392,6 +392,54 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
         elif primary_intent == 'growth':
             return await handle_growth_status(user_id)
         
+        # ToDo分割・修正機能
+        elif primary_intent == 'todo_split' or ('分けて' in command_text or '分割' in command_text or 'タスクに分けて' in command_text or '2つのタスクに' in command_text):
+            try:
+                # 現在のToDoリストを取得
+                todos = await team_todo_manager.get_team_todos()
+                if not todos:
+                    return "現在ToDoがありません。"
+                
+                # 最初のToDoを分割対象として処理
+                first_todo = todos[0]
+                title = first_todo['title']
+                
+                # 区切り文字で分割を試行
+                split_patterns = ['. ', '.\n', ',', '、', '\n']
+                tasks = [title]
+                
+                for pattern in split_patterns:
+                    if pattern in title:
+                        tasks = [t.strip() for t in title.split(pattern) if t.strip()]
+                        break
+                
+                if len(tasks) <= 1:
+                    return f"「{title}」を分割できませんでした。手動で分割方法を指定してください。"
+                
+                # 元のタスクを削除
+                await team_todo_manager.delete_todo_by_index(0)
+                
+                # 分割されたタスクを個別に追加
+                added_tasks = []
+                for task in tasks[:3]:  # 最大3つまで
+                    if len(task) > 3:  # 意味のあるタスクのみ
+                        result = await team_todo_manager.add_team_todo(
+                            user_id=user_id,
+                            title=task[:100],
+                            priority=3,
+                            due_date=None,
+                            category='general'
+                        )
+                        added_tasks.append(task)
+                
+                return f"✅ **タスク分割完了**\n\n**分割されたタスク:**\n" + "\n".join([f"• {task}" for task in added_tasks])
+            
+            except Exception as e:
+                print(f"❌ Task split error: {e}")
+                import traceback
+                traceback.print_exc()
+                return f"タスク分割中にエラーが発生しました: {str(e)}"
+        
         # データベース接続診断
         elif 'db' in command_text.lower() or 'データベース' in command_text.lower() or 'つながって' in command_text.lower():
             try:
