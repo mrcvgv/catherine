@@ -65,6 +65,7 @@ try:
     from mega_human_chat import MegaHumanChat
     from ultra_human_communication import UltraHumanCommunication
     from instant_response_system import InstantResponseSystem
+    from simple_human_chat import SimpleHumanChat
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -143,6 +144,7 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     mega_human_chat = MegaHumanChat()
     ultra_human_communication = UltraHumanCommunication()
     instant_response_system = InstantResponseSystem()
+    simple_human_chat = SimpleHumanChat()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
     print("   Fast Greeting System: Loaded for instant casual responses")
@@ -157,6 +159,8 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     print("       - Contextual awareness, personality adaptation")
     print(f"   ⚡ INSTANT Response System: {instant_response_system.get_response_count()} instant patterns (0.001s)")
     print("       - 即座に返事、遅延ゼロ、最高速カジュアル会話")
+    print(f"   👥 Simple Human Chat: {simple_human_chat.get_pattern_count()} human-like patterns")
+    print("       - 普通の友達みたい、気持ち理解、共感重視、頭良すぎない")
 else:
     evolved_human_ai = None
     fast_greeting = None
@@ -167,6 +171,7 @@ else:
     mega_human_chat = None
     ultra_human_communication = None
     instant_response_system = None
+    simple_human_chat = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -293,8 +298,8 @@ async def process_command(message, user_id: str, username: str):
                 # フォールバック: 究極知能ハブへ
                 print("🔄 フォールバック: 究極知能ハブへ移行...")
         
-        # 🌟 究極知能ハブ による超高度処理（利用可能な場合）
-        if ultimate_hub and ULTIMATE_SYSTEMS_AVAILABLE:
+        # 🌟 究極知能ハブ による超高度処理（利用可能な場合）- 無効化（人間らしさ優先）
+        if False and ultimate_hub and ULTIMATE_SYSTEMS_AVAILABLE:
             print(f"[ULTIMATE] Processing: {command_text[:50]}...")
             
             try:
@@ -352,7 +357,23 @@ async def process_command(message, user_id: str, username: str):
             ])
         )
         
-        # ⚡⚡⚡ 瞬間応答システム - 最最最最最優先 (0.001秒応答)
+        # 👥⚡ シンプル人間会話 - 最最最最最最優先 (普通の友達みたい)
+        if simple_human_chat and simple_human_chat.is_simple_human_chat(command_text):
+            try:
+                response = simple_human_chat.get_human_response(command_text)
+                if response:
+                    print(f"[SIMPLE_HUMAN] Input: {command_text} -> Response: {response} (気持ち理解重視)")
+                    
+                    bot_message = await message.channel.send(response)
+                    await _handle_post_response_processing(
+                        message, bot_message, user_id, command_text, response,
+                        context, 1.0
+                    )
+                    return
+            except Exception as e:
+                print(f"[ERROR] Simple human chat error: {e}")
+        
+        # ⚡⚡⚡ 瞬間応答システム - 次優先 (0.001秒応答)
         if instant_response_system and instant_response_system.is_instant_response_target(command_text):
             try:
                 start_time = time.time()
@@ -370,8 +391,8 @@ async def process_command(message, user_id: str, username: str):
             except Exception as e:
                 print(f"[ERROR] Instant response error: {e}")
         
-        # 🌟⚡ ULTRA人間コミュニケーション - 次優先 (500k+パターン完全汎用)
-        if ultra_human_communication and ultra_human_communication.is_ultra_human_communication(command_text):
+        # 🌟⚡ ULTRA人間コミュニケーション - 無効化（複雑すぎる）
+        if False and ultra_human_communication and ultra_human_communication.is_ultra_human_communication(command_text):
             try:
                 response = ultra_human_communication.get_ultra_response(command_text, user_id)
                 if response:
@@ -421,8 +442,8 @@ async def process_command(message, user_id: str, username: str):
             except Exception as e:
                 print(f"[ERROR] Super natural chat error: {e}")
         
-        # 🧠⚡ 超高速意図認識システム - 次の優先度
-        if instant_intent_engine and massive_pattern_brain:
+        # 🧠⚡ 超高速意図認識システム - 無効化（複雑すぎる）
+        if False and instant_intent_engine and massive_pattern_brain:
             try:
                 start_time = time.time()
                 intent_result = instant_intent_engine.recognize_intent_instantly(command_text)
@@ -487,8 +508,8 @@ async def process_command(message, user_id: str, username: str):
                 print(f"[ERROR] Natural conversation error: {e}")
                 # フォールバック処理継続
         
-        # 🧠 進化した人間的AI処理 - 機能要求・挨拶・自然会話は除外
-        if evolved_human_ai and EVOLVED_HUMAN_AI_AVAILABLE and not is_functional_request and not is_simple_greeting and not is_natural_conversation:
+        # 🧠 進化した人間的AI処理 - 無効化（頭良すぎる）
+        if False and evolved_human_ai and EVOLVED_HUMAN_AI_AVAILABLE and not is_functional_request and not is_simple_greeting and not is_natural_conversation:
             try:
                 print(f"[EVOLVED_AI] Processing with human wisdom: {command_text[:50]}...")
                 
