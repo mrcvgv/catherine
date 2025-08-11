@@ -100,8 +100,8 @@ async def on_message(message):
         await process_attachments(message, user_id, username)
         return
     
-    # C!コマンド処理
-    if message.content.startswith("C!"):
+    # C!コマンド処理（文章のどこにでも対応）
+    if "C!" in message.content:
         await process_command(message, user_id, username)
         return  # C!コマンドの場合は、二重処理を防ぐためにここで終了
     
@@ -111,7 +111,19 @@ async def on_message(message):
 async def process_command(message, user_id: str, username: str):
     """完全自然言語理解によるコマンド処理"""
     try:
-        command_text = message.content[len("C!"):].strip()
+        # C!がどこにあっても対応する抽出ロジック
+        content = message.content
+        if "C!" in content:
+            # C!以降の部分を抽出（C!が文の途中にある場合に対応）
+            c_index = content.find("C!")
+            command_text = content[c_index + 2:].strip()
+            
+            # C!が文の最後の場合や、C!の前にある文章も考慮
+            if not command_text and c_index > 0:
+                # C!の前の部分を使用
+                command_text = content[:c_index].strip()
+        else:
+            command_text = content.strip()
         
         # 会話コンテキスト取得
         conversation_history = await conversation_manager._get_recent_conversations(user_id, limit=5)
