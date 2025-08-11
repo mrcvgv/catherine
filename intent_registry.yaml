@@ -102,6 +102,8 @@ intents:
     patterns:
       - "おはよう"
       - "こんにちは"
+      - "こんちは"
+      - "こんちわ"
       - "こんばんは"
       - "hello"
       - "hi"
@@ -109,6 +111,7 @@ intents:
       - "よう"
       - "元気？"
       - "調子どう"
+      - "挨拶"
 
   - name: help_request
     weight: 1.0

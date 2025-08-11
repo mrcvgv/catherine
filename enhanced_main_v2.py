@@ -161,8 +161,13 @@ async def process_command(message, user_id: str, username: str):
         # エラーメッセージが含まれている場合の処理
         if "エラーが発生しました" in response or "失敗しました" in response:
             print(f"⚠️ Action returned error: {response}")
-            # エラー詳細を残しつつ、ユーザーフレンドリーなメッセージに統一
-            response = "申し訳ございません。処理中に問題が発生しました。しばらくしてから再度お試しください。"
+            # デバッグ情報を含めて表示（本番では削除可能）
+            if "詳細:" in response:
+                # 詳細エラーがある場合はそのまま表示
+                pass
+            else:
+                # 一般的なエラーメッセージに統一
+                response = "申し訳ございません。処理中に問題が発生しました。しばらくしてから再度お試しください。"
         
         # リアクション学習を適用
         response = await reaction_system.apply_learning_to_response(user_id, response)
@@ -347,6 +352,22 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
         # 成長ステータス
         elif primary_intent == 'growth':
             return await handle_growth_status(user_id)
+        
+        # データベース接続診断
+        elif 'db' in command_text.lower() or 'データベース' in command_text.lower() or 'つながって' in command_text.lower():
+            try:
+                # Firebase接続テスト
+                test_doc = firebase_manager.get_db().collection('connection_test').document('test')
+                test_doc.set({'timestamp': datetime.now().isoformat(), 'status': 'ok'})
+                
+                # Team todo manager テスト
+                todos_count = len(await team_todo_manager.get_team_todos())
+                
+                return f"✅ **データベース接続状況**\n📊 現在のToDo数: {todos_count}件\n🔗 Firebase: 正常接続\n⏰ 接続確認時刻: {datetime.now().strftime('%H:%M:%S')}"
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return f"❌ **データベース接続エラー**\n詳細: {str(e)}\n🔧 Firebase設定を確認してください"
         
         # ブリーフィング
         elif primary_intent == 'briefing':
