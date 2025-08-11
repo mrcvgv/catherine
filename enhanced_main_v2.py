@@ -300,8 +300,14 @@ async def process_command(message, user_id: str, username: str):
                 print("[WARNING] Falling back to standard system")
                 # エラーの場合は既存システムにフォールバック
         
-        # 🧠 進化した人間的AI処理 - 実用的で温かい知性
-        if evolved_human_ai and EVOLVED_HUMAN_AI_AVAILABLE:
+        # 具体的な機能要求の検出
+        is_functional_request = any(keyword in command_text.lower() for keyword in [
+            'リスト出', 'リスト表示', 'リスト見せ', 'タスク一覧', 'todo一覧', 
+            'リスト教', 'やること見せ', 'タスク出し', 'list', '一覧出し'
+        ])
+        
+        # 🧠 進化した人間的AI処理 - ただし具体的機能要求は除外
+        if evolved_human_ai and EVOLVED_HUMAN_AI_AVAILABLE and not is_functional_request:
             try:
                 print(f"[EVOLVED_AI] Processing with human wisdom: {command_text[:50]}...")
                 
