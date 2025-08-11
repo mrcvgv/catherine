@@ -63,6 +63,7 @@ try:
     from instant_intent_engine import InstantIntentEngine
     from super_natural_chat import SuperNaturalChat
     from mega_human_chat import MegaHumanChat
+    from ultra_human_communication import UltraHumanCommunication
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -139,6 +140,7 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     instant_intent_engine = InstantIntentEngine()
     super_natural_chat = SuperNaturalChat()
     mega_human_chat = MegaHumanChat()
+    ultra_human_communication = UltraHumanCommunication()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
     print("   Fast Greeting System: Loaded for instant casual responses")
@@ -147,6 +149,10 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     print("   ⚡ Instant Intent Engine: 0.001s recognition speed")
     print(f"   💬 Super Natural Chat: {super_natural_chat.get_pattern_count()} natural patterns")
     print(f"   🗣️ Mega Human Chat: {mega_human_chat.get_pattern_count()} human patterns + personality system")
+    print(f"   🌟 ULTRA Human Communication: {ultra_human_communication.get_total_pattern_count()} comprehensive patterns")
+    print("       - 50k+ basic patterns, 100k+ situational, 50k+ emotional, 100k+ contextual")
+    print("       - Real-time learning, emotional intelligence, regional dialects")
+    print("       - Contextual awareness, personality adaptation")
 else:
     evolved_human_ai = None
     fast_greeting = None
@@ -155,6 +161,7 @@ else:
     instant_intent_engine = None
     super_natural_chat = None
     mega_human_chat = None
+    ultra_human_communication = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -340,7 +347,25 @@ async def process_command(message, user_id: str, username: str):
             ])
         )
         
-        # 🗣️⚡ 超人間雑談システム - 最最最優先 (完全人間レベル)
+        # 🌟⚡ ULTRA人間コミュニケーション - 最最最最優先 (500k+パターン完全汎用)
+        if ultra_human_communication and ultra_human_communication.is_ultra_human_communication(command_text):
+            try:
+                response = ultra_human_communication.get_ultra_response(command_text, user_id)
+                if response:
+                    stats = ultra_human_communication.get_system_stats()
+                    print(f"[ULTRA_HUMAN] Input: {command_text[:25]} -> Response: {response}")
+                    print(f"              Total patterns: {stats['total_patterns']}, Active contexts: {stats['active_contexts']}")
+                    
+                    bot_message = await message.channel.send(response)
+                    await _handle_post_response_processing(
+                        message, bot_message, user_id, command_text, response,
+                        context, 1.0
+                    )
+                    return
+            except Exception as e:
+                print(f"[ERROR] Ultra human communication error: {e}")
+        
+        # 🗣️⚡ 超人間雑談システム - 次優先 (完全人間レベル)
         if mega_human_chat and mega_human_chat.is_mega_human_chat(command_text):
             try:
                 response = mega_human_chat.get_mega_human_response(command_text, user_id)
