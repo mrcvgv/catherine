@@ -66,6 +66,7 @@ try:
     from ultra_human_communication import UltraHumanCommunication
     from instant_response_system import InstantResponseSystem
     from simple_human_chat import SimpleHumanChat
+    from mega_universal_chat import MegaUniversalChat
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -145,6 +146,7 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     ultra_human_communication = UltraHumanCommunication()
     instant_response_system = InstantResponseSystem()
     simple_human_chat = SimpleHumanChat()
+    mega_universal_chat = MegaUniversalChat()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
     print("   Fast Greeting System: Loaded for instant casual responses")
@@ -161,6 +163,8 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     print("       - 即座に返事、遅延ゼロ、最高速カジュアル会話")
     print(f"   👥 Simple Human Chat: {simple_human_chat.get_pattern_count()} human-like patterns")
     print("       - 普通の友達みたい、気持ち理解、共感重視、頭良すぎない")
+    print(f"   🌌 MEGA Universal Chat: {mega_universal_chat.get_pattern_count()} universal patterns")
+    print("       - 日常生活のあらゆる会話を網羅、異次元レベルの汎用性、人間らしさMAX")
 else:
     evolved_human_ai = None
     fast_greeting = None
@@ -172,6 +176,7 @@ else:
     ultra_human_communication = None
     instant_response_system = None
     simple_human_chat = None
+    mega_universal_chat = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -357,7 +362,23 @@ async def process_command(message, user_id: str, username: str):
             ])
         )
         
-        # 👥⚡ シンプル人間会話 - 最最最最最最優先 (普通の友達みたい)
+        # 🌌⚡ MEGA汎用会話 - 最最最最最最最優先 (異次元レベル汎用性)
+        if mega_universal_chat and mega_universal_chat.is_universal_chat(command_text):
+            try:
+                response = mega_universal_chat.get_universal_response(command_text)
+                if response:
+                    print(f"[MEGA_UNIVERSAL] Input: {command_text} -> Response: {response} (異次元汎用性)")
+                    
+                    bot_message = await message.channel.send(response)
+                    await _handle_post_response_processing(
+                        message, bot_message, user_id, command_text, response,
+                        context, 1.0
+                    )
+                    return
+            except Exception as e:
+                print(f"[ERROR] Mega universal chat error: {e}")
+        
+        # 👥⚡ シンプル人間会話 - 次優先 (普通の友達みたい)
         if simple_human_chat and simple_human_chat.is_simple_human_chat(command_text):
             try:
                 response = simple_human_chat.get_human_response(command_text)
@@ -753,7 +774,7 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 priority = 4
             
             try:
-                result = await team_todo_manager.add_team_todo(
+                result = await team_todo_manager.create_team_todo(
                     user_id=user_id,
                     title=task_content[:100],
                     priority=priority,
@@ -883,7 +904,7 @@ async def execute_natural_action(user_id: str, command_text: str, intent: Dict, 
                 added_tasks = []
                 for task in tasks[:3]:  # 最大3つまで
                     if len(task) > 3:  # 意味のあるタスクのみ
-                        result = await team_todo_manager.add_team_todo(
+                        result = await team_todo_manager.create_team_todo(
                             user_id=user_id,
                             title=task[:100],
                             priority=3,
