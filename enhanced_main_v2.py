@@ -62,6 +62,7 @@ try:
     from massive_pattern_brain import MassivePatternBrain
     from instant_intent_engine import InstantIntentEngine
     from super_natural_chat import SuperNaturalChat
+    from mega_human_chat import MegaHumanChat
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -137,6 +138,7 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     massive_pattern_brain = MassivePatternBrain()
     instant_intent_engine = InstantIntentEngine()
     super_natural_chat = SuperNaturalChat()
+    mega_human_chat = MegaHumanChat()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
     print("   Fast Greeting System: Loaded for instant casual responses")
@@ -144,6 +146,7 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     print("   🧠 Massive Pattern Brain: 100M+ patterns loaded")
     print("   ⚡ Instant Intent Engine: 0.001s recognition speed")
     print(f"   💬 Super Natural Chat: {super_natural_chat.get_pattern_count()} natural patterns")
+    print(f"   🗣️ Mega Human Chat: {mega_human_chat.get_pattern_count()} human patterns + personality system")
 else:
     evolved_human_ai = None
     fast_greeting = None
@@ -151,6 +154,7 @@ else:
     massive_pattern_brain = None
     instant_intent_engine = None
     super_natural_chat = None
+    mega_human_chat = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -336,7 +340,24 @@ async def process_command(message, user_id: str, username: str):
             ])
         )
         
-        # 💬⚡ 超自然会話システム - 最最優先 (普通の会話)
+        # 🗣️⚡ 超人間雑談システム - 最最最優先 (完全人間レベル)
+        if mega_human_chat and mega_human_chat.is_mega_human_chat(command_text):
+            try:
+                response = mega_human_chat.get_mega_human_response(command_text, user_id)
+                if response:
+                    mood_state = mega_human_chat.get_personality_state()
+                    print(f"[MEGA_HUMAN] Input: {command_text[:20]} -> Response: {response} [Mood: {mood_state['mood']}, Energy: {mood_state['energy']:.1f}]")
+                    
+                    bot_message = await message.channel.send(response)
+                    await _handle_post_response_processing(
+                        message, bot_message, user_id, command_text, response,
+                        context, 1.0
+                    )
+                    return
+            except Exception as e:
+                print(f"[ERROR] Mega human chat error: {e}")
+        
+        # 💬⚡ 超自然会話システム - フォールバック
         if super_natural_chat and super_natural_chat.is_super_natural_chat(command_text):
             try:
                 response = super_natural_chat.get_natural_response(command_text)
