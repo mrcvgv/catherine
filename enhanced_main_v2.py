@@ -30,6 +30,7 @@ from progress_nudge_engine import ProgressNudgeEngine
 from attachment_ocr_system import AttachmentOCRSystem
 from voice_optimized_system import VoiceOptimizedSystem
 from adaptive_learning_system import AdaptiveLearningSystem
+from natural_language_engine import NaturalLanguageEngine
 # from voice_channel_system import VoiceChannelSystem  # 一時的に無効化（discord.sinks互換性問題）
 
 # Railway用ポート設定
@@ -62,6 +63,7 @@ nudge_engine = ProgressNudgeEngine(client_oa)
 ocr_system = AttachmentOCRSystem(client_oa)
 voice_system = VoiceOptimizedSystem(client_oa)
 adaptive_learning = AdaptiveLearningSystem(client_oa)
+natural_language = NaturalLanguageEngine(client_oa)
 # voice_channel = VoiceChannelSystem(client_oa, bot)  # 一時的に無効化
 
 # タイムゾーン設定
@@ -105,31 +107,23 @@ async def on_message(message):
     await bot.process_commands(message)
 
 async def process_command(message, user_id: str, username: str):
-    """コマンド処理のメイン関数"""
+    """完全自然言語理解によるコマンド処理"""
     try:
         command_text = message.content[len("C!"):].strip()
         
-        # 会話履歴を取得
-        conversation_history = await conversation_manager._get_recent_conversations(user_id, limit=10)
+        # 会話コンテキスト取得
+        conversation_history = await conversation_manager._get_recent_conversations(user_id, limit=5)
+        context = {
+            'last_topic': conversation_history[0].get('topic', '') if conversation_history else '',
+            'user_state': 'normal',
+            'history': conversation_history
+        }
         
-        # 深層コンテキスト分析
-        context_analysis = await context_system.analyze_deep_context(
-            user_id, 
-            command_text, 
-            conversation_history
-        )
+        # 自然言語から意図を理解
+        intent = await natural_language.understand_intent(command_text, context)
         
-        # ユーザープロファイル取得
-        user_profile = await get_user_profile(user_id)
-        
-        # コマンドルーティング
-        response = await route_command(
-            user_id, 
-            command_text, 
-            context_analysis,
-            user_profile,
-            message
-        )
+        # 意図に基づいてアクション実行
+        response = await execute_natural_action(user_id, command_text, intent, message)
         
         # リアクション学習を適用
         response = await reaction_system.apply_learning_to_response(user_id, response)
@@ -182,6 +176,104 @@ async def process_command(message, user_id: str, username: str):
         print(f"❌ Command processing error: {e}")
         error_msg = "申し訳ございません。処理中にエラーが発生しました。"
         await message.channel.send(error_msg)
+
+async def execute_natural_action(user_id: str, command_text: str, intent: Dict, message) -> str:
+    """自然言語理解に基づくアクション実行"""
+    try:
+        primary_intent = intent.get('primary_intent', 'chat')
+        parameters = intent.get('parameters', {})
+        
+        # ToDo管理
+        if primary_intent == 'todo_management' or 'todo' in primary_intent:
+            specific_action = intent.get('specific_action', '')
+            
+            if 'add' in specific_action or 'create' in specific_action:
+                # ToDo追加
+                todo_info = natural_language.extract_todo_info(command_text, intent)
+                result = await team_todo_manager.add_team_todo(
+                    user_id=user_id,
+                    title=todo_info['title'],
+                    priority=todo_info['priority'],
+                    due_date=todo_info['due_date'],
+                    category=todo_info['category']
+                )
+                return await natural_language.generate_action_response(intent, f"「{todo_info['title'][:30]}」を追加しました")
+            
+            elif 'list' in specific_action or 'show' in specific_action or primary_intent == 'todo_list':
+                # ToDo一覧
+                todos = await team_todo_manager.get_team_todos()
+                if not todos:
+                    return "今のところToDoはありません。何か追加しますか？"
+                
+                response = "📊 **ToDoリスト**\n\n"
+                for i, todo in enumerate(todos[:20], 1):
+                    priority_emoji = "🔥" if todo['priority'] >= 4 else "⚡" if todo['priority'] >= 3 else "📌"
+                    status_emoji = {
+                        'pending': '⏳',
+                        'in_progress': '🔄',
+                        'completed': '✅'
+                    }.get(todo['status'], '❓')
+                    response += f"{i}. {priority_emoji}{status_emoji} {todo['title'][:50]}\n"
+                
+                return response
+            
+            elif 'complete' in specific_action or 'done' in specific_action:
+                # ToDo完了
+                content = parameters.get('content', command_text)
+                # 番号または内容で特定
+                if content.isdigit():
+                    result = await team_todo_manager.complete_todo_by_index(int(content) - 1)
+                else:
+                    result = await team_todo_manager.complete_todo_by_title(content)
+                return await natural_language.generate_action_response(intent, result)
+            
+            elif 'delete' in specific_action or 'remove' in specific_action:
+                # ToDo削除
+                content = parameters.get('content', command_text)
+                if content.isdigit():
+                    result = await team_todo_manager.delete_todo_by_index(int(content) - 1)
+                else:
+                    result = await team_todo_manager.delete_todo_by_title(content)
+                return await natural_language.generate_action_response(intent, result)
+        
+        # リマインダー
+        elif primary_intent == 'reminder':
+            reminder_info = natural_language.extract_reminder_info(command_text, intent)
+            result = await reminder_system.create_reminder(
+                user_id=user_id,
+                title=reminder_info['title'],
+                message=reminder_info['message'],
+                remind_at=reminder_info['remind_at'],
+                reminder_type=reminder_info['reminder_type']
+            )
+            return await natural_language.generate_action_response(intent, f"リマインダーを{reminder_info['remind_at'].strftime('%H:%M')}にセットしました")
+        
+        # 挨拶
+        elif primary_intent == 'greeting':
+            user_profile = await get_user_profile(user_id)
+            return await generate_natural_conversation_response(command_text, intent, user_profile)
+        
+        # 成長ステータス
+        elif primary_intent == 'growth':
+            return await handle_growth_status(user_id)
+        
+        # ブリーフィング
+        elif primary_intent == 'briefing':
+            return await handle_morning_briefing(user_id)
+        
+        # ヘルプ
+        elif primary_intent == 'help_request':
+            return "何でも話しかけてください！\n例：\n• 「買い物リスト作って」\n• 「明日の会議をリマインドして」\n• 「やることリスト見せて」\n• 「1番終わった」"
+        
+        # 自然な会話
+        else:
+            user_profile = await get_user_profile(user_id)
+            user_profile['user_id'] = user_id
+            return await generate_natural_conversation_response(command_text, intent, user_profile)
+            
+    except Exception as e:
+        print(f"❌ Natural action execution error: {e}")
+        return "ごめんなさい、うまく理解できませんでした。もう一度言ってもらえますか？"
 
 async def route_command(user_id: str, command_text: str, 
                        context_analysis: Dict, 
