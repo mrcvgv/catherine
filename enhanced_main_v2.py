@@ -56,6 +56,7 @@ except ImportError as e:
 # 🌟 進化した人間的AIシステム - 5000年後の人間の脳の形
 try:
     from evolved_human_ai import EvolvedHumanAI
+    from fast_greeting_system import FastGreetingSystem
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -126,10 +127,13 @@ else:
 # 🌟 進化した人間的AIシステム統合
 if EVOLVED_HUMAN_AI_AVAILABLE:
     evolved_human_ai = EvolvedHumanAI(client_oa)
+    fast_greeting = FastGreetingSystem()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
+    print("   Fast Greeting System: Loaded for instant casual responses")
 else:
     evolved_human_ai = None
+    fast_greeting = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -306,8 +310,33 @@ async def process_command(message, user_id: str, username: str):
             'リスト教', 'やること見せ', 'タスク出し', 'list', '一覧出し'
         ])
         
-        # 🧠 進化した人間的AI処理 - ただし具体的機能要求は除外
-        if evolved_human_ai and EVOLVED_HUMAN_AI_AVAILABLE and not is_functional_request:
+        # シンプルな挨拶・カジュアル会話の検出
+        is_simple_greeting = (
+            len(command_text) <= 10 and 
+            any(greeting in command_text.lower() for greeting in [
+                'よう', 'おっす', 'おい', 'やあ', 'はい', 'うん', 'そう', 'へー',
+                'こんにちは', 'こんばんは', 'おはよう', 'hi', 'hello', 'hey'
+            ])
+        )
+        
+        # ⚡ 高速挨拶システム - シンプルな挨拶に即座に応答
+        if fast_greeting and is_simple_greeting:
+            try:
+                response = fast_greeting.generate_fast_response(command_text)
+                bot_message = await message.channel.send(response)
+                
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response,
+                    context, 1.0
+                )
+                return
+                
+            except Exception as e:
+                print(f"[ERROR] Fast greeting error: {e}")
+                # フォールバック処理継続
+        
+        # 🧠 進化した人間的AI処理 - 機能要求と簡単な挨拶は除外
+        if evolved_human_ai and EVOLVED_HUMAN_AI_AVAILABLE and not is_functional_request and not is_simple_greeting:
             try:
                 print(f"[EVOLVED_AI] Processing with human wisdom: {command_text[:50]}...")
                 
