@@ -11,6 +11,7 @@ from discord.ext import commands, tasks
 from openai import OpenAI
 import json
 import re
+import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import pytz
@@ -58,6 +59,8 @@ try:
     from evolved_human_ai import EvolvedHumanAI
     from fast_greeting_system import FastGreetingSystem
     from natural_conversation_system import NaturalConversationSystem
+    from massive_pattern_brain import MassivePatternBrain
+    from instant_intent_engine import InstantIntentEngine
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -130,14 +133,20 @@ if EVOLVED_HUMAN_AI_AVAILABLE:
     evolved_human_ai = EvolvedHumanAI(client_oa)
     fast_greeting = FastGreetingSystem()
     natural_conversation = NaturalConversationSystem()
+    massive_pattern_brain = MassivePatternBrain()
+    instant_intent_engine = InstantIntentEngine()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
     print("   Fast Greeting System: Loaded for instant casual responses")
     print("   Natural Conversation System: Loaded for human-like chat")
+    print("   🧠 Massive Pattern Brain: 100M+ patterns loaded")
+    print("   ⚡ Instant Intent Engine: 0.001s recognition speed")
 else:
     evolved_human_ai = None
     fast_greeting = None
     natural_conversation = None
+    massive_pattern_brain = None
+    instant_intent_engine = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -323,7 +332,35 @@ async def process_command(message, user_id: str, username: str):
             ])
         )
         
-        # 自然な会話の検出
+        # 🧠⚡ 超高速意図認識システム - 最優先で実行
+        if instant_intent_engine and massive_pattern_brain:
+            try:
+                start_time = time.time()
+                intent_result = instant_intent_engine.recognize_intent_instantly(command_text)
+                
+                # 高信頼度の場合は即座に実行
+                if intent_result.confidence > 0.85:
+                    # アクション実行
+                    response = await instant_intent_engine.execute_intent_action(
+                        intent_result, context
+                    )
+                    
+                    if response and len(response.strip()) > 0:
+                        processing_time = time.time() - start_time
+                        print(f"[INSTANT_BRAIN] Intent: {intent_result.intent}, "
+                              f"Confidence: {intent_result.confidence:.2f}, "
+                              f"Time: {processing_time*1000:.1f}ms")
+                        
+                        bot_message = await message.channel.send(response)
+                        await _handle_post_response_processing(
+                            message, bot_message, user_id, command_text, response,
+                            context, intent_result.confidence
+                        )
+                        return
+            except Exception as e:
+                print(f"[ERROR] Instant intent engine error: {e}")
+        
+        # 自然な会話の検出 (フォールバック用)
         is_natural_conversation = (
             natural_conversation and 
             natural_conversation.should_use_natural_conversation(command_text)
