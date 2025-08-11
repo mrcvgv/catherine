@@ -57,6 +57,7 @@ except ImportError as e:
 try:
     from evolved_human_ai import EvolvedHumanAI
     from fast_greeting_system import FastGreetingSystem
+    from natural_conversation_system import NaturalConversationSystem
     EVOLVED_HUMAN_AI_AVAILABLE = True
     print("Evolved Human AI System: Loaded Successfully")
 except ImportError as e:
@@ -128,12 +129,15 @@ else:
 if EVOLVED_HUMAN_AI_AVAILABLE:
     evolved_human_ai = EvolvedHumanAI(client_oa)
     fast_greeting = FastGreetingSystem()
+    natural_conversation = NaturalConversationSystem()
     print("Catherine AI: Evolved Human Intelligence System Activated")
     print("   Human Wisdom + Logical Reasoning + Creative Thinking + Practical Solutions = Evolved Human AI")
     print("   Fast Greeting System: Loaded for instant casual responses")
+    print("   Natural Conversation System: Loaded for human-like chat")
 else:
     evolved_human_ai = None
     fast_greeting = None
+    natural_conversation = None
     print("WARNING: Evolved Human AI System Unavailable")
 
 # 旧超越的システムは無効化
@@ -319,6 +323,12 @@ async def process_command(message, user_id: str, username: str):
             ])
         )
         
+        # 自然な会話の検出
+        is_natural_conversation = (
+            natural_conversation and 
+            natural_conversation.should_use_natural_conversation(command_text)
+        )
+        
         # ⚡ 高速挨拶システム - シンプルな挨拶に即座に応答
         if fast_greeting and is_simple_greeting:
             try:
@@ -335,8 +345,24 @@ async def process_command(message, user_id: str, username: str):
                 print(f"[ERROR] Fast greeting error: {e}")
                 # フォールバック処理継続
         
-        # 🧠 進化した人間的AI処理 - 機能要求と簡単な挨拶は除外
-        if evolved_human_ai and EVOLVED_HUMAN_AI_AVAILABLE and not is_functional_request and not is_simple_greeting:
+        # 💬 自然会話システム - 人間みたいな短い返し
+        if natural_conversation and is_natural_conversation and not is_simple_greeting:
+            try:
+                response = natural_conversation.generate_natural_response(command_text, context)
+                bot_message = await message.channel.send(response)
+                
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response,
+                    context, 1.0
+                )
+                return
+                
+            except Exception as e:
+                print(f"[ERROR] Natural conversation error: {e}")
+                # フォールバック処理継続
+        
+        # 🧠 進化した人間的AI処理 - 機能要求・挨拶・自然会話は除外
+        if evolved_human_ai and EVOLVED_HUMAN_AI_AVAILABLE and not is_functional_request and not is_simple_greeting and not is_natural_conversation:
             try:
                 print(f"[EVOLVED_AI] Processing with human wisdom: {command_text[:50]}...")
                 
