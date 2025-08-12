@@ -1,1 +1,1 @@
-web: python enhanced_main_v2.py
+web: python catherine_minimal.py
