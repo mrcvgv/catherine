@@ -73,34 +73,60 @@ async def init_health_server():
     print(f"[OK] Health server started on port {port}")
     return runner
 
-# TODO intent detection (FIXED)
+# TODO intent detection (ENHANCED)
 def detect_todo_intent(text: str):
-    """Fixed intent detection"""
+    """Enhanced intent detection with number parsing"""
     text_lower = text.lower()
+    
+    # 番号抽出
+    import re
+    numbers = []
+    
+    # パターン: "1.2.4.5.6.7.は消して" または "1,2,3削除" など
+    number_patterns = [
+        r'(\d+)\.(\d+)\.(\d+)\.(\d+)\.(\d+)\.(\d+)\.?',  # 1.2.4.5.6.7.
+        r'(\d+)[,、.](\d+)[,、.](\d+)[,、.](\d+)[,、.](\d+)[,、.](\d+)',  # 1,2,3,4,5,6
+        r'(\d+)[,、.](\d+)[,、.](\d+)',  # 1,2,3
+        r'(\d+)',  # 単独数字
+    ]
+    
+    for pattern in number_patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            if isinstance(matches[0], tuple):
+                numbers.extend([int(n) for n in matches[0] if n])
+            else:
+                numbers.extend([int(n) for n in matches if n])
+            break
+    
+    # TODO削除系キーワード（番号込み）
+    is_todo_delete = any(keyword in text_lower for keyword in [
+        '消して', '削除', '取り消し', 'けして', '消せ', 'remove', 'delete'
+    ]) and numbers
+    
+    # TODO完了系キーワード（番号込み）
+    is_todo_done = any(keyword in text_lower for keyword in [
+        'done', '完了', '終わった', 'できた', '済み'
+    ]) and numbers
     
     # TODO表示系キーワード（最優先）
     is_todo_list = any(keyword in text_lower for keyword in [
         'リスト出', 'リスト表示', 'リスト見せ', 'リストだして', 'リスト教',
         'タスク一覧', 'todo一覧', 'やること見せ', 'タスク出し', 'list',
         '一覧出し', '一覧表示', '確認', '見せて', 'だして', 'リストして'
-    ])
+    ]) and not is_todo_delete
     
     # TODO追加系キーワード（表示系を除外）
     is_todo_add = any(keyword in text_lower for keyword in [
         '追加', '登録', '入れて', '作って', 'つくって', '新しく'
-    ]) and not is_todo_list
-    
-    # TODO完了系キーワード
-    is_todo_done = any(keyword in text_lower for keyword in [
-        'done', '完了', '終わった', 'できた', '済み'
-    ])
+    ]) and not is_todo_list and not is_todo_delete and not is_todo_done
     
     # 総合TODO判定
-    is_todo_command = is_todo_list or is_todo_add or is_todo_done or any(keyword in text_lower for keyword in [
+    is_todo_command = is_todo_list or is_todo_add or is_todo_done or is_todo_delete or any(keyword in text_lower for keyword in [
         'todo', 'タスク', 'やること'
     ])
     
-    return is_todo_command, is_todo_list, is_todo_add, is_todo_done
+    return is_todo_command, is_todo_list, is_todo_add, is_todo_done, is_todo_delete, numbers
 
 async def handle_todo_list():
     """TODO一覧表示"""
@@ -134,6 +160,88 @@ async def handle_todo_add(content: str, user_id: str):
     
     return "❌ TODO追加機能が利用できません"
 
+async def handle_todo_delete(numbers: list):
+    """TODO削除（番号指定）"""
+    if not numbers:
+        return "❌ 削除する番号を指定してください"
+    
+    if team_todo_manager:
+        try:
+            todos = await team_todo_manager.get_team_todos()
+            if not todos:
+                return "📝 削除するTODOがありません"
+            
+            deleted_items = []
+            for num in sorted(numbers, reverse=True):  # 逆順で削除
+                if 1 <= num <= len(todos):
+                    todo_to_delete = todos[num-1]
+                    # Firebase TODO削除
+                    success = await team_todo_manager.delete_todo(todo_to_delete.get('id'))
+                    if success:
+                        deleted_items.append(f"{num}. {todo_to_delete['title'][:30]}")
+            
+            if deleted_items:
+                return f"🗑️ **削除完了:**\n" + "\n".join(deleted_items)
+            else:
+                return "❌ 指定されたTODOを削除できませんでした"
+                
+        except Exception as e:
+            print(f"[ERROR] Team TODO delete error: {e}")
+    
+    # Fallback to simple TODO
+    if simple_todo:
+        deleted_items = []
+        for num in numbers:
+            result = simple_todo.delete_todo(num, 'default')
+            if "削除:" in result:
+                deleted_items.append(result)
+        
+        if deleted_items:
+            return "🗑️ **削除完了:**\n" + "\n".join(deleted_items)
+    
+    return "❌ TODO削除機能が利用できません"
+
+async def handle_todo_complete(numbers: list):
+    """TODO完了（番号指定）"""
+    if not numbers:
+        return "❌ 完了する番号を指定してください"
+    
+    if team_todo_manager:
+        try:
+            todos = await team_todo_manager.get_team_todos()
+            if not todos:
+                return "📝 完了するTODOがありません"
+            
+            completed_items = []
+            for num in numbers:
+                if 1 <= num <= len(todos):
+                    todo_to_complete = todos[num-1]
+                    # Firebase TODO完了
+                    success = await team_todo_manager.mark_todo_complete(todo_to_complete.get('id'))
+                    if success:
+                        completed_items.append(f"{num}. {todo_to_complete['title'][:30]}")
+            
+            if completed_items:
+                return f"✅ **完了:**\n" + "\n".join(completed_items)
+            else:
+                return "❌ 指定されたTODOを完了できませんでした"
+                
+        except Exception as e:
+            print(f"[ERROR] Team TODO complete error: {e}")
+    
+    # Fallback to simple TODO
+    if simple_todo:
+        completed_items = []
+        for num in numbers:
+            result = simple_todo.complete_todo(num, 'default')
+            if "完了:" in result:
+                completed_items.append(result)
+        
+        if completed_items:
+            return "✅ **完了:**\n" + "\n".join(completed_items)
+    
+    return "❌ TODO完了機能が利用できません"
+
 @bot.event
 async def on_ready():
     print(f'[READY] {bot.user} is ready!')
@@ -151,27 +259,30 @@ async def on_message(message):
     command_text = message.content.strip()
     user_id = str(message.author.id)
     
-    # Intent detection
-    is_todo_command, is_todo_list, is_todo_add, is_todo_done = detect_todo_intent(command_text)
+    # Enhanced Intent detection
+    is_todo_command, is_todo_list, is_todo_add, is_todo_done, is_todo_delete, numbers = detect_todo_intent(command_text)
     
     if is_todo_command:
-        print(f"[TODO] Processing: {command_text}")
+        print(f"[TODO] Processing: {command_text} | Numbers: {numbers}")
         
         try:
             if is_todo_list:
                 # TODO一覧表示
                 response = await handle_todo_list()
+            elif is_todo_delete:
+                # TODO削除（番号指定）
+                response = await handle_todo_delete(numbers)
             elif is_todo_done:
-                # TODO完了
-                response = "完了機能は準備中です"
+                # TODO完了（番号指定）
+                response = await handle_todo_complete(numbers)
             elif is_todo_add:
                 # TODO追加
                 response = await handle_todo_add(command_text, user_id)
             else:
                 # 曖昧な場合の確認
                 response = f"**{command_text}** について、何をしますか？\n\n" + \
-                    "📝 ①追加する\n📋 ②一覧を見る\n✅ ③完了する\n\n" + \
-                    "番号か、「追加」「リスト」「完了」で教えてください。"
+                    "📝 ①追加する\n📋 ②一覧を見る\n✅ ③完了する\n🗑️ ④削除する\n\n" + \
+                    "番号か、「追加」「リスト」「完了」「削除」で教えてください。"
             
             await message.channel.send(response)
             return
