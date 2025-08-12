@@ -136,8 +136,9 @@ class TeamTodoManager:
                 if 'category' in filters:
                     query = query.where('category', '==', filters['category'])
             else:
-                # デフォルトで削除されたTODOを除外
-                query = query.where('status', '!=', 'deleted')
+                # デフォルトで削除されたTODOを除外（複数のstatusを許可）
+                # Firebaseの != は単一インデックスが必要なので、代わりにクライアントでフィルタリング
+                pass
             
             # 優先度と締切日でソート
             todos = []

@@ -129,10 +129,15 @@ def detect_todo_intent(text: str):
                 numbers.extend([int(n) for n in matches if n])
             break
     
-    # TODO削除系キーワード（番号込み）
-    is_todo_delete = any(keyword in text_lower for keyword in [
+    # 全削除チェック
+    is_bulk_delete = any(keyword in text_lower for keyword in [
+        'ぜんぶ削除', '全部削除', '全て削除', 'すべて削除', 'ぜんぶ消し', '全部消し', 'すべて消し'
+    ])
+    
+    # TODO削除系キーワード（番号込みまたは全削除）
+    is_todo_delete = (any(keyword in text_lower for keyword in [
         '消して', '削除', '取り消し', 'けして', '消せ', 'remove', 'delete'
-    ]) and numbers
+    ]) and numbers) or is_bulk_delete
     
     # TODO完了系キーワード（番号込み）
     is_todo_done = any(keyword in text_lower for keyword in [
@@ -146,7 +151,7 @@ def detect_todo_intent(text: str):
     
     # TODO表示系キーワード（最優先）
     is_todo_list = any(keyword in text_lower for keyword in [
-        'リスト出', 'リスト表示', 'リスト見せ', 'リストだして', 'リスト教',
+        'リスト出', 'リスト表示', 'リスト見せ', 'リストだして', 'リスト教', 'リストだし',
         'タスク一覧', 'todo一覧', 'やること見せ', 'タスク出し', 'list',
         '一覧出し', '一覧表示', '確認', '見せて', 'だして', 'リストして'
     ]) and not is_todo_delete
@@ -195,9 +200,9 @@ async def handle_todo_add(content: str, user_id: str):
     
     return "❌ TODO追加機能が利用できません"
 
-async def handle_todo_delete(numbers: list):
-    """TODO削除（番号指定）"""
-    if not numbers:
+async def handle_todo_delete(numbers: list, is_bulk: bool = False):
+    """TODO削除（番号指定または全削除）"""
+    if not numbers and not is_bulk:
         return "❌ 削除する番号を指定してください"
     
     if team_todo_manager:
@@ -214,28 +219,49 @@ async def handle_todo_delete(numbers: list):
                 print(f"[DEBUG] First TODO sample: {first_todo}")
             
             deleted_items = []
-            for num in sorted(numbers, reverse=True):  # 逆順で削除
-                if 1 <= num <= len(todos):
-                    todo_to_delete = todos[num-1]
-                    # Try different possible ID fields
-                    todo_id = todo_to_delete.get('id') or todo_to_delete.get('todo_id') or todo_to_delete.get('_id')
-                    print(f"[DEBUG] TODO {num} structure: {list(todo_to_delete.keys())}")
-                    print(f"[DEBUG] Attempting to delete TODO {num}: ID={todo_id}, Title={todo_to_delete.get('title', 'NO_TITLE')}")
+            
+            # 全削除の場合
+            if is_bulk:
+                print(f"[DEBUG] Bulk delete: deleting all {len(todos)} TODOs")
+                for i, todo in enumerate(todos, 1):
+                    todo_id = todo.get('id') or todo.get('todo_id') or todo.get('_id')
+                    print(f"[DEBUG] Bulk deleting TODO {i}: ID={todo_id}, Title={todo.get('title', 'NO_TITLE')}")
                     
                     if not todo_id:
-                        print(f"[ERROR] No ID found for TODO {num}")
+                        print(f"[ERROR] No ID found for TODO {i}")
                         continue
                     
-                    # Firebase TODO削除（statusを変更）
                     success = await team_todo_manager.update_todo_status(
-                        todo_id, 'deleted', f'Deleted by user command'
+                        todo_id, 'deleted', f'Bulk deleted by user command'
                     )
-                    print(f"[DEBUG] Delete result for TODO {num} (ID={todo_id}): {success}")
+                    print(f"[DEBUG] Bulk delete result for TODO {i} (ID={todo_id}): {success}")
                     
                     if success:
-                        deleted_items.append(f"{num}. {todo_to_delete['title'][:30]}")
-                else:
-                    print(f"[DEBUG] TODO number {num} out of range (1-{len(todos)})")
+                        deleted_items.append(f"{i}. {todo['title'][:30]}")
+            else:
+                # 番号指定削除の場合
+                for num in sorted(numbers, reverse=True):  # 逆順で削除
+                    if 1 <= num <= len(todos):
+                        todo_to_delete = todos[num-1]
+                        # Try different possible ID fields
+                        todo_id = todo_to_delete.get('id') or todo_to_delete.get('todo_id') or todo_to_delete.get('_id')
+                        print(f"[DEBUG] TODO {num} structure: {list(todo_to_delete.keys())}")
+                        print(f"[DEBUG] Attempting to delete TODO {num}: ID={todo_id}, Title={todo_to_delete.get('title', 'NO_TITLE')}")
+                        
+                        if not todo_id:
+                            print(f"[ERROR] No ID found for TODO {num}")
+                            continue
+                        
+                        # Firebase TODO削除（statusを変更）
+                        success = await team_todo_manager.update_todo_status(
+                            todo_id, 'deleted', f'Deleted by user command'
+                        )
+                        print(f"[DEBUG] Delete result for TODO {num} (ID={todo_id}): {success}")
+                        
+                        if success:
+                            deleted_items.append(f"{num}. {todo_to_delete['title'][:30]}")
+                    else:
+                        print(f"[DEBUG] TODO number {num} out of range (1-{len(todos)})")
             
             print(f"[DEBUG] Total deleted items: {len(deleted_items)}")
             if deleted_items:
@@ -393,6 +419,11 @@ async def on_message(message):
     # Enhanced Intent detection
     is_todo_command, is_todo_list, is_todo_add, is_todo_done, is_todo_delete, is_todo_edit, numbers = detect_todo_intent(command_text)
     
+    # 全削除チェック
+    is_bulk_delete = any(keyword in command_text.lower() for keyword in [
+        'ぜんぶ削除', '全部削除', '全て削除', 'すべて削除', 'ぜんぶ消し', '全部消し', 'すべて消し'
+    ])
+    
     if is_todo_command:
         print(f"[TODO] Processing: {command_text} | Numbers: {numbers}")
         
@@ -401,8 +432,8 @@ async def on_message(message):
                 # TODO一覧表示
                 response = await handle_todo_list()
             elif is_todo_delete:
-                # TODO削除（番号指定）
-                response = await handle_todo_delete(numbers)
+                # TODO削除（番号指定または全削除）
+                response = await handle_todo_delete(numbers, is_bulk_delete)
             elif is_todo_done:
                 # TODO完了（番号指定）
                 response = await handle_todo_complete(numbers)
