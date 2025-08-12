@@ -82,12 +82,15 @@ def detect_todo_intent(text: str):
     import re
     numbers = []
     
-    # パターン: "1.2.4.5.6.7.は消して" または "1,2,3削除" など
+    # パターン: "1.2.4.5.6.7消して" または "1,2,3削除" など
     number_patterns = [
         r'(\d+)\.(\d+)\.(\d+)\.(\d+)\.(\d+)\.(\d+)\.?',  # 1.2.4.5.6.7.
-        r'(\d+)[,、.](\d+)[,、.](\d+)[,、.](\d+)[,、.](\d+)[,、.](\d+)',  # 1,2,3,4,5,6
-        r'(\d+)[,、.](\d+)[,、.](\d+)',  # 1,2,3
-        r'(\d+)',  # 単独数字
+        r'(\d+)[,、\s](\d+)[,、\s](\d+)[,、\s](\d+)[,、\s](\d+)[,、\s](\d+)',  # 1,2,3,4,5,6
+        r'(\d+)[,、\s](\d+)[,、\s](\d+)[,、\s](\d+)[,、\s](\d+)',  # 1,2,3,4,5  
+        r'(\d+)[,、\s](\d+)[,、\s](\d+)[,、\s](\d+)',  # 1,2,3,4
+        r'(\d+)[,、\s](\d+)[,、\s](\d+)',  # 1,2,3
+        r'(\d+)[,、\s](\d+)',  # 1,2
+        r'(\d+)番?',  # 単独数字（「番」あり/なし）
     ]
     
     for pattern in number_patterns:
@@ -175,8 +178,10 @@ async def handle_todo_delete(numbers: list):
             for num in sorted(numbers, reverse=True):  # 逆順で削除
                 if 1 <= num <= len(todos):
                     todo_to_delete = todos[num-1]
-                    # Firebase TODO削除
-                    success = await team_todo_manager.delete_todo(todo_to_delete.get('id'))
+                    # Firebase TODO削除（statusを変更）
+                    success = await team_todo_manager.update_todo_status(
+                        todo_to_delete.get('id'), 'deleted', 'system'
+                    )
                     if success:
                         deleted_items.append(f"{num}. {todo_to_delete['title'][:30]}")
             
@@ -216,8 +221,10 @@ async def handle_todo_complete(numbers: list):
             for num in numbers:
                 if 1 <= num <= len(todos):
                     todo_to_complete = todos[num-1]
-                    # Firebase TODO完了
-                    success = await team_todo_manager.mark_todo_complete(todo_to_complete.get('id'))
+                    # Firebase TODO完了（statusを変更）
+                    success = await team_todo_manager.update_todo_status(
+                        todo_to_complete.get('id'), 'completed', 'system'
+                    )
                     if success:
                         completed_items.append(f"{num}. {todo_to_complete['title'][:30]}")
             
