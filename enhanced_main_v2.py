@@ -401,11 +401,33 @@ async def process_command(message, user_id: str, username: str):
                 print("[WARNING] Falling back to standard system")
                 # エラーの場合は既存システムにフォールバック
         
-        # TODO関連コマンドの検出（最優先）
-        is_todo_command = any(keyword in command_text.lower() for keyword in [
-            'todo', 'タスク', 'やること', '入れて', '追加', '登録',
-            'リスト出', 'リスト表示', 'リスト見せ', 'タスク一覧', 'todo一覧', 
-            'リスト教', 'やること見せ', 'タスク出し', 'list', '一覧出し', 'done'
+        # TODO関連コマンドの検出（分離された意図）
+        
+        # 🧠 文脈対応: 直前の会話を考慮
+        recent_messages = context.get('recent_messages', [])
+        has_todo_context = any('todo' in msg.lower() or 'リスト' in msg.lower() or 'タスク' in msg.lower() 
+                              for msg in recent_messages[-3:])  # 直近3件
+        
+        # TODO表示系キーワード（優先）
+        is_todo_list = any(keyword in command_text.lower() for keyword in [
+            'リスト出', 'リスト表示', 'リスト見せ', 'リストだして', 'リスト教',
+            'タスク一覧', 'todo一覧', 'やること見せ', 'タスク出し', 'list',
+            '一覧出し', '一覧表示', '確認', '見せて', 'だして', 'リストして'
+        ]) or (has_todo_context and any(word in command_text.lower() for word in ['見せて', 'だして', '確認']))
+        
+        # TODO追加系キーワード（表示系を除外）
+        is_todo_add = any(keyword in command_text.lower() for keyword in [
+            '追加', '登録', '入れて', '作って', 'つくって', '新しく'
+        ]) and not is_todo_list
+        
+        # TODO完了系キーワード
+        is_todo_done = any(keyword in command_text.lower() for keyword in [
+            'done', '完了', '終わった', 'できた', '済み'
+        ])
+        
+        # 総合TODO判定
+        is_todo_command = is_todo_list or is_todo_add or is_todo_done or any(keyword in command_text.lower() for keyword in [
+            'todo', 'タスク', 'やること'
         ])
         
         # DB接続確認コマンド
@@ -818,12 +840,25 @@ async def process_command(message, user_id: str, username: str):
                 if any(word in command_text for word in ['分けて', '分割', '2つのタスクに', '別々に']):
                     intent = {'intent': 'todo_split', 'slots': {}}
                     action_result = await execute_natural_action(user_id, command_text, intent, message)
-                elif any(word in command_text for word in ['リスト', '一覧', '表示', 'だして']):
+                # 🔥 修正: 表示系を最優先で判定
+                elif is_todo_list:
                     intent = {'intent': 'todo_list', 'slots': {}}
                     action_result = await execute_natural_action(user_id, command_text, intent, message)
-                elif any(word in command_text for word in ['追加', 'つくる', '作る', 'する']) and 'リスト' not in command_text:
+                # 🔥 修正: 完了系を2番目に判定  
+                elif is_todo_done:
+                    intent = {'intent': 'todo_complete', 'slots': {}}
+                    action_result = await execute_natural_action(user_id, command_text, intent, message)
+                # 🔥 修正: 追加系を最後に判定（除外条件付き）
+                elif is_todo_add:
                     intent = {'intent': 'todo_add', 'slots': {'task': command_text}}
                     action_result = await execute_natural_action(user_id, command_text, intent, message)
+                # 🔥 新機能: 曖昧な場合の確認
+                elif any(word in command_text for word in ['todo', 'タスク', 'やること']) and not (is_todo_list or is_todo_add or is_todo_done):
+                    # TODO関連だが意図が不明な場合
+                    clarification_msg = f"**{command_text}** について、何をしますか？\n\n" + \
+                        "📝 ①追加する\n📋 ②一覧を見る\n✅ ③完了する\n\n" + \
+                        "番号か、「追加」「リスト」「完了」で教えてください。"
+                    action_result = {'type': 'clarification', 'message': clarification_msg}
                 else:
                     action_result = None
                 
