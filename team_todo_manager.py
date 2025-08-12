@@ -140,6 +140,7 @@ class TeamTodoManager:
             todos = []
             for doc in query.stream():
                 todo = doc.to_dict()
+                todo['id'] = doc.id  # Add document ID
                 todos.append(todo)
             
             # カスタムソート（優先度高い順、締切日近い順）

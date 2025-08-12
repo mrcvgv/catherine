@@ -171,19 +171,39 @@ async def handle_todo_delete(numbers: list):
     if team_todo_manager:
         try:
             todos = await team_todo_manager.get_team_todos()
+            print(f"[DEBUG] Retrieved {len(todos)} TODOs from Firebase")
             if not todos:
                 return "📝 削除するTODOがありません"
+            
+            # Debug: Show structure of first TODO
+            if todos:
+                first_todo = todos[0]
+                print(f"[DEBUG] First TODO structure: {list(first_todo.keys())}")
+                print(f"[DEBUG] First TODO sample: {first_todo}")
             
             deleted_items = []
             for num in sorted(numbers, reverse=True):  # 逆順で削除
                 if 1 <= num <= len(todos):
                     todo_to_delete = todos[num-1]
+                    # Try different possible ID fields
+                    todo_id = todo_to_delete.get('id') or todo_to_delete.get('todo_id') or todo_to_delete.get('_id')
+                    print(f"[DEBUG] TODO {num} structure: {list(todo_to_delete.keys())}")
+                    print(f"[DEBUG] Attempting to delete TODO {num}: ID={todo_id}, Title={todo_to_delete.get('title', 'NO_TITLE')}")
+                    
+                    if not todo_id:
+                        print(f"[ERROR] No ID found for TODO {num}")
+                        continue
+                    
                     # Firebase TODO削除（statusを変更）
                     success = await team_todo_manager.update_todo_status(
-                        todo_to_delete.get('id'), 'deleted', 'system'
+                        todo_id, 'deleted', f'Deleted by user command'
                     )
+                    print(f"[DEBUG] Delete result for TODO {num} (ID={todo_id}): {success}")
+                    
                     if success:
                         deleted_items.append(f"{num}. {todo_to_delete['title'][:30]}")
+                else:
+                    print(f"[DEBUG] TODO number {num} out of range (1-{len(todos)})")
             
             if deleted_items:
                 return f"🗑️ **削除完了:**\n" + "\n".join(deleted_items)
@@ -192,6 +212,8 @@ async def handle_todo_delete(numbers: list):
                 
         except Exception as e:
             print(f"[ERROR] Team TODO delete error: {e}")
+            import traceback
+            traceback.print_exc()
     
     # Fallback to simple TODO
     if simple_todo:
@@ -221,10 +243,20 @@ async def handle_todo_complete(numbers: list):
             for num in numbers:
                 if 1 <= num <= len(todos):
                     todo_to_complete = todos[num-1]
+                    # Try different possible ID fields
+                    todo_id = todo_to_complete.get('id') or todo_to_complete.get('todo_id') or todo_to_complete.get('_id')
+                    print(f"[DEBUG] Attempting to complete TODO {num}: ID={todo_id}, Title={todo_to_complete.get('title', 'NO_TITLE')}")
+                    
+                    if not todo_id:
+                        print(f"[ERROR] No ID found for TODO {num}")
+                        continue
+                    
                     # Firebase TODO完了（statusを変更）
                     success = await team_todo_manager.update_todo_status(
-                        todo_to_complete.get('id'), 'completed', 'system'
+                        todo_id, 'completed', f'Completed by user command'
                     )
+                    print(f"[DEBUG] Complete result for TODO {num} (ID={todo_id}): {success}")
+                    
                     if success:
                         completed_items.append(f"{num}. {todo_to_complete['title'][:30]}")
             
@@ -235,6 +267,8 @@ async def handle_todo_complete(numbers: list):
                 
         except Exception as e:
             print(f"[ERROR] Team TODO complete error: {e}")
+            import traceback
+            traceback.print_exc()
     
     # Fallback to simple TODO
     if simple_todo:
