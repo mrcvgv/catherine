@@ -158,9 +158,9 @@ def detect_todo_intent(text: str):
     ]) and not is_todo_delete
     
     # TODO追加系キーワード（表示系を除外）
-    is_todo_add = any(keyword in text_lower for keyword in [
-        '追加', '登録', '入れて', '作って', 'つくって', '新しく'
-    ]) and not is_todo_list and not is_todo_delete and not is_todo_done and not is_todo_edit
+    is_todo_add = (any(keyword in text_lower for keyword in [
+        '追加', '登録', '入れて', '作って', 'つくって', '新しく', 'いれて', 'todoいれ', 'todo追加', 'todo登録'
+    ]) or 'todo' in text_lower) and not is_todo_list and not is_todo_delete and not is_todo_done and not is_todo_edit
     
     # 総合TODO判定
     is_todo_command = is_todo_list or is_todo_add or is_todo_done or is_todo_delete or is_todo_edit or any(keyword in text_lower for keyword in [
@@ -192,12 +192,58 @@ async def handle_todo_list():
     return "❌ TODO機能が利用できません"
 
 async def handle_todo_add(content: str, user_id: str):
-    """TODO追加"""
+    """TODO追加（複数行対応）"""
     if not content.strip():
         return "📋 TODOの内容を教えてください。"
     
+    # TODOキーワードを除去してクリーンアップ
+    clean_content = content
+    remove_patterns = [
+        'todoいれて', 'todo追加', 'todo登録', '追加して', '登録して', 
+        '入れて', 'いれて', 'つくって', '作って'
+    ]
+    for pattern in remove_patterns:
+        clean_content = clean_content.replace(pattern, '').strip()
+    
+    if team_todo_manager:
+        try:
+            # 複数行または・で区切られたTODOを分割
+            lines = []
+            for line in clean_content.split('\n'):
+                line = line.strip()
+                if line:
+                    # ・や-で始まる項目を分割
+                    if line.startswith('・') or line.startswith('-'):
+                        items = [item.strip() for item in line.split('・') if item.strip()]
+                        if not items:  # ・で分割できなかった場合
+                            items = [line.lstrip('・-').strip()]
+                        lines.extend(items)
+                    else:
+                        lines.append(line)
+            
+            added_items = []
+            for line in lines:
+                if line:
+                    print(f"[DEBUG] Adding TODO: {line}")
+                    result = await team_todo_manager.create_team_todo(
+                        creator_id=user_id,
+                        title=line,
+                        description="",
+                        priority=3
+                    )
+                    if result:
+                        added_items.append(line[:30])
+            
+            if added_items:
+                return f"📝 **TODO追加完了:**\n" + "\n".join([f"• {item}" for item in added_items])
+            else:
+                return "❌ TODO追加に失敗しました"
+        except Exception as e:
+            print(f"[ERROR] Team TODO add error: {e}")
+    
+    # Fallback to simple TODO
     if simple_todo:
-        return simple_todo.add_todo(content, user_id)
+        return simple_todo.add_todo(clean_content, user_id)
     
     return "❌ TODO追加機能が利用できません"
 
