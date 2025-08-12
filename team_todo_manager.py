@@ -387,6 +387,29 @@ class TeamTodoManager:
             print(f"❌ Title update error: {e}")
             return False
     
+    async def delete_todo_permanently(self, todo_id: str) -> bool:
+        """TODOを完全削除（物理削除）"""
+        try:
+            doc_ref = self.db.collection('team_todos').document(todo_id)
+            doc_ref.delete()
+            return True
+        except Exception as e:
+            print(f"❌ Permanent delete error: {e}")
+            return False
+    
+    async def clear_all_todos(self) -> int:
+        """全TODO完全削除"""
+        try:
+            deleted_count = 0
+            docs = self.db.collection('team_todos').stream()
+            for doc in docs:
+                doc.reference.delete()
+                deleted_count += 1
+            return deleted_count
+        except Exception as e:
+            print(f"❌ Clear all todos error: {e}")
+            return 0
+    
     async def add_subtask(self, parent_todo_id: str, subtask_title: str) -> bool:
         """サブタスク追加"""
         try:

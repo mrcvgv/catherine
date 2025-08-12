@@ -131,7 +131,8 @@ def detect_todo_intent(text: str):
     
     # 全削除チェック
     is_bulk_delete = any(keyword in text_lower for keyword in [
-        'ぜんぶ削除', '全部削除', '全て削除', 'すべて削除', 'ぜんぶ消し', '全部消し', 'すべて消し'
+        'ぜんぶ削除', '全部削除', '全て削除', 'すべて削除', 'ぜんぶ消し', '全部消し', 'すべて消し',
+        'ぜんぶ消して', '全部消して', 'すべて消して'
     ])
     
     # TODO削除系キーワード（番号込みまたは全削除）
@@ -222,22 +223,14 @@ async def handle_todo_delete(numbers: list, is_bulk: bool = False):
             
             # 全削除の場合
             if is_bulk:
-                print(f"[DEBUG] Bulk delete: deleting all {len(todos)} TODOs")
-                for i, todo in enumerate(todos, 1):
-                    todo_id = todo.get('id') or todo.get('todo_id') or todo.get('_id')
-                    print(f"[DEBUG] Bulk deleting TODO {i}: ID={todo_id}, Title={todo.get('title', 'NO_TITLE')}")
-                    
-                    if not todo_id:
-                        print(f"[ERROR] No ID found for TODO {i}")
-                        continue
-                    
-                    success = await team_todo_manager.update_todo_status(
-                        todo_id, 'deleted', f'Bulk deleted by user command'
-                    )
-                    print(f"[DEBUG] Bulk delete result for TODO {i} (ID={todo_id}): {success}")
-                    
-                    if success:
-                        deleted_items.append(f"{i}. {todo['title'][:30]}")
+                print(f"[DEBUG] Bulk delete: permanently deleting all TODOs")
+                deleted_count = await team_todo_manager.clear_all_todos()
+                print(f"[DEBUG] Permanently deleted {deleted_count} TODOs")
+                
+                if deleted_count > 0:
+                    return f"🗑️ **全削除完了:** {deleted_count}個のTODOを完全削除しました"
+                else:
+                    return "📝 削除するTODOがありませんでした"
             else:
                 # 番号指定削除の場合
                 for num in sorted(numbers, reverse=True):  # 逆順で削除
@@ -421,7 +414,8 @@ async def on_message(message):
     
     # 全削除チェック
     is_bulk_delete = any(keyword in command_text.lower() for keyword in [
-        'ぜんぶ削除', '全部削除', '全て削除', 'すべて削除', 'ぜんぶ消し', '全部消し', 'すべて消し'
+        'ぜんぶ削除', '全部削除', '全て削除', 'すべて削除', 'ぜんぶ消し', '全部消し', 'すべて消し',
+        'ぜんぶ消して', '全部消して', 'すべて消して'
     ])
     
     if is_todo_command:
