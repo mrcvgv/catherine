@@ -74,6 +74,33 @@ async def init_health_server():
     return runner
 
 # TODO intent detection (ENHANCED)
+def extract_edit_content(text: str) -> str:
+    """編集コマンドから新しい内容を抽出"""
+    import re
+    
+    # "3の内容は、maat台紙つくる。です。変更して" → "maat台紙つくる。"
+    # "3を"新しい内容"に変更" → "新しい内容"
+    # "3変更 新しい内容" → "新しい内容"
+    
+    patterns = [
+        r'(\d+)の内容は[、，]?(.+?)です?[。、]?変更',  # "3の内容は、maat台紙つくる。です。変更して"
+        r'(\d+)を[「"](.*?)[」"]に変更',  # "3を"新しい内容"に変更"
+        r'(\d+)[を]?[「"](.*?)[」"]に[直す|修正|更新|編集|変更]',  # 各種編集キーワード
+        r'(\d+)[を]?(.+?)に[直す|修正|更新|編集|変更]',  # "3をmaat台紙つくるに変更"
+        r'(\d+)[変更|編集|修正|更新][、，]?(.+)',  # "3変更 新しい内容"
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match and len(match.groups()) >= 2:
+            content = match.group(2).strip()
+            # 不要な文字を除去
+            content = re.sub(r'[。、，\s]+$', '', content)
+            if content:
+                return content
+    
+    return ""
+
 def detect_todo_intent(text: str):
     """Enhanced intent detection with number parsing"""
     text_lower = text.lower()
@@ -112,6 +139,11 @@ def detect_todo_intent(text: str):
         'done', '完了', '終わった', 'できた', '済み'
     ]) and numbers
     
+    # TODO編集系キーワード（番号込み）
+    is_todo_edit = any(keyword in text_lower for keyword in [
+        '変更', '編集', '修正', '更新', '直す', 'edit', 'change', 'update'
+    ]) and numbers
+    
     # TODO表示系キーワード（最優先）
     is_todo_list = any(keyword in text_lower for keyword in [
         'リスト出', 'リスト表示', 'リスト見せ', 'リストだして', 'リスト教',
@@ -122,14 +154,14 @@ def detect_todo_intent(text: str):
     # TODO追加系キーワード（表示系を除外）
     is_todo_add = any(keyword in text_lower for keyword in [
         '追加', '登録', '入れて', '作って', 'つくって', '新しく'
-    ]) and not is_todo_list and not is_todo_delete and not is_todo_done
+    ]) and not is_todo_list and not is_todo_delete and not is_todo_done and not is_todo_edit
     
     # 総合TODO判定
-    is_todo_command = is_todo_list or is_todo_add or is_todo_done or is_todo_delete or any(keyword in text_lower for keyword in [
+    is_todo_command = is_todo_list or is_todo_add or is_todo_done or is_todo_delete or is_todo_edit or any(keyword in text_lower for keyword in [
         'todo', 'タスク', 'やること'
     ])
     
-    return is_todo_command, is_todo_list, is_todo_add, is_todo_done, is_todo_delete, numbers
+    return is_todo_command, is_todo_list, is_todo_add, is_todo_done, is_todo_delete, is_todo_edit, numbers
 
 async def handle_todo_list():
     """TODO一覧表示"""
@@ -283,6 +315,63 @@ async def handle_todo_complete(numbers: list):
     
     return "❌ TODO完了機能が利用できません"
 
+async def handle_todo_edit(numbers: list, new_content: str):
+    """TODO編集（番号指定）"""
+    if not numbers:
+        return "❌ 編集する番号を指定してください"
+    
+    if not new_content.strip():
+        return "❌ 新しい内容を入力してください"
+    
+    if team_todo_manager:
+        try:
+            todos = await team_todo_manager.get_team_todos()
+            if not todos:
+                return "📝 編集するTODOがありません"
+            
+            edited_items = []
+            for num in numbers:
+                if 1 <= num <= len(todos):
+                    todo_to_edit = todos[num-1]
+                    todo_id = todo_to_edit.get('id') or todo_to_edit.get('todo_id') or todo_to_edit.get('_id')
+                    old_title = todo_to_edit.get('title', 'NO_TITLE')
+                    print(f"[DEBUG] Attempting to edit TODO {num}: ID={todo_id}, Old='{old_title}' -> New='{new_content}'")
+                    
+                    if not todo_id:
+                        print(f"[ERROR] No ID found for TODO {num}")
+                        continue
+                    
+                    # Firebase TODO編集（titleを更新）
+                    success = await team_todo_manager.update_todo_title(
+                        todo_id, new_content
+                    )
+                    print(f"[DEBUG] Edit result for TODO {num} (ID={todo_id}): {success}")
+                    
+                    if success:
+                        edited_items.append(f"{num}. {old_title[:20]} → {new_content[:20]}")
+            
+            if edited_items:
+                return f"✏️ **編集完了:**\n" + "\n".join(edited_items)
+            else:
+                return "❌ 指定されたTODOを編集できませんでした"
+                
+        except Exception as e:
+            print(f"[ERROR] Team TODO edit error: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # Fallback to simple TODO
+    if simple_todo:
+        edited_items = []
+        for num in numbers:
+            # Simple TODO doesn't have edit function, so we'll provide guidance
+            edited_items.append(f"{num}. 編集機能は現在Firebaseモードでのみ対応")
+        
+        if edited_items:
+            return "⚠️ **編集機能制限:**\n" + "\n".join(edited_items)
+    
+    return "❌ TODO編集機能が利用できません"
+
 @bot.event
 async def on_ready():
     print(f'[READY] {bot.user} is ready!')
@@ -301,7 +390,7 @@ async def on_message(message):
     user_id = str(message.author.id)
     
     # Enhanced Intent detection
-    is_todo_command, is_todo_list, is_todo_add, is_todo_done, is_todo_delete, numbers = detect_todo_intent(command_text)
+    is_todo_command, is_todo_list, is_todo_add, is_todo_done, is_todo_delete, is_todo_edit, numbers = detect_todo_intent(command_text)
     
     if is_todo_command:
         print(f"[TODO] Processing: {command_text} | Numbers: {numbers}")
@@ -316,14 +405,21 @@ async def on_message(message):
             elif is_todo_done:
                 # TODO完了（番号指定）
                 response = await handle_todo_complete(numbers)
+            elif is_todo_edit:
+                # TODO編集（番号指定）
+                new_content = extract_edit_content(command_text)
+                if new_content:
+                    response = await handle_todo_edit(numbers, new_content)
+                else:
+                    response = f"❌ 編集内容が見つかりません。\n例: `3の内容は、新しいタスク名です。変更して`"
             elif is_todo_add:
                 # TODO追加
                 response = await handle_todo_add(command_text, user_id)
             else:
                 # 曖昧な場合の確認
                 response = f"**{command_text}** について、何をしますか？\n\n" + \
-                    "📝 ①追加する\n📋 ②一覧を見る\n✅ ③完了する\n🗑️ ④削除する\n\n" + \
-                    "番号か、「追加」「リスト」「完了」「削除」で教えてください。"
+                    "📝 ①追加する\n📋 ②一覧を見る\n✅ ③完了する\n🗑️ ④削除する\n✏️ ⑤編集する\n\n" + \
+                    "番号か、「追加」「リスト」「完了」「削除」「編集」で教えてください。"
             
             await message.channel.send(response)
             return
@@ -343,7 +439,14 @@ async def on_message(message):
 📋 **TODO機能:**
 - `リスト出して` → TODO一覧表示
 - `[内容] 追加` → TODO追加
-- `完了` → TODO完了
+- `1,2,3完了` → TODO完了
+- `1,2,3消して` → TODO削除  
+- `3の内容は、新しいタスクです。変更して` → TODO編集
+
+✨ **編集例:**
+- `3の内容は、maat台紙つくる。です。変更して`
+- `1を"新しいタスク名"に変更`
+- `2変更 修正されたタスク`
 
 💬 **その他:**
 - 普通に話しかけてください

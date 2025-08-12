@@ -343,6 +343,44 @@ class TeamTodoManager:
             print(f"❌ Status update error: {e}")
             return False
     
+    async def update_todo_title(self, todo_id: str, new_title: str, 
+                               comment: str = "") -> bool:
+        """ToDoタイトル更新"""
+        try:
+            doc_ref = self.db.collection('team_todos').document(todo_id)
+            doc = doc_ref.get()
+            
+            if not doc.exists:
+                return False
+            
+            todo = doc.to_dict()
+            old_title = todo.get('title', '')
+            
+            update_data = {
+                'title': new_title,
+                'updated_at': datetime.now(self.jst)
+            }
+            
+            # コメント追加
+            if comment or old_title != new_title:
+                if 'comments' not in todo:
+                    todo['comments'] = []
+                todo['comments'].append({
+                    'text': comment or f'タイトル変更: "{old_title}" → "{new_title}"',
+                    'timestamp': datetime.now(self.jst),
+                    'type': 'title_change',
+                    'old_title': old_title,
+                    'new_title': new_title
+                })
+                update_data['comments'] = todo['comments']
+            
+            doc_ref.update(update_data)
+            return True
+            
+        except Exception as e:
+            print(f"❌ Title update error: {e}")
+            return False
+    
     async def add_subtask(self, parent_todo_id: str, subtask_title: str) -> bool:
         """サブタスク追加"""
         try:
