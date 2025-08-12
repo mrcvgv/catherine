@@ -507,12 +507,26 @@ async def process_command(message, user_id: str, username: str):
                 print("[FALLBACK] Falling back to Advanced TODO system")
 
         # 📋 高度TODOシステム - 本格的なTODO機能（フォールバック）
-        elif is_todo_command and ADVANCED_TODO_AVAILABLE:
+        elif is_todo_command:
+            # 🔥 NEW: 修正された intent detection を使用
+            print(f"[TODO] Processing with new logic: {command_text}")
+            
             try:
-                print(f"[ADVANCED_TODO] Processing: {command_text}")
-                
-                # 高度TODOシステムで処理
-                response = await advanced_todo.process_message(message, user_id)
+                # 新しい意図判定ロジックでレスポンス生成
+                if is_todo_list:
+                    # TODO一覧表示
+                    response = await handle_team_list(command_text)
+                elif is_todo_done:
+                    # TODO完了
+                    response = "完了機能は準備中です"
+                elif is_todo_add:
+                    # TODO追加
+                    response = await handle_team_todo(user_id, command_text, message)
+                else:
+                    # 曖昧な場合の確認
+                    response = f"**{command_text}** について、何をしますか？\n\n" + \
+                        "📝 ①追加する\n📋 ②一覧を見る\n✅ ③完了する\n\n" + \
+                        "番号か、「追加」「リスト」「完了」で教えてください。"
                 
                 if response:
                     bot_message = await message.channel.send(response)
@@ -521,37 +535,18 @@ async def process_command(message, user_id: str, username: str):
                         context, 1.0
                     )
                     return
-                else:
-                    # フォールバック処理
-                    response = "❌ TODO処理でエラーが発生しました。"
-                
             except Exception as e:
-                print(f"[ERROR] Advanced TODO error: {e}")
-                import traceback
-                traceback.print_exc()
+                print(f"[ERROR] New TODO logic error: {e}")
+                # フォールバック - 古いシステムを使わない
+                response = "TODO処理中にエラーが発生しました。"
+                bot_message = await message.channel.send(response)
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response,
+                    context, 0.5
+                )
+                return
                 
-                # フォールバック: シンプルTODO
-                try:
-                    if simple_todo and 'list' in command_text.lower():
-                        response = simple_todo.list_todos(user_id)
-                    elif simple_todo:
-                        todo_content = command_text.replace('todo', '').strip()
-                        if todo_content:
-                            response = simple_todo.add_todo(todo_content, user_id)
-                        else:
-                            response = "📋 TODOの内容を教えてください。"
-                    else:
-                        response = f"❌ 高度TODOシステムエラー: {str(e)}"
-                except:
-                    response = "❌ TODO機能が使用できません。"
-            
-            # 応答送信
-            bot_message = await message.channel.send(response)
-            await _handle_post_response_processing(
-                message, bot_message, user_id, command_text, response,
-                context, 1.0
-            )
-            return
+        # 古い高度TODOシステムは削除済み
         # 🙏 真摯な対応 - ユーザーの要求を理解して応える
         # 何かがうまくいっていない場合のフォールバック
         elif 'すみません' in command_text.lower() or 'ごめん' in command_text.lower():
