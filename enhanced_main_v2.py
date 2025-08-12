@@ -215,11 +215,12 @@ except Exception as e:
     advanced_todo = None
     ADVANCED_TODO_AVAILABLE = False
 
-# 🚀 Firebase連携 強化版TODOシステム - 番号指定削除/完了対応
+# 🚀 Firebase連携 強化版TODOシステム - 自然言語理解対応
 try:
     from firebase_todo_enhanced import FirebaseTodoEnhanced
-    firebase_todo = FirebaseTodoEnhanced()
-    print("✅ **Firebase Todo Enhanced System**: 番号指定削除/完了対応システム初期化完了")
+    firebase_todo = FirebaseTodoEnhanced(openai_client=client_oa)
+    print("✅ **Firebase Todo Enhanced System**: 自然言語理解システム初期化完了")
+    print("   - OpenAI APIベース意図分類 (add/delete/complete/list/remind)")
     print("   - 番号指定での一括削除・完了 (1,3,5削除 / 2-4完了)")
     print("   - 自然言語での削除・完了 (消して/けして/完了/済み)")
     print("   - 全角半角・範囲指定の自動正規化")
@@ -443,7 +444,46 @@ async def process_command(message, user_id: str, username: str):
                 )
                 return
         
-        # 📋 高度TODOシステム - 本格的なTODO機能
+        # 📋 Firebase強化版TODOシステム - 自然言語理解対応（最優先）
+        elif is_todo_command and FIREBASE_TODO_AVAILABLE:
+            try:
+                print(f"[FIREBASE_TODO_ENHANCED] Processing with smart classification: {command_text}")
+                
+                # Firebase強化版TODOで処理（自然言語理解付き）
+                result = await firebase_todo.process_message(
+                    message_text=command_text,
+                    user_id=user_id,
+                    channel_id=str(message.channel.id),
+                    message_id=str(message.id)
+                )
+                
+                # レスポンス構築
+                response = result.get('message', '')
+                
+                # 提案がある場合は追加
+                if result.get('suggestions'):
+                    response += "\n\n💡 **候補:**"
+                    for suggestion in result['suggestions']:
+                        response += f"\n• {suggestion}"
+                
+                # 返信
+                bot_message = await message.channel.send(response)
+                
+                await _handle_post_response_processing(
+                    message, bot_message, user_id, command_text, response,
+                    context, 1.0
+                )
+                return
+                
+            except Exception as e:
+                print(f"[ERROR] Firebase Todo Enhanced error: {e}")
+                import traceback
+                traceback.print_exc()
+                
+                # フォールバック: 従来のTODOシステムに移行
+                print("[FALLBACK] Falling back to Advanced TODO system")
+
+        # 📋 高度TODOシステム - 本格的なTODO機能（フォールバック）
         elif is_todo_command and ADVANCED_TODO_AVAILABLE:
             try:
                 print(f"[ADVANCED_TODO] Processing: {command_text}")

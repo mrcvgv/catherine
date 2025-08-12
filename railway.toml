@@ -1,0 +1,16 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[[deploy.environmentVariables]]
+name = "PORT"
+value = "8080"
+
+[[deploy.environmentVariables]]
+name = "PYTHONUNBUFFERED"
+value = "1"

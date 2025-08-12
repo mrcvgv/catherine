@@ -1,0 +1,26 @@
+# Catherine AI - Core Dependencies
+discord.py[voice]>=2.3.2
+openai>=1.0.0
+firebase-admin>=6.5.0
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Cloud Functions & Tasks
+aiohttp>=3.8.0
+google-cloud-tasks>=2.15.0
+google-cloud-firestore>=2.13.0
+requests>=2.31.0
+
+# Deployment
+gunicorn>=21.2.0
+
+# Optional: Audio processing (if needed)
+# PyNaCl>=1.5.0
+# SpeechRecognition>=3.10.0
+# pydub>=0.25.1
+# ffmpeg-python>=0.2.0
+
+# Development
+# numpy>=1.24.0
+# pyyaml>=6.0
+# typing-extensions>=4.0.0

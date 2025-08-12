@@ -12,6 +12,7 @@ import pytz
 from firebase_config import firebase_manager
 from todo_nlu_enhanced import TodoNLUEnhanced, Intent, ParseResult
 from discord_reminder_system import ReminderSystem, Reminder
+from hybrid_intent_detector import HybridIntentDetector, IntentSpec
 
 # 日本時間
 JST = pytz.timezone('Asia/Tokyo')
@@ -19,7 +20,7 @@ JST = pytz.timezone('Asia/Tokyo')
 class FirebaseTodoEnhanced:
     """Firebase連携TODO管理システム - 強化版"""
     
-    def __init__(self):
+    def __init__(self, openai_client=None):
         self.db = firebase_manager.get_db()
         self.nlu = TodoNLUEnhanced()
         self.reminder_system = ReminderSystem()
@@ -28,6 +29,13 @@ class FirebaseTodoEnhanced:
         self.last_listed_todos = []  # 最後に表示したTODOリスト
         self.pending_confirmations = {}  # 確認待ちアクション
         
+        # ハイブリッド意図検出器
+        self.hybrid_detector = HybridIntentDetector(openai_client)
+        if openai_client:
+            print("SUCCESS: Hybrid Intent Detection (Rule+LLM) enabled")
+        else:
+            print("WARNING: Hybrid Intent Detection (Rule only) - no OpenAI client")
+        
     def generate_dedupe_key(self, title: str, user_id: str, channel_id: str) -> str:
         """重複検出用キー生成"""
         content = f"{title.lower().strip()}:{user_id}:{channel_id}"
@@ -35,71 +43,214 @@ class FirebaseTodoEnhanced:
     
     async def process_message(self, message_text: str, user_id: str, 
                             channel_id: str, message_id: str) -> Dict[str, Any]:
-        """Discord メッセージを処理"""
+        """Discord メッセージを処理 - ハイブリッド意図検出対応"""
         try:
-            # まずリマインド意図をチェック
-            reminder_result = self.reminder_system.parse_reminder_text(message_text)
+            # ハイブリッド意図検出（ルール＋LLM）
+            context = {
+                'last_list': self.last_listed_todos,
+                'current_time': datetime.now(JST).isoformat(),
+                'user_timezone': 'Asia/Tokyo'
+            }
             
-            if reminder_result['confidence'] > 0.7:
-                return await self._handle_reminder(reminder_result, user_id, channel_id, message_id)
+            detection_result = await self.hybrid_detector.detect(
+                message_text, user_id, channel_id, context
+            )
             
-            # 確認待ち処理チェック（はい/いいえ）
-            if message_text.lower() in ['はい', 'yes', 'y', 'ok', 'いいえ', 'no', 'n', 'cancel']:
-                return await self._handle_confirmation(message_text, user_id, channel_id)
+            action = detection_result.get('action')
             
-            # NLUで解析
-            parse_result = self.nlu.parse(message_text, user_id, channel_id, message_id)
-            
-            # エラー処理
-            if parse_result.error:
+            # 確認が必要な場合
+            if action in ['clarify', 'confirm']:
                 return {
-                    'success': False,
-                    'message': parse_result.error['message'],
-                    'suggestion': parse_result.error.get('suggestion', ''),
-                    'response_type': 'error'
+                    'success': True,
+                    'message': detection_result['message'],
+                    'response_type': action,
+                    'pending_id': detection_result.get('pending_id')
                 }
             
-            # インテント別処理
-            if parse_result.intent == 'add':
-                return await self._handle_add(parse_result, user_id, channel_id)
-            
-            elif parse_result.intent == 'list':
-                return await self._handle_list(parse_result, user_id, channel_id)
-            
-            elif parse_result.intent == 'complete':
-                return await self._handle_complete(parse_result, user_id, channel_id)
-            
-            elif parse_result.intent == 'delete':
-                return await self._handle_delete(parse_result, user_id, channel_id)
-            
-            elif parse_result.intent == 'bulk_complete':
-                return await self._handle_bulk_complete(parse_result, user_id, channel_id)
-            
-            elif parse_result.intent == 'bulk_delete':
-                return await self._handle_bulk_delete(parse_result, user_id, channel_id)
-            
-            elif parse_result.intent == 'update':
-                return await self._handle_update(parse_result, user_id, channel_id)
-            
-            elif parse_result.intent == 'find':
-                return await self._handle_find(parse_result, user_id, channel_id)
-            
-            elif parse_result.intent == 'postpone':
-                return await self._handle_postpone(parse_result, user_id, channel_id)
-            
-            else:
+            # タイムアウト
+            if action == 'expired':
                 return {
                     'success': False,
-                    'message': 'コマンドを理解できませんでした',
-                    'suggestion': 'ヘルプが必要な場合は「todo help」と入力してください',
-                    'response_type': 'unknown'
+                    'message': detection_result['message'],
+                    'response_type': 'expired'
                 }
+            
+            # 実行可能な場合
+            if action == 'execute':
+                spec = detection_result['spec']
+                intent = spec['intent']
                 
+                # 意図別処理実行
+                result = await self._execute_intent(spec, user_id, channel_id, message_id)
+                
+                # ポストアクション: リスト表示
+                if intent in ['todo.delete', 'todo.complete'] and result.get('success'):
+                    list_result = await self._handle_list_simple(user_id, channel_id)
+                    if list_result.get('message'):
+                        result['message'] += f"\n\n{list_result['message']}"
+                
+                # 自動補完フィールドの確認提案
+                memory_info = detection_result.get('memory_info', {})
+                auto_filled = memory_info.get('auto_filled', [])
+                if auto_filled and result.get('success'):
+                    result['message'] += f"\n\n💡 自動補完: {', '.join(auto_filled)}"
+                    result['auto_filled_info'] = memory_info
+                
+                return result
+            
+            # 予期しないアクション
+            return {
+                'success': False,
+                'message': f"処理できませんでした: {action}",
+                'response_type': 'error'
+            }
+                    
         except Exception as e:
             print(f"Error processing message: {e}")
             return {
                 'success': False,
                 'message': f'処理中にエラーが発生しました: {str(e)}',
+                'response_type': 'error'
+            }
+    
+    async def _execute_intent(self, spec: Dict[str, Any], user_id: str, 
+                             channel_id: str, message_id: str) -> Dict[str, Any]:
+        """意図に基づいて実際の処理を実行"""
+        intent = spec['intent']
+        
+        if intent == 'todo.add':
+            return await self._handle_add_from_spec(spec, user_id, channel_id, message_id)
+        
+        elif intent == 'todo.delete':
+            if spec.get('indices'):
+                return await self._handle_bulk_delete_indices(spec['indices'], user_id, channel_id)
+            else:
+                return await self._handle_natural_delete_from_spec(spec, user_id, channel_id)
+        
+        elif intent == 'todo.complete':
+            if spec.get('indices'):
+                return await self._handle_bulk_complete_indices(spec['indices'], user_id, channel_id)
+            else:
+                return await self._handle_natural_complete_from_spec(spec, user_id, channel_id)
+        
+        elif intent == 'todo.list':
+            return await self._handle_list_simple(user_id, channel_id)
+        
+        elif intent.startswith('remind.'):
+            return await self._handle_reminder_from_spec(spec, user_id, channel_id, message_id)
+        
+        elif intent == 'chitchat':
+            return await self._handle_chitchat(spec, user_id, channel_id)
+        
+        else:
+            return {
+                'success': False,
+                'message': f'未対応の意図: {intent}',
+                'response_type': 'unsupported'
+            }
+    
+    async def _handle_add_from_spec(self, spec: Dict, user_id: str, channel_id: str, message_id: str) -> Dict:
+        """仕様からTODO追加"""
+        if not spec.get('what'):
+            return {
+                'success': False,
+                'message': 'タスクの内容が指定されていません',
+                'response_type': 'missing_content'
+            }
+        
+        entities = {
+            'title': spec['what'],
+            'time': spec.get('time'),
+            'mention': spec.get('mention'),
+            'priority': 'normal'
+        }
+        
+        return await self._handle_add_with_entities(entities, user_id, channel_id, message_id)
+    
+    async def _handle_list_simple(self, user_id: str, channel_id: str) -> Dict:
+        """シンプルなTODOリスト表示"""
+        entities = {}
+        return await self._handle_list_with_filters(entities, user_id, channel_id)
+    
+    async def _handle_natural_delete_from_spec(self, spec: Dict, user_id: str, channel_id: str) -> Dict:
+        """仕様から自然言語削除"""
+        entities = {'query': spec.get('what', '')}
+        return await self._handle_natural_delete(entities, user_id, channel_id)
+    
+    async def _handle_natural_complete_from_spec(self, spec: Dict, user_id: str, channel_id: str) -> Dict:
+        """仕様から自然言語完了"""
+        entities = {'query': spec.get('what', '')}
+        return await self._handle_natural_complete(entities, user_id, channel_id)
+    
+    async def _handle_reminder_from_spec(self, spec: Dict, user_id: str, channel_id: str, message_id: str) -> Dict:
+        """仕様からリマインド処理"""
+        reminder_data = {
+            'content': spec.get('what', ''),
+            'time': spec.get('time'),
+            'mention': spec.get('mention', '@everyone'),
+            'repeat': spec.get('repeat')
+        }
+        return await self._handle_reminder(reminder_data, user_id, channel_id, message_id)
+    
+    async def _handle_chitchat(self, spec: Dict, user_id: str, channel_id: str) -> Dict:
+        """雑談対応"""
+        text = spec.get('raw_text', '')
+        
+        if 'うさぎ' in text or 'うさぎ' in text:
+            return {
+                'success': True,
+                'message': 'うさぎかわいいですね！',
+                'response_type': 'chitchat'
+            }
+        
+        return {
+            'success': True,
+            'message': 'お疲れさまです！何かお手伝いできることはありますか？',
+            'response_type': 'chitchat'
+        }
+    
+    async def handle_user_correction(self, log_id: str, correct_intent: str, 
+                                   user_id: str, feedback: str = "修正") -> Dict[str, Any]:
+        """ユーザー修正処理 - 学習システム連携"""
+        try:
+            correction_result = await self.hybrid_detector.handle_correction(
+                log_id, correct_intent, feedback
+            )
+            
+            return {
+                'success': True,
+                'message': correction_result.get('message', '修正を記録しました'),
+                'response_type': 'correction_learned',
+                'learning_applied': correction_result.get('learning_applied', False)
+            }
+        except Exception as e:
+            print(f"[ERROR] User correction handling failed: {e}")
+            return {
+                'success': False,
+                'message': f'修正処理エラー: {str(e)}',
+                'response_type': 'error'
+            }
+    
+    async def get_learning_suggestions(self, user_id: str) -> Dict[str, Any]:
+        """学習改善提案取得"""
+        try:
+            # 最近の操作履歴を取得（簡易版）
+            interaction_history = []  # 実際にはDBから取得
+            
+            suggestions = await self.hybrid_detector.suggest_learning_improvement(
+                user_id, interaction_history
+            )
+            
+            return {
+                'success': True,
+                'suggestions': suggestions,
+                'response_type': 'learning_suggestions'
+            }
+        except Exception as e:
+            print(f"[ERROR] Learning suggestions failed: {e}")
+            return {
+                'success': False,
+                'message': f'学習提案取得エラー: {str(e)}',
                 'response_type': 'error'
             }
     
@@ -909,6 +1060,363 @@ class FirebaseTodoEnhanced:
         except Exception as e:
             print(f"Error getting updated list: {e}")
             return ""
+    
+    # ===== スマート意図分類器用の追加メソッド =====
+    
+    async def _handle_add_with_entities(self, entities: Dict, user_id: str, 
+                                      channel_id: str, message_id: str) -> Dict:
+        """エンティティベースのTODO追加"""
+        try:
+            if not self.db:
+                return {'success': False, 'message': 'データベース接続エラー'}
+            
+            title = entities.get('title', '')
+            if not title:
+                return {
+                    'success': False,
+                    'message': 'TODOのタイトルを教えてください',
+                    'suggestion': '例: 「レポート作成」明日18時 high #urgent',
+                    'response_type': 'missing_title'
+                }
+            
+            # 重複チェック
+            dedupe_key = self.generate_dedupe_key(title, user_id, channel_id)
+            existing = self.db.collection(self.collection_name).where(
+                'dedupe_key', '==', dedupe_key
+            ).where('status', '==', 'open').limit(1).get()
+            
+            if existing:
+                return {
+                    'success': False,
+                    'message': f'❗ 重複検出: 「{title}」は既に存在します',
+                    'response_type': 'duplicate'
+                }
+            
+            # TODO作成
+            todo_id = str(uuid.uuid4())
+            todo_doc = {
+                'todo_id': todo_id,
+                'user_id': user_id,
+                'channel_id': channel_id,
+                'title': title,
+                'description': entities.get('description'),
+                'status': 'open',
+                'priority': entities.get('priority', 'normal'),
+                'due_at': entities.get('due_time'),
+                'assignees': entities.get('assignees', []),
+                'tags': entities.get('tags', []),
+                'source_msg_id': message_id,
+                'created_at': datetime.now(JST),
+                'updated_at': datetime.now(JST),
+                'dedupe_key': dedupe_key
+            }
+            
+            # Firestoreに保存
+            self.db.collection(self.collection_name).document(todo_id).set(todo_doc)
+            
+            # 監査ログ
+            await self._add_audit_log(todo_id, user_id, 'add', {'task': todo_doc})
+            
+            # レスポンス生成
+            response = f"✅ 追加｜『{title}』"
+            if entities.get('due_time'):
+                due_dt = datetime.fromisoformat(entities['due_time'])
+                response += f" 〆{due_dt.strftime('%m/%d %H:%M')}"
+            if entities.get('assignees'):
+                response += f" ｜担当: {', '.join(entities['assignees'])}"
+            if entities.get('tags'):
+                response += f" ｜#{' #'.join(entities['tags'])}"
+            
+            return {
+                'success': True,
+                'message': response,
+                'todo_id': todo_id,
+                'response_type': 'add'
+            }
+            
+        except Exception as e:
+            print(f"Error in _handle_add_with_entities: {e}")
+            return {'success': False, 'message': f'追加エラー: {str(e)}'}
+    
+    async def _handle_bulk_delete_indices(self, indices: List[int], user_id: str, channel_id: str) -> Dict:
+        """番号指定でのTODO削除（スマート分類器用）"""
+        try:
+            if not self.last_listed_todos:
+                return {
+                    'success': False,
+                    'message': '❌ 先にTODO一覧を表示してください',
+                    'suggestion': '`todo list` でTODO一覧を表示後、番号指定してください',
+                    'response_type': 'no_list'
+                }
+            
+            if not indices:
+                return {
+                    'success': False,
+                    'message': '❌ 削除する番号を指定してください',
+                    'response_type': 'no_indices'
+                }
+            
+            # 確認プロンプト
+            titles = []
+            for idx in indices:
+                if 1 <= idx <= len(self.last_listed_todos):
+                    todo_data = self.last_listed_todos[idx-1].to_dict()
+                    titles.append(f"{idx}. {todo_data['title']}")
+            
+            if not titles:
+                return {
+                    'success': False,
+                    'message': '❌ 有効な番号が指定されていません',
+                    'response_type': 'invalid_indices'
+                }
+            
+            # 確認が必要な削除操作
+            self.pending_confirmations[f"{user_id}:{channel_id}"] = {
+                'type': 'bulk_delete',
+                'indices': indices,
+                'user_id': user_id,
+                'channel_id': channel_id
+            }
+            
+            return {
+                'success': True,
+                'message': f"⚠️ 以下のタスクを削除しますか？（元に戻せません）\n{chr(10).join(titles)}\n\n確認: `はい` / `いいえ`",
+                'response_type': 'confirm_delete'
+            }
+            
+        except Exception as e:
+            print(f"Error in _handle_bulk_delete_indices: {e}")
+            return {'success': False, 'message': f'削除処理エラー: {str(e)}'}
+    
+    async def _handle_bulk_complete_indices(self, indices: List[int], user_id: str, channel_id: str) -> Dict:
+        """番号指定でのTODO完了（スマート分類器用）"""
+        try:
+            if not self.last_listed_todos:
+                return {
+                    'success': False,
+                    'message': '❌ 先にTODO一覧を表示してください',
+                    'suggestion': '`todo list` でTODO一覧を表示後、番号指定してください',
+                    'response_type': 'no_list'
+                }
+            
+            if not indices:
+                return {
+                    'success': False,
+                    'message': '❌ 完了する番号を指定してください',
+                    'response_type': 'no_indices'
+                }
+            
+            # 完了処理実行（確認不要）
+            completed = []
+            failed = []
+            
+            for idx in indices:
+                if 1 <= idx <= len(self.last_listed_todos):
+                    todo = self.last_listed_todos[idx-1]
+                    todo_data = todo.to_dict()
+                    todo_id = todo.id
+                    
+                    try:
+                        # ステータス更新
+                        self.db.collection(self.collection_name).document(todo_id).update({
+                            'status': 'done',
+                            'updated_at': datetime.now(JST),
+                            'completed_at': datetime.now(JST)
+                        })
+                        
+                        completed.append(f"#{idx}")
+                        
+                        # 監査ログ
+                        await self._add_audit_log(todo_id, user_id, 'complete', {'index': idx})
+                        
+                    except Exception as e:
+                        failed.append(f"#{idx}")
+                else:
+                    failed.append(f"#{idx}(無効)")
+            
+            # レスポンス生成
+            message = ""
+            if completed:
+                message += f"✅ 完了: {', '.join(completed)}（{len(completed)}件）"
+            if failed:
+                if message:
+                    message += "｜"
+                message += f"失敗: {', '.join(failed)}"
+            
+            # ポストアクション
+            if len(completed) > 0:
+                updated_list = await self._get_updated_list(user_id, channel_id)
+                if updated_list:
+                    message += "\n\n" + updated_list
+                else:
+                    message += "\n\n🎉 全部片付きました！"
+            
+            return {
+                'success': len(completed) > 0,
+                'message': message,
+                'completed_count': len(completed),
+                'failed_count': len(failed),
+                'response_type': 'bulk_complete'
+            }
+            
+        except Exception as e:
+            print(f"Error in _handle_bulk_complete_indices: {e}")
+            return {'success': False, 'message': f'完了処理エラー: {str(e)}'}
+    
+    async def _handle_list_with_filters(self, entities: Dict, user_id: str, channel_id: str) -> Dict:
+        """フィルター付きTODOリスト表示"""
+        try:
+            if not self.db:
+                return {'success': False, 'message': 'データベース接続エラー'}
+            
+            # クエリ構築
+            query = self.db.collection(self.collection_name)
+            query = query.where('channel_id', '==', channel_id)
+            
+            # ステータスフィルタ
+            status = 'open'  # デフォルトは未完了
+            if entities.get('status') == 'done':
+                status = 'done'
+            query = query.where('status', '==', status)
+            
+            # タグフィルタ
+            if entities.get('tags'):
+                for tag in entities['tags']:
+                    query = query.where('tags', 'array_contains', tag)
+            
+            # 優先度フィルタ  
+            if entities.get('priority'):
+                query = query.where('priority', '==', entities['priority'])
+            
+            # 並び替えと制限
+            query = query.order_by('priority', direction='DESCENDING')
+            query = query.order_by('created_at').limit(20)
+            
+            # 取得
+            todos = query.get()
+            self.last_listed_todos = list(todos)
+            
+            # NLUにリスト件数を設定
+            self.nlu.set_last_list_count(len(self.last_listed_todos))
+            
+            if not self.last_listed_todos:
+                return {
+                    'success': True,
+                    'message': '📝 TODOはありません',
+                    'response_type': 'list_empty'
+                }
+            
+            # フォーマット
+            message = "📋 **TODOリスト**\n"
+            for i, todo in enumerate(self.last_listed_todos, 1):
+                todo_data = todo.to_dict()
+                status_emoji = '✅' if todo_data['status'] == 'done' else '⬜'
+                priority_emoji = {
+                    'urgent': '🔴',
+                    'high': '🟠',
+                    'normal': '🟡',
+                    'low': '🟢'
+                }.get(todo_data.get('priority', 'normal'), '⚪')
+                
+                message += f"{i}. {status_emoji} {priority_emoji} {todo_data['title']}"
+                
+                if todo_data.get('due_at'):
+                    due_dt = todo_data['due_at']
+                    if isinstance(due_dt, str):
+                        due_dt = datetime.fromisoformat(due_dt)
+                    message += f" 〆{due_dt.strftime('%m/%d')}"
+                
+                if todo_data.get('assignees'):
+                    message += f" @{','.join(todo_data['assignees'])}"
+                
+                if todo_data.get('tags'):
+                    message += f" #{' #'.join(todo_data['tags'])}"
+                
+                message += "\n"
+            
+            message += "\n💡 番号指定で操作: `1,3,5削除` `2-4完了` など"
+            
+            return {
+                'success': True,
+                'message': message,
+                'count': len(self.last_listed_todos),
+                'response_type': 'list'
+            }
+            
+        except Exception as e:
+            print(f"Error in _handle_list_with_filters: {e}")
+            return {'success': False, 'message': f'一覧取得エラー: {str(e)}'}
+    
+    async def _handle_natural_delete(self, entities: Dict, user_id: str, channel_id: str) -> Dict:
+        """自然言語でのTODO削除"""
+        # タイトルベースの削除など、将来実装
+        return {
+            'success': False,
+            'message': '自然言語削除は番号指定をお使いください',
+            'suggestion': '例: 1,3,5削除',
+            'response_type': 'natural_delete_unsupported'
+        }
+    
+    async def _handle_natural_complete(self, entities: Dict, user_id: str, channel_id: str) -> Dict:
+        """自然言語でのTODO完了"""
+        # タイトルベースの完了など、将来実装
+        return {
+            'success': False,
+            'message': '自然言語完了は番号指定をお使いください',
+            'suggestion': '例: 1,3,5完了',
+            'response_type': 'natural_complete_unsupported'
+        }
+    
+    async def _handle_search(self, query: str, entities: Dict, user_id: str, channel_id: str) -> Dict:
+        """TODO検索"""
+        try:
+            if not self.db:
+                return {'success': False, 'message': 'データベース接続エラー'}
+            
+            # タイトルと説明で検索
+            todos = self.db.collection(self.collection_name).where(
+                'channel_id', '==', channel_id
+            ).where('status', '==', 'open').get()
+            
+            # フィルタリング（Firestoreの制限回避）
+            results = []
+            for todo in todos:
+                data = todo.to_dict()
+                if (query.lower() in data['title'].lower() or 
+                    (data.get('description') and query.lower() in data['description'].lower())):
+                    results.append(todo)
+            
+            if not results:
+                return {
+                    'success': True,
+                    'message': f'🔍 「{query}」に一致するTODOが見つかりませんでした',
+                    'response_type': 'search_empty'
+                }
+            
+            # 結果表示
+            message = f"🔍 **検索結果** (「{query}」)\n\n"
+            for i, todo in enumerate(results, 1):
+                data = todo.to_dict()
+                priority_emoji = {
+                    'urgent': '🔴', 'high': '🟠', 'normal': '🟡', 'low': '🟢'
+                }.get(data.get('priority', 'normal'), '⚪')
+                
+                message += f"{i}. {priority_emoji} {data['title']}"
+                if data.get('due_at'):
+                    due_dt = datetime.fromisoformat(data['due_at'])
+                    message += f" 〆{due_dt.strftime('%m/%d')}"
+                message += "\n"
+            
+            return {
+                'success': True,
+                'message': message,
+                'count': len(results),
+                'response_type': 'search_results'
+            }
+            
+        except Exception as e:
+            print(f"Error in _handle_search: {e}")
+            return {'success': False, 'message': f'検索エラー: {str(e)}'}
     
     async def get_daily_todos_and_reminders(self, date: datetime.date, channel_id: str) -> str:
         """指定日のTODOとリマインドを取得（毎朝8:00用）"""
