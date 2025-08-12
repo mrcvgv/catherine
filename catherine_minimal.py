@@ -237,6 +237,7 @@ async def handle_todo_delete(numbers: list):
                 else:
                     print(f"[DEBUG] TODO number {num} out of range (1-{len(todos)})")
             
+            print(f"[DEBUG] Total deleted items: {len(deleted_items)}")
             if deleted_items:
                 return f"🗑️ **削除完了:**\n" + "\n".join(deleted_items)
             else:

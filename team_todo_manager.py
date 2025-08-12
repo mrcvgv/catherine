@@ -135,13 +135,18 @@ class TeamTodoManager:
                     query = query.where('project', '==', filters['project'])
                 if 'category' in filters:
                     query = query.where('category', '==', filters['category'])
+            else:
+                # デフォルトで削除されたTODOを除外
+                query = query.where('status', '!=', 'deleted')
             
             # 優先度と締切日でソート
             todos = []
             for doc in query.stream():
                 todo = doc.to_dict()
                 todo['id'] = doc.id  # Add document ID
-                todos.append(todo)
+                # 追加の安全チェック：削除済みTODOを除外
+                if todo.get('status') != 'deleted':
+                    todos.append(todo)
             
             # カスタムソート（優先度高い順、締切日近い順）
             todos.sort(key=lambda x: (
