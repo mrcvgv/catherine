@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import pytz
+from aiohttp import web
 
 # カスタムモジュールのインポート
 from firebase_config import firebase_manager
@@ -2406,6 +2407,36 @@ async def update_learning():
     except Exception as e:
         print(f"[ERROR] Learning update error: {e}")
 
+# aiohttp Health Check Server
+async def health_check(request):
+    """Railway health check endpoint"""
+    return web.json_response({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'service': 'Catherine AI Discord Bot'
+    })
+
+async def root_handler(request):
+    """Root endpoint"""
+    return web.json_response({
+        'message': 'Catherine AI is running',
+        'status': 'online'
+    })
+
+async def init_health_server():
+    """Initialize aiohttp health server"""
+    app = web.Application()
+    app.router.add_get('/health', health_check)
+    app.router.add_get('/', root_handler)
+    
+    port = int(os.environ.get('PORT', 8080))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    print(f"[INFO] Health server started on port {port}")
+    return runner
+
 # Bot起動
 if __name__ == "__main__":
     try:
@@ -2428,7 +2459,15 @@ if __name__ == "__main__":
         print(f"[INFO] Human Level Chat: {human_level_chat.get_pattern_count() if human_level_chat else 0} patterns loaded")
         print(f"[INFO] Simple Todo: Ready")
         
-        bot.run(token)
+        # Start health server and Discord bot concurrently
+        async def main():
+            # Initialize health server
+            await init_health_server()
+            
+            # Start Discord bot
+            await bot.start(token)
+        
+        asyncio.run(main())
         
     except discord.LoginFailure as e:
         print(f"[CRITICAL] Discord login failed: {e}")
