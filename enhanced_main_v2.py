@@ -40,6 +40,7 @@ from advanced_context_engine import AdvancedContextEngine
 from intelligent_automation_system import IntelligentAutomationSystem
 from metacognitive_system import MetacognitiveSystem
 from voice_channel_alternative import VoiceChannelAlternative  # 代替音声システム
+from advanced_todo_system import AdvancedTodoSystem  # 高度TODOシステム
 
 # 🌟 NEW: 究極知能システム群 - 人間らしさ + 博士レベル知能
 try:
@@ -198,6 +199,37 @@ else:
     human_level_chat = None
     simple_todo = None
     print("WARNING: Evolved Human AI System Unavailable")
+
+# 📋 高度TODOシステム初期化 - 本格的なTODO機能
+try:
+    advanced_todo = AdvancedTodoSystem("catherine_todo.db")
+    print("✅ **Advanced Todo System**: 本格的なTODO管理システム初期化完了")
+    print("   - 自然言語理解 + コマンド対応")
+    print("   - 相対日時解析 (Asia/Tokyo)")
+    print("   - 優先度・タグ・アサイン機能")
+    print("   - エラーハンドリング・確認プロンプト")
+    print("   - 監査ログ・統計情報")
+    ADVANCED_TODO_AVAILABLE = True
+except Exception as e:
+    print(f"[WARNING] Advanced Todo System: Unavailable - {e}")
+    advanced_todo = None
+    ADVANCED_TODO_AVAILABLE = False
+
+# 🚀 Firebase連携 強化版TODOシステム - 番号指定削除/完了対応
+try:
+    from firebase_todo_enhanced import FirebaseTodoEnhanced
+    firebase_todo = FirebaseTodoEnhanced()
+    print("✅ **Firebase Todo Enhanced System**: 番号指定削除/完了対応システム初期化完了")
+    print("   - 番号指定での一括削除・完了 (1,3,5削除 / 2-4完了)")
+    print("   - 自然言語での削除・完了 (消して/けして/完了/済み)")
+    print("   - 全角半角・範囲指定の自動正規化")
+    print("   - Firebase連携で永続化")
+    print("   - 確認プロンプト付き破壊的操作")
+    FIREBASE_TODO_AVAILABLE = True
+except Exception as e:
+    print(f"[WARNING] Firebase Todo Enhanced System: Unavailable - {e}")
+    firebase_todo = None
+    FIREBASE_TODO_AVAILABLE = False
 
 # 旧超越的システムは無効化
 transcendent_core = None
@@ -411,70 +443,52 @@ async def process_command(message, user_id: str, username: str):
                 )
                 return
         
-        # 📋 TODO機能 - 実際に動作させる
-        elif is_todo_command:
+        # 📋 高度TODOシステム - 本格的なTODO機能
+        elif is_todo_command and ADVANCED_TODO_AVAILABLE:
             try:
-                print(f"[TODO] Processing: {command_text}")
+                print(f"[ADVANCED_TODO] Processing: {command_text}")
                 
-                # TODO追加の判定
-                if any(word in command_text.lower() for word in ['入れて', '追加', '登録', 'todo']):
-                    # コマンドからTODO内容を抽出
-                    todo_content = command_text.replace('todo', '').replace('入れて', '').replace('追加', '').replace('登録', '').strip()
-                    
-                    if not todo_content:
-                        response = "📋 TODOの内容を教えてください。\n例: `C! todo 明日の会議資料準備`"
-                    else:
-                        # Simple TODOで追加
-                        if simple_todo:
-                            result = simple_todo.add_todo(todo_content, user_id)
-                            response = result
-                        else:
-                            # フォールバック: team_todo_managerで追加
-                            result = await team_todo_manager.create_team_todo(
-                                user_id=user_id,
-                                title=todo_content[:100],
-                                priority=3,
-                                due_date=None,
-                                category='general'
-                            )
-                            response = f"✅ 「**{todo_content[:30]}**」をToDoに追加しました！"
+                # 高度TODOシステムで処理
+                response = await advanced_todo.process_message(message, user_id)
                 
-                # TODOリスト表示の判定
-                elif any(word in command_text.lower() for word in ['リスト', '一覧', 'list']):
-                    if simple_todo:
-                        response = simple_todo.list_todos(user_id)
-                    else:
-                        # フォールバック
-                        todos = await team_todo_manager.get_team_todos()
-                        if not todos:
-                            response = "📋 今のところToDoはありません。"
-                        else:
-                            response = "📊 **ToDoリスト**\n\n"
-                            for i, todo in enumerate(todos[:10], 1):
-                                title = todo['title'][:50]
-                                response += f"{i}. **{title}**\n"
+                if response:
+                    bot_message = await message.channel.send(response)
+                    await _handle_post_response_processing(
+                        message, bot_message, user_id, command_text, response,
+                        context, 1.0
+                    )
+                    return
                 else:
-                    response = "📋 ToDo機能を使用します。\n• `todo 内容` - 追加\n• `todo list` - 一覧表示"
-                
-                bot_message = await message.channel.send(response)
-                await _handle_post_response_processing(
-                    message, bot_message, user_id, command_text, response,
-                    context, 1.0
-                )
-                return
+                    # フォールバック処理
+                    response = "❌ TODO処理でエラーが発生しました。"
                 
             except Exception as e:
-                print(f"[ERROR] TODO processing error: {e}")
+                print(f"[ERROR] Advanced TODO error: {e}")
                 import traceback
                 traceback.print_exc()
-                response = f"❌ TODO処理エラー: {str(e)}"
                 
-                bot_message = await message.channel.send(response)
-                await _handle_post_response_processing(
-                    message, bot_message, user_id, command_text, response,
-                    context, 1.0
-                )
-                return
+                # フォールバック: シンプルTODO
+                try:
+                    if simple_todo and 'list' in command_text.lower():
+                        response = simple_todo.list_todos(user_id)
+                    elif simple_todo:
+                        todo_content = command_text.replace('todo', '').strip()
+                        if todo_content:
+                            response = simple_todo.add_todo(todo_content, user_id)
+                        else:
+                            response = "📋 TODOの内容を教えてください。"
+                    else:
+                        response = f"❌ 高度TODOシステムエラー: {str(e)}"
+                except:
+                    response = "❌ TODO機能が使用できません。"
+            
+            # 応答送信
+            bot_message = await message.channel.send(response)
+            await _handle_post_response_processing(
+                message, bot_message, user_id, command_text, response,
+                context, 1.0
+            )
+            return
         # 🙏 真摯な対応 - ユーザーの要求を理解して応える
         # 何かがうまくいっていない場合のフォールバック
         elif 'すみません' in command_text.lower() or 'ごめん' in command_text.lower():
