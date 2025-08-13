@@ -10,14 +10,19 @@ import sys
 # Add parent directory to path for Firebase import
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Initialize logging first
+logging.basicConfig(
+    format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO
+)
+
 # Firebase integration
 try:
     from firebase_config import firebase_manager
     FIREBASE_ENABLED = True
-    logger.info("Firebase integration enabled")
+    logging.info("Firebase integration enabled")
 except ImportError:
     FIREBASE_ENABLED = False
-    logger.warning("Firebase integration not available")
+    logging.warning("Firebase integration not available")
 
 from src.base import Message, Conversation, ThreadConfig
 from src.constants import (
@@ -44,10 +49,6 @@ from src.moderation import (
     moderate_message,
     send_moderation_blocked_message,
     send_moderation_flagged_message,
-)
-
-logging.basicConfig(
-    format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO
 )
 
 intents = discord.Intents.default()
@@ -79,10 +80,10 @@ async def save_conversation_to_firebase(user_id: str, channel_id: str, message: 
         
         # Save to Firebase
         db.collection('conversations').add(conversation_data)
-        logger.info(f"Conversation saved to Firebase for user {user_id}")
+        logging.info(f"Conversation saved to Firebase for user {user_id}")
         
     except Exception as e:
-        logger.error(f"Failed to save conversation to Firebase: {e}")
+        logging.error(f"Failed to save conversation to Firebase: {e}")
 
 
 @client.event
