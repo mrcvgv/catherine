@@ -114,7 +114,11 @@
       "Bash(git clone:*)",
       "Bash(cp:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(pip check)",
+      "Bash(pip install:*)",
+      "Bash(railway login:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

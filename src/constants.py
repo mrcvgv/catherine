@@ -32,8 +32,10 @@ for s in server_ids:
 SERVER_TO_MODERATION_CHANNEL: Dict[int, int] = {}
 server_channels = os.environ.get("SERVER_TO_MODERATION_CHANNEL", "").split(",")
 for s in server_channels:
-    values = s.split(":")
-    SERVER_TO_MODERATION_CHANNEL[int(values[0])] = int(values[1])
+    if s.strip():  # 空文字列をスキップ
+        values = s.split(":")
+        if len(values) == 2:  # 正しい形式かチェック
+            SERVER_TO_MODERATION_CHANNEL[int(values[0])] = int(values[1])
 
 # Send Messages, Create Public Threads, Send Messages in Threads, Manage Messages, Manage Threads, Read Message History, Use Slash Command
 BOT_INVITE_URL = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&permissions=328565073920&scope=bot"
@@ -76,4 +78,4 @@ MAX_CHARS_PER_REPLY_MSG = (
     1500  # discord has a 2k limit, we just break message into 1.5k
 )
 
-AVAILABLE_MODELS = Literal["gpt-3.5-turbo", "gpt-4", "gpt-4-1106-preview", "gpt-4-32k"]
+AVAILABLE_MODELS = Literal["gpt-3.5-turbo", "gpt-4", "gpt-4-1106-preview", "gpt-4-32k", "gpt-4o", "gpt-4o-mini"]
