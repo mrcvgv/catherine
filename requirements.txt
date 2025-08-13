@@ -1,6 +1,8 @@
-# Task Manager Bot - Minimal Dependencies
 discord.py>=2.3.2
-aiohttp>=3.8.0
-pytz>=2023.3
-# Firebase (optional - remove if not using)
+python-dotenv==0.21.*
+openai>=1.2.0
+PyYAML==6.0
+dacite==1.6.*
+# Firebase integration
 firebase-admin>=6.5.0
+pytz>=2023.3

@@ -1,1 +1,1 @@
-web: python catherine_task_manager.py
+web: python -m src.main

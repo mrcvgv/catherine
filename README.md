@@ -1,74 +1,69 @@
-# Catherine Task Manager Bot
+# Please read!
 
-## 📋 Simple Discord Task Management
 
-A minimal task management bot for Discord based on Discord Task Manager Bot design principles.
+**For any problems running this specific bot:** [Discord Project Post](https://discord.com/channels/974519864045756446/1055336272543092757)
 
-## ✨ Commands
+**For general OpenAI API problems or questions:** [Discord API Discussions](https://discord.com/channels/974519864045756446/1037561178286739466)
 
-### Slash Commands
-- `/add [task] [@user]` - Add a new task (optionally assign to user)
-- `/list` - Show all pending tasks
-- `/done [ID]` - Mark task as completed
-- `/done-list` - Show completed tasks
-- `/undo [ID]` - Mark completed task as pending
-- `/delete [ID]` - Delete a task
-- `/clear` - Clear all tasks
-- `/help` - Show help
+**For bugs in the template code:** create an Issue
 
-### Text Commands (Alternative)
-- `t!add [task] [@user]` - Add a task
-- `t!list` - List pending tasks
-- `t!done [ID]` - Mark as done
-- `t!done-list` - Show completed
-- `t!undo [ID]` - Undo completion
+**For feature requests:** this repo is not accepting feature requests, you can discuss potential features in [Discord Project Post](https://discord.com/channels/974519864045756446/1055336272543092757)
 
-## 🚀 Quick Start
+**For PRs:** only bug fix PRs wil be accepted. If you are implementing a new feature, please fork this repo.
 
-1. **Setup**:
-   ```bash
-   cp .env.example .env
-   # Add your Discord bot token to .env
-   ```
+Thank you!
 
-2. **Install**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+---
+# GPT Discord Bot
 
-3. **Run**:
-   ```bash
-   python catherine_task_manager.py
-   ```
+Example Discord bot written in Python that uses the [chat completions API](https://platform.openai.com/docs/api-reference/chat/create) to have conversations with the `gpt-3.5-turbo` model, and the [moderations API](https://beta.openai.com/docs/api-reference/moderations) to filter the messages.
 
-## 💡 Usage Example
+This bot uses the [OpenAI Python Library](https://github.com/openai/openai-python) and [discord.py](https://discordpy.readthedocs.io/).
 
-```
-/add Write documentation
-> ✅ Task #1 added: Write documentation
 
-/add Review code @username
-> ✅ Task #2 added: Review code (assigned to @username)
+# Features
 
-/list
-> 📋 Pending Tasks:
-> 1. Write documentation - ID: 1
-> 2. Review code - ID: 2 - @username
+- `/chat` starts a public thread, with a `message` argument which is the first user message passed to the bot. You can optionally also adjust the `temperature` and `max_tokens` parameters.
+- The model will generate a reply for every user message in any threads started with `/chat`
+- The entire thread will be passed to the model for each request, so the model will remember previous messages in the thread
+- when the context limit is reached, or a max message count is reached in the thread, bot will close the thread
+- you can customize the bot instructions by modifying `config.yaml`
+- you can change the model, the default value is `gpt-3.5-turbo`
 
-/done 1
-> ✅ Task #1 marked as done!
-```
+# Setup
 
-## 🗂️ Features
-- Server-specific tasks (isolated per Discord server)
-- Task assignment with user mentions
-- Persistent storage in JSON file
-- Simple ID-based task management
-- Health check endpoint for deployment
+1. Copy `.env.example` to `.env` and start filling in the values as detailed below
+1. Go to https://beta.openai.com/account/api-keys, create a new API key, and fill in `OPENAI_API_KEY`
+1. Create your own Discord application at https://discord.com/developers/applications
+1. Go to the Bot tab and click "Add Bot"
+    - Click "Reset Token" and fill in `DISCORD_BOT_TOKEN`
+    - Disable "Public Bot" unless you want your bot to be visible to everyone
+    - Enable "Message Content Intent" under "Privileged Gateway Intents"
+1. Go to the OAuth2 tab, copy your "Client ID", and fill in `DISCORD_CLIENT_ID`
+1. Copy the ID the server you want to allow your bot to be used in by right clicking the server icon and clicking "Copy ID". Fill in `ALLOWED_SERVER_IDS`. If you want to allow multiple servers, separate the IDs by "," like `server_id_1,server_id_2`
+1. Install dependencies and run the bot
+    ```
+    pip install -r requirements.txt
+    python -m src.main
+    ```
+    You should see an invite URL in the console. Copy and paste it into your browser to add the bot to your server.
+    Note: make sure you are using Python 3.9+ (check with python --version)
 
-## 🚀 Deploy to Railway
-1. Set `DISCORD_TOKEN` environment variable
-2. Deploy - health checks are built-in at `/health`
+# Optional configuration
 
-## 📝 License
-MIT License
+1. If you want moderation messages, create and copy the channel id for each server that you want the moderation messages to send to in `SERVER_TO_MODERATION_CHANNEL`. This should be of the format: `server_id:channel_id,server_id_2:channel_id_2`
+1. If you want to change the personality of the bot, go to `src/config.yaml` and edit the instructions
+1. If you want to change the moderation settings for which messages get flagged or blocked, edit the values in `src/constants.py`. A higher value means less chance of it triggering, with 1.0 being no moderation at all for that category.
+
+# FAQ
+
+> Why isn't my bot responding to commands?
+
+Ensure that the channels your bots have access to allow the bot to have these permissions.
+- Send Messages
+- Send Messages in Threads
+- Create Public Threads
+- Manage Messages (only for moderation to delete blocked messages)
+- Manage Threads
+- Read Message History
+- Use Application Commands

@@ -111,7 +111,10 @@
       "Bash(start_catherine.ps1)",
       "Bash(cat:*)",
       "Bash(mkdir:*)",
-      "Bash(git clone:*)"
+      "Bash(git clone:*)",
+      "Bash(cp:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }
