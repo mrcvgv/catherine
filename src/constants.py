@@ -19,15 +19,36 @@ BOT_NAME = CONFIG.name
 BOT_INSTRUCTIONS = CONFIG.instructions
 EXAMPLE_CONVOS = CONFIG.example_conversations
 
-DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
-DISCORD_CLIENT_ID = os.environ["DISCORD_CLIENT_ID"]
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-DEFAULT_MODEL = os.environ["DEFAULT_MODEL"]
+# Debug: Print available environment variables for DISCORD_BOT_TOKEN
+print("DEBUG: Available environment variables:")
+discord_token_keys = [key for key in os.environ.keys() if "DISCORD" in key]
+print(f"Discord-related keys: {discord_token_keys}")
+
+DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
+if not DISCORD_BOT_TOKEN:
+    print("ERROR: DISCORD_BOT_TOKEN not found in environment variables")
+    print("Available env vars:", list(os.environ.keys())[:10])  # Show first 10 keys
+    raise ValueError("DISCORD_BOT_TOKEN is required")
+
+DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
+if not DISCORD_CLIENT_ID:
+    raise ValueError("DISCORD_CLIENT_ID is required")
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") 
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY is required")
+
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "gpt-3.5-turbo")
 
 ALLOWED_SERVER_IDS: List[int] = []
-server_ids = os.environ["ALLOWED_SERVER_IDS"].split(",")
-for s in server_ids:
-    ALLOWED_SERVER_IDS.append(int(s))
+server_ids_str = os.environ.get("ALLOWED_SERVER_IDS", "")
+if server_ids_str:
+    server_ids = server_ids_str.split(",")
+    for s in server_ids:
+        if s.strip():
+            ALLOWED_SERVER_IDS.append(int(s.strip()))
+else:
+    print("WARNING: No ALLOWED_SERVER_IDS set, bot will not respond to any servers")
 
 SERVER_TO_MODERATION_CHANNEL: Dict[int, int] = {}
 server_channels = os.environ.get("SERVER_TO_MODERATION_CHANNEL", "").split(",")
