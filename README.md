@@ -1,22 +1,25 @@
 # Catherine AI - OpenAI GPT Discord Bot + Firebase Integration
 
 ## 🤖 Overview
-Advanced Discord bot powered by OpenAI's GPT models with Firebase conversation logging. Based on OpenAI's official GPT Discord Bot with enhanced Firebase integration for persistent conversation storage.
+Advanced Discord bot powered by OpenAI's latest GPT models (including GPT-4o) with Firebase conversation logging and long-term memory. Based on OpenAI's official GPT Discord Bot with enhanced Firebase integration for persistent conversation storage and intelligent context retention.
 
 ## ✨ Features
 
 ### 🧠 **AI Conversation**
-- **OpenAI GPT Integration**: Powered by GPT-3.5-turbo or GPT-4
+- **Latest OpenAI Models**: Supports GPT-4o, GPT-4o-mini, GPT-4, and GPT-3.5-turbo
 - **Thread-based Conversations**: Each conversation runs in a dedicated Discord thread
 - **Context Retention**: Maintains conversation history within threads
+- **Long-term Memory**: Firebase integration provides persistent conversation history
 - **Intelligent Moderation**: Built-in content filtering and moderation
 - **Customizable Personality**: Configure bot behavior via `config.yaml`
 
-### 🔥 **Firebase Integration**
+### 🔥 **Firebase Long-term Memory**
 - **Conversation Logging**: All conversations automatically saved to Firestore
-- **User History Tracking**: Track conversation patterns and usage
+- **Memory Retention**: Bot can reference past conversations across sessions
+- **User History Tracking**: Track conversation patterns and usage over time
 - **Persistent Storage**: Never lose conversation data
 - **Structured Data**: Organized conversation data with timestamps and metadata
+- **Cross-session Context**: Bot remembers you across different conversations
 
 ### 🛡️ **Moderation & Safety**
 - **Content Filtering**: Automatic detection of inappropriate content
@@ -88,7 +91,7 @@ ALLOWED_SERVER_IDS=123456789,987654321
 SERVER_TO_MODERATION_CHANNEL=server_id:channel_id
 
 # AI Configuration
-DEFAULT_MODEL=gpt-3.5-turbo
+DEFAULT_MODEL=gpt-4o
 ```
 
 ### **3. Discord Bot Setup**
@@ -112,7 +115,7 @@ DEFAULT_MODEL=gpt-3.5-turbo
 1. **Get API Key**: Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
 2. **Create Key**: Generate new secret key
 3. **Add to .env**: `OPENAI_API_KEY=sk-your-key-here`
-4. **Set Model**: Choose `gpt-3.5-turbo` or `gpt-4`
+4. **Set Model**: Choose `gpt-4o`, `gpt-4o-mini`, `gpt-4`, or `gpt-3.5-turbo`
 
 ### **5. Firebase Setup (Optional)**
 
@@ -236,8 +239,8 @@ SECONDS_DELAY_RECEIVING_MSG = 2  # Delay before processing
 ACTIVATE_THREAD_PREFX = "🤖-chat"  # Thread name prefix
 
 # AI settings  
-AVAILABLE_MODELS = ["gpt-3.5-turbo", "gpt-4"]
-DEFAULT_MODEL = "gpt-3.5-turbo"
+AVAILABLE_MODELS = ["gpt-3.5-turbo", "gpt-4", "gpt-4o", "gpt-4o-mini"]
+DEFAULT_MODEL = "gpt-4o"
 ```
 
 ## 📊 Usage Examples
@@ -379,7 +382,7 @@ MIT License - Use freely for personal and commercial projects.
 ## 💡 Pro Tips
 
 1. **Conversation Management**: Use descriptive `/chat` messages to set context
-2. **Model Selection**: Use GPT-4 for complex tasks, GPT-3.5-turbo for casual chat
+2. **Model Selection**: Use GPT-4o for best performance, GPT-4o-mini for speed, GPT-4 for complex tasks, GPT-3.5-turbo for casual chat
 3. **Temperature Control**: Lower values (0.3) for factual answers, higher (0.8) for creativity
 4. **Firebase Analytics**: Query conversation data for insights and improvements
 5. **Moderation Tuning**: Start strict, then relax based on your community needs
