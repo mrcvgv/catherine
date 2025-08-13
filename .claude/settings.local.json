@@ -108,7 +108,10 @@
       "Bash(check_env.ps1 )",
       "Bash(check_env_fixed.ps1 )",
       "Bash(setup_env_vars.ps1 )",
-      "Bash(start_catherine.ps1)"
+      "Bash(start_catherine.ps1)",
+      "Bash(cat:*)",
+      "Bash(mkdir:*)",
+      "Bash(git clone:*)"
     ],
     "deny": []
   }

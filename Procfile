@@ -1,1 +1,1 @@
-web: python catherine_minimal.py
+web: python catherine_task_manager.py

@@ -1,6 +1,6 @@
-# Catherine AI - Essential Dependencies Only
+# Task Manager Bot - Minimal Dependencies
 discord.py>=2.3.2
-openai>=1.0.0
-firebase-admin>=6.5.0
 aiohttp>=3.8.0
 pytz>=2023.3
+# Firebase (optional - remove if not using)
+firebase-admin>=6.5.0
