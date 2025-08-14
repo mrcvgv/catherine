@@ -24,11 +24,12 @@ print("DEBUG: Available environment variables:")
 discord_token_keys = [key for key in os.environ.keys() if "DISCORD" in key]
 print(f"Discord-related keys: {discord_token_keys}")
 
-DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
+# Support both DISCORD_BOT_TOKEN and DISCORD_TOKEN for flexibility
+DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN") or os.environ.get("DISCORD_TOKEN")
 if not DISCORD_BOT_TOKEN:
-    print("ERROR: DISCORD_BOT_TOKEN not found in environment variables")
+    print("ERROR: Neither DISCORD_BOT_TOKEN nor DISCORD_TOKEN found in environment variables")
     print("Available env vars:", list(os.environ.keys())[:10])  # Show first 10 keys
-    raise ValueError("DISCORD_BOT_TOKEN is required")
+    raise ValueError("DISCORD_BOT_TOKEN or DISCORD_TOKEN is required")
 
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
 if not DISCORD_CLIENT_ID:
