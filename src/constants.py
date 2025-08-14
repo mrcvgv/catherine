@@ -19,10 +19,9 @@ BOT_NAME = CONFIG.name
 BOT_INSTRUCTIONS = CONFIG.instructions
 EXAMPLE_CONVOS = CONFIG.example_conversations
 
-# Debug: Print available environment variables for DISCORD_BOT_TOKEN
-print("DEBUG: Available environment variables:")
-discord_token_keys = [key for key in os.environ.keys() if "DISCORD" in key]
-print(f"Discord-related keys: {discord_token_keys}")
+# Environment variable check (can be removed after debugging)
+if os.environ.get("DEBUG_ENV"):
+    print("DEBUG: Discord-related keys:", [k for k in os.environ.keys() if "DISCORD" in k])
 
 # Support both DISCORD_BOT_TOKEN and DISCORD_TOKEN for flexibility
 DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN") or os.environ.get("DISCORD_TOKEN")
@@ -31,15 +30,21 @@ if not DISCORD_BOT_TOKEN:
     print("Available env vars:", list(os.environ.keys())[:10])  # Show first 10 keys
     raise ValueError("DISCORD_BOT_TOKEN or DISCORD_TOKEN is required")
 
-DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
+# Support multiple naming conventions
+DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID") or os.environ.get("CLIENT_ID") or os.environ.get("DISCORD_APPLICATION_ID")
 if not DISCORD_CLIENT_ID:
+    print("ERROR: DISCORD_CLIENT_ID not found")
+    print("Checking for Discord-related env vars:", [k for k in os.environ.keys() if "DISCORD" in k or "CLIENT" in k])
     raise ValueError("DISCORD_CLIENT_ID is required")
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") 
+# Support multiple naming conventions for OpenAI
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY") 
 if not OPENAI_API_KEY:
+    print("ERROR: OPENAI_API_KEY not found")
+    print("Checking for OpenAI-related env vars:", [k for k in os.environ.keys() if "OPENAI" in k or "API" in k])
     raise ValueError("OPENAI_API_KEY is required")
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "gpt-3.5-turbo")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL") or os.environ.get("MODEL") or "gpt-4o"
 
 ALLOWED_SERVER_IDS: List[int] = []
 server_ids_str = os.environ.get("ALLOWED_SERVER_IDS", "")
