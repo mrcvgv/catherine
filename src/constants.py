@@ -30,12 +30,15 @@ if not DISCORD_BOT_TOKEN:
     print("Available env vars:", list(os.environ.keys())[:10])  # Show first 10 keys
     raise ValueError("DISCORD_BOT_TOKEN or DISCORD_TOKEN is required")
 
-# Support multiple naming conventions
+# Support multiple naming conventions and debug
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID") or os.environ.get("CLIENT_ID") or os.environ.get("DISCORD_APPLICATION_ID")
 if not DISCORD_CLIENT_ID:
     print("ERROR: DISCORD_CLIENT_ID not found")
-    print("Checking for Discord-related env vars:", [k for k in os.environ.keys() if "DISCORD" in k or "CLIENT" in k])
-    raise ValueError("DISCORD_CLIENT_ID is required")
+    print("All environment variables:", sorted(os.environ.keys()))
+    print("Looking for DISCORD_CLIENT_ID specifically:", "DISCORD_CLIENT_ID" in os.environ)
+    # Try direct fallback
+    DISCORD_CLIENT_ID = "1401929901275218010"  # Hardcoded fallback for testing
+    print("WARNING: Using hardcoded CLIENT_ID for debugging")
 
 # Support multiple naming conventions for OpenAI
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY") 
