@@ -153,7 +153,41 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
         
         elif action == 'remind':
             # リマインダー設定
-            if intent.get('todo_number'):
+            if intent.get('is_list_reminder'):
+                # 全リスト通知の設定
+                remind_time = intent.get('remind_time')
+                remind_type = intent.get('remind_type', 'custom')
+                
+                if remind_time:
+                    # スケジューラーに登録
+                    from scheduler_system import scheduler_system
+                    if scheduler_system:
+                        todo_data = {
+                            'user_id': user_id,
+                            'title': 'TODOリスト全体',
+                            'channel_target': intent.get('channel_target', 'todo'),
+                            'mention_target': intent.get('mention_target', 'everyone'),
+                            'is_list_reminder': True
+                        }
+                        
+                        task_id = await scheduler_system.schedule_reminder(
+                            remind_time, 
+                            todo_data, 
+                            is_recurring=(remind_type == 'recurring')
+                        )
+                        
+                        time_str = remind_time.strftime('%Y-%m-%d %H:%M')
+                        mention_str = f'@{intent.get("mention_target", "everyone")}'
+                        channel_str = f'#{intent.get("channel_target", "todo")}チャンネル'
+                        recurring_str = '（毎日繰り返し）' if remind_type == 'recurring' else ''
+                        
+                        response = f"🔔 TODOリスト全体のリマインダーを{time_str}に{channel_str}で{mention_str}宛に設定しました{recurring_str}"
+                    else:
+                        response = "❌ スケジューラーシステムが利用できません"
+                else:
+                    response = "❌ リマインダー時間を指定してください"
+                    
+            elif intent.get('todo_number'):
                 result = await todo_manager.set_reminder_by_number(
                     intent['todo_number'],
                     user_id,
@@ -213,6 +247,23 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                 
                         except Exception as e:
                             logger.error(f"Failed to send channel reminder: {e}")
+                    elif result.get('remind_time'):
+                        # スケジュールされたリマインダーの場合もスケジューラーに登録
+                        from scheduler_system import scheduler_system
+                        if scheduler_system:
+                            todo_data = {
+                                'user_id': user_id,
+                                'title': result.get('todo_title', 'TODO'),
+                                'channel_target': result.get('channel_target', 'todo'),
+                                'mention_target': result.get('mention_target', 'everyone'),
+                                'is_list_reminder': False
+                            }
+                            
+                            await scheduler_system.schedule_reminder(
+                                result['remind_time'], 
+                                todo_data, 
+                                is_recurring=False
+                            )
                 else:
                     response = f"❌ {result.get('message', 'リマインダーの設定に失敗しました')}"
             else:
@@ -646,7 +697,7 @@ async def on_message(message: DiscordMessage):
         logger.exception(e)
 
 
-# Initialize reminder system
+# Initialize reminder and scheduler systems
 if FIREBASE_ENABLED:
     try:
         import sys
@@ -654,19 +705,22 @@ if FIREBASE_ENABLED:
         sys.path.append(os.path.dirname(os.path.abspath(__file__)))
         
         from reminder_system import init_reminder_system, ReminderSystem
+        from scheduler_system import init_scheduler_system
         from todo_manager import todo_manager
         
         reminder_system = init_reminder_system(todo_manager, client)
+        scheduler_system = init_scheduler_system(client)
         
-        # Start reminder system in background
-        async def start_reminder_system():
+        # Start systems in background
+        async def start_systems():
             await client.wait_until_ready()
-            logger.info("Starting reminder system...")
+            logger.info("Starting reminder and scheduler systems...")
             await reminder_system.start()
+            await scheduler_system.start()
         
-        client.loop.create_task(start_reminder_system())
-        logger.info("Reminder system initialized")
+        client.loop.create_task(start_systems())
+        logger.info("Reminder and scheduler systems initialized")
     except Exception as e:
-        logger.error(f"Failed to initialize reminder system: {e}")
+        logger.error(f"Failed to initialize systems: {e}")
 
 client.run(DISCORD_BOT_TOKEN)

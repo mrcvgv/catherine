@@ -258,6 +258,12 @@ class TodoNLU:
             except ValueError:
                 pass
         
+        # 「X分後」パターン
+        minutes_match = re.search(r'(\d+)分後', message)
+        if minutes_match:
+            minutes = int(minutes_match.group(1))
+            return datetime.now(pytz.UTC) + timedelta(minutes=minutes)
+        
         # 「X日後」パターン
         days_match = re.search(r'(\d+)日後', message)
         if days_match:
@@ -269,6 +275,15 @@ class TodoNLU:
         if hours_match:
             hours = int(hours_match.group(1))
             return datetime.now(pytz.UTC) + timedelta(hours=hours)
+        
+        # 毎日の時間指定パターン（例: 毎朝8:30）
+        daily_time_match = re.search(r'毎日.*?(\d{1,2})[：:時](\d{1,2})', message)
+        if daily_time_match:
+            hour = int(daily_time_match.group(1))
+            minute = int(daily_time_match.group(2))
+            # 明日の指定時刻を返す（毎日繰り返しのフラグ付き）
+            tomorrow = datetime.now(pytz.UTC) + timedelta(days=1)
+            return tomorrow.replace(hour=hour, minute=minute, second=0, microsecond=0)
         
         return None
     
@@ -287,6 +302,11 @@ class TodoNLU:
             remind_type = 'immediate'
         elif any(word in message for word in ['毎日', '毎朝', '毎晩']):
             remind_type = 'recurring'
+        
+        # 全リスト通知の判定
+        is_list_reminder = any(word in message for word in ['全リスト', 'リスト', '一覧'])
+        if is_list_reminder:
+            todo_number = None  # 全リスト通知の場合は番号なし
         
         # メンション先を検出
         mention_target = 'everyone'  # デフォルト
@@ -316,6 +336,7 @@ class TodoNLU:
             'remind_type': remind_type,
             'mention_target': mention_target,
             'channel_target': channel_target,
+            'is_list_reminder': is_list_reminder,
             'confidence': 0.7
         }
 
