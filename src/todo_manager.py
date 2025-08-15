@@ -203,7 +203,7 @@ class TodoManager:
             logger.error(f"Failed to update TODO by number: {e}")
             return {'success': False, 'message': 'TODOの更新に失敗しました'}
     
-    async def set_reminder_by_number(self, todo_number: int, user_id: str, remind_time: datetime, remind_type: str = 'custom') -> Dict[str, Any]:
+    async def set_reminder_by_number(self, todo_number: int, user_id: str, remind_time: datetime, remind_type: str = 'custom', mention_target: str = 'everyone', channel_target: str = 'todo') -> Dict[str, Any]:
         """番号指定でTODOにリマインダーを設定"""
         try:
             # ユーザーのTODOリストを取得
@@ -226,7 +226,9 @@ class TodoManager:
                 user_id, 
                 remind_time=remind_time,
                 remind_type=remind_type,
-                reminder_enabled=True
+                reminder_enabled=True,
+                mention_target=mention_target,
+                channel_target=channel_target
             )
             
             if success:
@@ -235,15 +237,22 @@ class TodoManager:
                     return {
                         'success': True,
                         'message': f'TODO {todo_number} 「{title}」のリマインダーを今すぐ送信しました！',
-                        'immediate': True
+                        'immediate': True,
+                        'mention_target': mention_target,
+                        'channel_target': channel_target,
+                        'todo_title': title
                     }
                 else:
                     time_str = remind_time.strftime('%Y-%m-%d %H:%M') if remind_time else '指定時間'
+                    mention_str = f'@{mention_target}' if mention_target != 'everyone' else '@everyone'
+                    channel_str = f'#{channel_target}チャンネル'
                     return {
                         'success': True,
-                        'message': f'TODO {todo_number} 「{title}」のリマインダーを{time_str}に設定しました',
+                        'message': f'TODO {todo_number} 「{title}」のリマインダーを{time_str}に{channel_str}で{mention_str}宛に設定しました',
                         'todo_title': title,
-                        'remind_time': remind_time
+                        'remind_time': remind_time,
+                        'mention_target': mention_target,
+                        'channel_target': channel_target
                     }
             else:
                 return {'success': False, 'message': 'リマインダーの設定に失敗しました'}

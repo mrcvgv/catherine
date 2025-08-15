@@ -288,11 +288,34 @@ class TodoNLU:
         elif any(word in message for word in ['毎日', '毎朝', '毎晩']):
             remind_type = 'recurring'
         
+        # メンション先を検出
+        mention_target = 'everyone'  # デフォルト
+        if '@mrc' in message.lower() or 'mrc' in message.lower():
+            mention_target = 'mrc'
+        elif '@supy' in message.lower() or 'supy' in message.lower():
+            mention_target = 'supy'
+        elif '@' in message:
+            # その他のメンション指定があれば抽出
+            mention_match = re.search(r'@(\w+)', message)
+            if mention_match:
+                mention_target = mention_match.group(1)
+        
+        # チャンネル指定を検出
+        channel_target = 'todo'  # デフォルト
+        if 'todo' in message.lower() or '#todo' in message.lower():
+            channel_target = 'todo'
+        elif '#' in message:
+            channel_match = re.search(r'#(\w+)', message)
+            if channel_match:
+                channel_target = channel_match.group(1)
+        
         return {
             'action': 'remind',
             'todo_number': todo_number,
             'remind_time': remind_time,
             'remind_type': remind_type,
+            'mention_target': mention_target,
+            'channel_target': channel_target,
             'confidence': 0.7
         }
 

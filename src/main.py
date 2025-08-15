@@ -158,18 +158,61 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     intent['todo_number'],
                     user_id,
                     intent.get('remind_time'),
-                    intent.get('remind_type', 'custom')
+                    intent.get('remind_type', 'custom'),
+                    intent.get('mention_target', 'everyone'),
+                    intent.get('channel_target', 'todo')
                 )
                 
                 if result['success']:
                     response = f"🔔 {result['message']}"
                     
-                    # 即座にリマインダーの場合、実際にメッセージを送信
+                    # 即座にリマインダーの場合、チャンネルにメンション付きで送信
                     if result.get('immediate'):
                         try:
-                            await user.send(f"📢 **即時リマインダー**\n📝 {result.get('todo_title', 'TODO')}\n⚡ 今すぐ対応が必要です！")
+                            # チャンネルを取得
+                            channel_name = result.get('channel_target', 'todo')
+                            channel = None
+                            
+                            # チャンネルを検索
+                            for guild in client.guilds:
+                                for ch in guild.channels:
+                                    if ch.name.lower() == channel_name.lower() and hasattr(ch, 'send'):
+                                        channel = ch
+                                        break
+                                if channel:
+                                    break
+                            
+                            if channel:
+                                # メンションを構築
+                                mention_target = result.get('mention_target', 'everyone')
+                                if mention_target == 'everyone':
+                                    mention = '@everyone'
+                                elif mention_target == 'mrc':
+                                    # mrcのユーザーIDを検索
+                                    mrc_user = None
+                                    for member in channel.guild.members:
+                                        if 'mrc' in member.name.lower() or 'mrc' in member.display_name.lower():
+                                            mrc_user = member
+                                            break
+                                    mention = mrc_user.mention if mrc_user else '@mrc'
+                                elif mention_target == 'supy':
+                                    # supyのユーザーIDを検索
+                                    supy_user = None
+                                    for member in channel.guild.members:
+                                        if 'supy' in member.name.lower() or 'supy' in member.display_name.lower():
+                                            supy_user = member
+                                            break
+                                    mention = supy_user.mention if supy_user else '@supy'
+                                else:
+                                    mention = f'@{mention_target}'
+                                
+                                # リマインダーメッセージを送信
+                                await channel.send(f"🔔 **リマインダー** {mention}\n📝 {result.get('todo_title', 'TODO')}\n⚡ 今すぐ対応が必要です！")
+                            else:
+                                logger.error(f"Channel '{channel_name}' not found")
+                                
                         except Exception as e:
-                            logger.error(f"Failed to send immediate reminder: {e}")
+                            logger.error(f"Failed to send channel reminder: {e}")
                 else:
                     response = f"❌ {result.get('message', 'リマインダーの設定に失敗しました')}"
             else:

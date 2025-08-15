@@ -121,9 +121,15 @@ class ReminderSystem:
                     time_str = f"{int(time_diff.total_seconds() // 3600)}時間"
                 message = f"🔔 **リマインダー** 🔔\n📝 {title}\n⏰ あと{time_str}で期限です"
             
-            # Discordで通知
+            # チャンネル通知またはDM通知
             if self.bot:
-                await self.send_discord_reminder(user_id, message)
+                channel_target = todo_data.get('channel_target', 'dm')
+                mention_target = todo_data.get('mention_target', 'everyone')
+                
+                if channel_target != 'dm':
+                    await self.send_channel_reminder(channel_target, mention_target, message, user_id)
+                else:
+                    await self.send_discord_reminder(user_id, message)
             
             # 最後の通知時間を更新
             await self.update_last_reminder(todo_data['id'], user_id)
@@ -132,6 +138,46 @@ class ReminderSystem:
             
         except Exception as e:
             logger.error(f"リマインダー送信失敗: {e}")
+    
+    async def send_channel_reminder(self, channel_name: str, mention_target: str, message: str, user_id: str):
+        """チャンネルにメンション付きリマインダーを送信"""
+        try:
+            # チャンネルを検索
+            channel = None
+            for guild in self.bot.guilds:
+                for ch in guild.channels:
+                    if ch.name.lower() == channel_name.lower() and hasattr(ch, 'send'):
+                        channel = ch
+                        break
+                if channel:
+                    break
+            
+            if channel:
+                # メンションを構築
+                if mention_target == 'everyone':
+                    mention = '@everyone'
+                elif mention_target in ['mrc', 'supy']:
+                    # 特定ユーザーを検索
+                    target_user = None
+                    for member in channel.guild.members:
+                        if mention_target in member.name.lower() or mention_target in member.display_name.lower():
+                            target_user = member
+                            break
+                    mention = target_user.mention if target_user else f'@{mention_target}'
+                else:
+                    mention = f'@{mention_target}'
+                
+                # メッセージを送信
+                await channel.send(f"{mention}\n{message}")
+                logger.info(f"チャンネル通知送信: #{channel_name} {mention}")
+            else:
+                logger.error(f"Channel '{channel_name}' not found, falling back to DM")
+                await self.send_discord_reminder(user_id, message)
+                
+        except Exception as e:
+            logger.error(f"チャンネル通知送信失敗: {e}")
+            # フォールバックでDMを送信
+            await self.send_discord_reminder(user_id, message)
     
     async def send_discord_reminder(self, user_id: str, message: str):
         """Discord経由でリマインダーを送信"""
