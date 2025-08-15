@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, Dict, Any
 
 import discord
 from discord import Message as DiscordMessage, app_commands
@@ -57,6 +57,81 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 tree = discord.app_commands.CommandTree(client)
 thread_data = defaultdict()
+
+# Handle TODO commands
+async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str:
+    """TODO操作を処理"""
+    from src.todo_manager import todo_manager
+    
+    action = intent.get('action')
+    user_id = str(user.id)
+    
+    try:
+        if action == 'create':
+            # TODO作成
+            todo = await todo_manager.create_todo(
+                user_id=user_id,
+                title=intent.get('title', 'タスク'),
+                description='',
+                due_date=intent.get('due_date'),
+                priority=intent.get('priority', 'normal')
+            )
+            
+            response = f"✅ TODOを追加しました！\n\n"
+            response += f"📝 **{todo['title']}**\n"
+            if todo.get('due_date'):
+                response += f"📅 期限: {todo['due_date'].strftime('%Y-%m-%d %H:%M')}\n"
+            response += f"🎯 優先度: {todo['priority']}\n"
+            response += f"\n💡 ヒント: 「TODOリスト」と言うと一覧が見れます！"
+            
+        elif action == 'list':
+            # TODOリスト表示
+            todos = await todo_manager.get_todos(
+                user_id=user_id,
+                include_completed=intent.get('include_completed', False)
+            )
+            response = todo_manager.format_todo_list(todos)
+            
+            if not intent.get('include_completed'):
+                response += "\n💡 完了済みも見たい場合は「完了したTODOも見せて」と言ってください！"
+            
+        elif action == 'complete':
+            # TODO完了
+            todos = await todo_manager.get_todos(user_id=user_id)
+            
+            if intent.get('todo_number') and intent['todo_number'] <= len(todos):
+                todo = todos[intent['todo_number'] - 1]
+                success = await todo_manager.complete_todo(todo['id'], user_id)
+                if success:
+                    response = f"✅ 「{todo['title']}」を完了にしました！お疲れ様でした！🎉"
+                else:
+                    response = "❌ TODOの完了に失敗しました。"
+            else:
+                response = "❌ 該当するTODOが見つかりません。番号を確認してください。"
+        
+        elif action == 'delete':
+            # TODO削除
+            todos = await todo_manager.get_todos(user_id=user_id, include_completed=True)
+            
+            if intent.get('todo_number') and intent['todo_number'] <= len(todos):
+                todo = todos[intent['todo_number'] - 1]
+                success = await todo_manager.delete_todo(todo['id'], user_id)
+                if success:
+                    response = f"🗑️ 「{todo['title']}」を削除しました。"
+                else:
+                    response = "❌ TODOの削除に失敗しました。"
+            else:
+                response = "❌ 該当するTODOが見つかりません。番号を確認してください。"
+        
+        else:
+            response = "❓ TODO操作を理解できませんでした。\n使い方:\n- TODO追加: 「〇〇をTODOに追加」\n- リスト表示: 「TODOリスト」\n- 完了: 「1番を完了」\n- 削除: 「2番を削除」"
+            
+    except Exception as e:
+        logger.error(f"TODO operation error: {e}")
+        response = f"❌ エラーが発生しました: {str(e)}"
+    
+    return response
+
 
 # Firebase conversation logging
 async def save_conversation_to_firebase(user_id: str, channel_id: str, message: str, response: str):
@@ -262,6 +337,32 @@ async def on_message(message: DiscordMessage):
         # Handle all messages (DM or channel)
         user = message.author
         content = message.content
+        
+        # TODO機能のインポート
+        try:
+            from src.todo_manager import todo_manager
+            from src.todo_nlu import todo_nlu
+            
+            # TODO操作を解析
+            todo_intent = todo_nlu.parse_message(content)
+            
+            if todo_intent.get('action') and todo_intent.get('confidence', 0) > 0.5:
+                # TODO操作を実行
+                async with message.channel.typing():
+                    response_text = await handle_todo_command(user, todo_intent)
+                    await message.reply(response_text)
+                    
+                    # Firebaseに保存
+                    channel_id = f"dm_{user.id}" if isinstance(message.channel, discord.DMChannel) else str(message.channel.id)
+                    await save_conversation_to_firebase(
+                        user_id=str(user.id),
+                        channel_id=channel_id,
+                        message=content,
+                        response=response_text
+                    )
+                return
+        except ImportError:
+            logger.warning("TODO modules not available")
         
         # Log the message
         if isinstance(message.channel, discord.DMChannel):
