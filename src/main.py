@@ -305,9 +305,13 @@ async def on_message(message: DiscordMessage):
                 )
                 
                 # Send response
-                if response_data and 'text' in response_data:
-                    logger.info(f"Sending response: {response_data['text'][:50]}")
-                    await message.reply(response_data['text'])
+                if response_data and response_data.reply_text:
+                    logger.info(f"Sending response: {response_data.reply_text[:50]}")
+                    # Split long messages if needed
+                    from src.utils import split_into_shorter_messages
+                    shorter_response = split_into_shorter_messages(response_data.reply_text)
+                    for r in shorter_response:
+                        await message.reply(r)
                     
                     # Save conversation to Firebase
                     channel_id = f"dm_{user.id}" if isinstance(message.channel, discord.DMChannel) else str(message.channel.id)
@@ -315,11 +319,14 @@ async def on_message(message: DiscordMessage):
                         user_id=str(user.id),
                         channel_id=channel_id,
                         message=content,
-                        response=response_data['text']
+                        response=response_data.reply_text
                     )
                 else:
                     logger.error(f"No response generated for message: {content}")
-                    await message.reply("申し訳ございません。応答の生成に失敗しました。")
+                    if response_data and response_data.status_text:
+                        await message.reply(f"エラー: {response_data.status_text}")
+                    else:
+                        await message.reply("申し訳ございません。応答の生成に失敗しました。")
             except Exception as gen_error:
                 logger.error(f"Error generating response: {gen_error}")
                 await message.reply(f"エラーが発生しました: {str(gen_error)[:100]}")
