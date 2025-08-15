@@ -251,31 +251,79 @@ async def chat_command(
 @client.event
 async def on_message(message: DiscordMessage):
     try:
-        # block servers not in allow list
-        if should_block(guild=message.guild):
-            return
-
         # ignore messages from the bot
         if message.author == client.user:
             return
-
-        # ignore messages not in a thread
+        
+        # block servers not in allow list
+        if should_block(guild=message.guild):
+            return
+        
+        # Handle all messages (DM or channel)
+        user = message.author
+        content = message.content
+        
+        # Log the message
+        if isinstance(message.channel, discord.DMChannel):
+            logger.info(f"DM from {user}: {content[:50]}")
+        else:
+            logger.info(f"Message from {user} in {message.guild}: {content[:50]}")
+        
+        # Moderate the message
+        flagged_str, blocked_str = moderate_message(
+            message=content, user=user
+        )
+        
+        # Handle blocked messages
+        if len(blocked_str) > 0:
+            await message.delete()
+            await message.channel.send(
+                embed=discord.Embed(
+                    description=f"❌ Message was blocked by moderation.",
+                    color=discord.Color.red()
+                ),
+                delete_after=10
+            )
+            return
+        
+        # Show typing indicator
+        async with message.channel.typing():
+            # Generate response using GPT-4o
+            response_data = await generate_completion_response(
+                messages=[Message(user=user.name, text=content)],
+                user=user,
+                model="gpt-4o",
+                temperature=1.0,
+                max_tokens=512
+            )
+            
+            # Send response
+            if response_data and 'text' in response_data:
+                await message.reply(response_data['text'])
+                
+                # Save conversation to Firebase
+                channel_id = f"dm_{user.id}" if isinstance(message.channel, discord.DMChannel) else str(message.channel.id)
+                await save_conversation_to_firebase(
+                    user_id=str(user.id),
+                    channel_id=channel_id,
+                    message=content,
+                    response=response_data['text']
+                )
+        
+        # Below is the old thread logic (now unreachable)
         channel = message.channel
         if not isinstance(channel, discord.Thread):
             return
 
-        # ignore threads not created by the bot
         thread = channel
         if thread.owner_id != client.user.id:
             return
 
-        # ignore threads that are archived locked or title is not what we want
         if (
             thread.archived
             or thread.locked
             or not thread.name.startswith(ACTIVATE_THREAD_PREFX)
         ):
-            # ignore this thread
             return
 
         if thread.message_count > MAX_THREAD_MESSAGES:
