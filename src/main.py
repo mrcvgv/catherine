@@ -151,8 +151,32 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
             else:
                 response = "❌ 番号と新しい名前を指定してください（例: 1は買い物リストにして）"
         
+        elif action == 'remind':
+            # リマインダー設定
+            if intent.get('todo_number'):
+                result = await todo_manager.set_reminder_by_number(
+                    intent['todo_number'],
+                    user_id,
+                    intent.get('remind_time'),
+                    intent.get('remind_type', 'custom')
+                )
+                
+                if result['success']:
+                    response = f"🔔 {result['message']}"
+                    
+                    # 即座にリマインダーの場合、実際にメッセージを送信
+                    if result.get('immediate'):
+                        try:
+                            await user.send(f"📢 **即時リマインダー**\n📝 {result.get('todo_title', 'TODO')}\n⚡ 今すぐ対応が必要です！")
+                        except Exception as e:
+                            logger.error(f"Failed to send immediate reminder: {e}")
+                else:
+                    response = f"❌ {result.get('message', 'リマインダーの設定に失敗しました')}"
+            else:
+                response = "❌ 番号を指定してください（例: 1を明日リマインド）"
+        
         else:
-            response = "❓ TODO操作を理解できませんでした。\n使い方:\n- TODO追加: 「〇〇をTODOに追加」\n- リスト表示: 「TODOリスト」\n- 完了: 「1番を完了」\n- 削除: 「2番を削除」\n- 名前変更: 「1は○○にして」\n- 複数削除: 「1,2,3は削除」"
+            response = "❓ TODO操作を理解できませんでした。\n使い方:\n- TODO追加: 「〇〇をTODOに追加」\n- リスト表示: 「TODOリスト」\n- 完了: 「1番を完了」\n- 削除: 「2番を削除」\n- 名前変更: 「1は○○にして」\n- 複数削除: 「1,2,3は削除」\n- リマインダー: 「1を明日リマインド」「2を今すぐリマインド」"
             
     except Exception as e:
         logger.error(f"TODO operation error: {e}")

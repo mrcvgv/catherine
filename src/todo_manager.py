@@ -203,6 +203,55 @@ class TodoManager:
             logger.error(f"Failed to update TODO by number: {e}")
             return {'success': False, 'message': 'TODOの更新に失敗しました'}
     
+    async def set_reminder_by_number(self, todo_number: int, user_id: str, remind_time: datetime, remind_type: str = 'custom') -> Dict[str, Any]:
+        """番号指定でTODOにリマインダーを設定"""
+        try:
+            # ユーザーのTODOリストを取得
+            todos = await self.get_todos(user_id)
+            
+            if not todos:
+                return {'success': False, 'message': 'TODOリストが空です'}
+            
+            # 番号の有効性をチェック（1ベース）
+            if not (1 <= todo_number <= len(todos)):
+                return {'success': False, 'message': f'番号 {todo_number} は存在しません（1-{len(todos)}の範囲で指定してください）'}
+            
+            # 更新対象のTODOを取得
+            todo_to_update = todos[todo_number - 1]
+            title = todo_to_update.get('title', '')
+            
+            # リマインダー情報を更新
+            success = await self.update_todo(
+                todo_to_update['id'], 
+                user_id, 
+                remind_time=remind_time,
+                remind_type=remind_type,
+                reminder_enabled=True
+            )
+            
+            if success:
+                if remind_type == 'immediate':
+                    # 即座にリマインダーを送信
+                    return {
+                        'success': True,
+                        'message': f'TODO {todo_number} 「{title}」のリマインダーを今すぐ送信しました！',
+                        'immediate': True
+                    }
+                else:
+                    time_str = remind_time.strftime('%Y-%m-%d %H:%M') if remind_time else '指定時間'
+                    return {
+                        'success': True,
+                        'message': f'TODO {todo_number} 「{title}」のリマインダーを{time_str}に設定しました',
+                        'todo_title': title,
+                        'remind_time': remind_time
+                    }
+            else:
+                return {'success': False, 'message': 'リマインダーの設定に失敗しました'}
+            
+        except Exception as e:
+            logger.error(f"Failed to set reminder by number: {e}")
+            return {'success': False, 'message': 'リマインダーの設定に失敗しました'}
+    
     async def complete_todo(self, todo_id: str, user_id: str) -> bool:
         """TODOを完了にする"""
         return await self.update_todo(todo_id, user_id, status='completed')

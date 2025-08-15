@@ -79,6 +79,8 @@ class TodoNLU:
             return self._parse_delete(message)
         elif action == 'update':
             return self._parse_update(message)
+        elif action == 'remind':
+            return self._parse_remind(message)
         else:
             return {'action': None, 'confidence': 0}
     
@@ -88,6 +90,11 @@ class TodoNLU:
         if any(word in message for word in ['全リスト', 'リスト', '一覧', 'だして', 'くれ', '出して']):
             if not any(word in message for word in ['追加', '作成', '作って', '登録']):
                 return 'list'
+        
+        # リマインダー関連の優先チェック
+        if any(word in message for word in ['リマインド', 'リマインダー', '通知', '忘れないで']):
+            if re.search(r'(\d+)', message):  # 番号が含まれている場合
+                return 'remind'
         
         max_score = 0
         detected_action = None
@@ -264,6 +271,30 @@ class TodoNLU:
             return datetime.now(pytz.UTC) + timedelta(hours=hours)
         
         return None
+    
+    def _parse_remind(self, message: str) -> Dict[str, Any]:
+        """リマインド設定コマンドを解析"""
+        # 番号を検出
+        number_match = re.search(r'(\d+)', message)
+        todo_number = int(number_match.group(1)) if number_match else None
+        
+        # 時間指定を検出
+        remind_time = self._detect_due_date(message.lower())
+        
+        # 時間の種類を判定
+        remind_type = 'custom'
+        if '今すぐ' in message or 'すぐ' in message:
+            remind_type = 'immediate'
+        elif any(word in message for word in ['毎日', '毎朝', '毎晩']):
+            remind_type = 'recurring'
+        
+        return {
+            'action': 'remind',
+            'todo_number': todo_number,
+            'remind_time': remind_time,
+            'remind_type': remind_type,
+            'confidence': 0.7
+        }
 
 # グローバルインスタンス
 todo_nlu = TodoNLU()
