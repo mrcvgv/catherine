@@ -122,6 +122,7 @@
       "Bash(git reset:*)",
       "Bash(railway status:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

@@ -57,9 +57,9 @@ class TodoManager:
             elif not include_completed:
                 query = query.where('status', 'in', ['pending', 'in_progress'])
             
-            # 優先度と期限でソート
-            query = query.order_by('priority', direction='DESCENDING')
-            query = query.order_by('due_date')
+            # 優先度と期限でソート（インデックス作成後に有効化）
+            # query = query.order_by('priority', direction='DESCENDING')
+            # query = query.order_by('due_date')
             
             todos = []
             for doc in query.stream():
