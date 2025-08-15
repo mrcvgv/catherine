@@ -119,7 +119,8 @@
       "Bash(pip install:*)",
       "Bash(railway login:*)",
       "Bash(npm install:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(railway status:*)"
     ],
     "deny": []
   }
