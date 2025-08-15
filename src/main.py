@@ -122,11 +122,6 @@ async def on_ready():
 
 # /chat message:
 @tree.command(name="chat", description="Create a new thread for conversation")
-@discord.app_commands.checks.has_permissions(send_messages=True)
-@discord.app_commands.checks.has_permissions(view_channel=True)
-@discord.app_commands.checks.bot_has_permissions(send_messages=True)
-@discord.app_commands.checks.bot_has_permissions(view_channel=True)
-@discord.app_commands.checks.bot_has_permissions(manage_threads=True)
 @app_commands.describe(message="The first prompt to start the chat with")
 @app_commands.describe(model="The model to use for the chat")
 @app_commands.describe(
