@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any
 import pytz
 from firebase_config import firebase_manager
+from google.cloud.firestore_v1.base_query import FieldFilter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,12 +51,12 @@ class TodoManager:
                         include_completed: bool = False) -> List[Dict[str, Any]]:
         """ユーザーのTODOリストを取得"""
         try:
-            query = self.db.collection('todos').where('user_id', '==', user_id)
+            query = self.db.collection('todos').where(filter=FieldFilter('user_id', '==', user_id))
             
             if status:
-                query = query.where('status', '==', status)
+                query = query.where(filter=FieldFilter('status', '==', status))
             elif not include_completed:
-                query = query.where('status', 'in', ['pending', 'in_progress'])
+                query = query.where(filter=FieldFilter('status', 'in', ['pending', 'in_progress']))
             
             # 優先度と期限でソート（インデックス作成後に有効化）
             # query = query.order_by('priority', direction='DESCENDING')
