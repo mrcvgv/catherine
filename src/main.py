@@ -291,12 +291,17 @@ async def on_message(message: DiscordMessage):
             # Generate response using GPT-4o
             logger.info(f"Generating response for: {content[:50]}")
             try:
-                response_data = await generate_completion_response(
-                    messages=[Message(user=user.name, text=content)],
-                    user=user,
+                # Create thread config for the response
+                thread_config = ThreadConfig(
                     model="gpt-4o",
                     temperature=1.0,
                     max_tokens=512
+                )
+                
+                response_data = await generate_completion_response(
+                    messages=[Message(user=user.name, text=content)],
+                    user=user,
+                    thread_config=thread_config
                 )
                 
                 # Send response
