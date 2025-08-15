@@ -289,26 +289,35 @@ async def on_message(message: DiscordMessage):
         # Show typing indicator
         async with message.channel.typing():
             # Generate response using GPT-4o
-            response_data = await generate_completion_response(
-                messages=[Message(user=user.name, text=content)],
-                user=user,
-                model="gpt-4o",
-                temperature=1.0,
-                max_tokens=512
-            )
-            
-            # Send response
-            if response_data and 'text' in response_data:
-                await message.reply(response_data['text'])
-                
-                # Save conversation to Firebase
-                channel_id = f"dm_{user.id}" if isinstance(message.channel, discord.DMChannel) else str(message.channel.id)
-                await save_conversation_to_firebase(
-                    user_id=str(user.id),
-                    channel_id=channel_id,
-                    message=content,
-                    response=response_data['text']
+            logger.info(f"Generating response for: {content[:50]}")
+            try:
+                response_data = await generate_completion_response(
+                    messages=[Message(user=user.name, text=content)],
+                    user=user,
+                    model="gpt-4o",
+                    temperature=1.0,
+                    max_tokens=512
                 )
+                
+                # Send response
+                if response_data and 'text' in response_data:
+                    logger.info(f"Sending response: {response_data['text'][:50]}")
+                    await message.reply(response_data['text'])
+                    
+                    # Save conversation to Firebase
+                    channel_id = f"dm_{user.id}" if isinstance(message.channel, discord.DMChannel) else str(message.channel.id)
+                    await save_conversation_to_firebase(
+                        user_id=str(user.id),
+                        channel_id=channel_id,
+                        message=content,
+                        response=response_data['text']
+                    )
+                else:
+                    logger.error(f"No response generated for message: {content}")
+                    await message.reply("申し訳ございません。応答の生成に失敗しました。")
+            except Exception as gen_error:
+                logger.error(f"Error generating response: {gen_error}")
+                await message.reply(f"エラーが発生しました: {str(gen_error)[:100]}")
         
         # Below is the old thread logic (now unreachable)
         channel = message.channel
