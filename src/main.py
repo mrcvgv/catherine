@@ -582,8 +582,12 @@ async def on_message(message: DiscordMessage):
 # Initialize reminder system
 if FIREBASE_ENABLED:
     try:
-        from src.reminder_system import init_reminder_system
-        from src.todo_manager import todo_manager
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        
+        from reminder_system import init_reminder_system, ReminderSystem
+        from todo_manager import todo_manager
         
         reminder_system = init_reminder_system(todo_manager, client)
         

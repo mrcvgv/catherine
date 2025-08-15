@@ -12,7 +12,7 @@ class TodoNLU:
     # アクションキーワード
     ACTION_KEYWORDS = {
         'create': ['追加', '作成', '作って', '登録', 'todo', 'タスク', 'やること', '予定'],
-        'list': ['リスト', '一覧', '見せて', '表示', '確認', '何がある', 'todo'],
+        'list': ['リスト', '一覧', '見せて', '表示', '確認', '何がある', 'todo', 'だして', 'くれ', '出して'],
         'complete': ['完了', '終了', '終わった', 'done', '済み', 'おわり'],
         'delete': ['削除', '消して', '取り消し', 'キャンセル', '中止'],
         'update': ['変更', '修正', '編集', '更新', '名前', 'リネーム'],
@@ -84,6 +84,11 @@ class TodoNLU:
     
     def _detect_action(self, message: str) -> Optional[str]:
         """メッセージからアクションを検出"""
+        # 特定パターンを優先チェック
+        if any(word in message for word in ['全リスト', 'リスト', '一覧', 'だして', 'くれ', '出して']):
+            if not any(word in message for word in ['追加', '作成', '作って', '登録']):
+                return 'list'
+        
         max_score = 0
         detected_action = None
         
