@@ -30,6 +30,10 @@ if not DISCORD_BOT_TOKEN:
     print("Available env vars:", list(os.environ.keys())[:10])  # Show first 10 keys
     raise ValueError("DISCORD_BOT_TOKEN or DISCORD_TOKEN is required")
 
+# Log which token source is being used
+if os.environ.get("DISCORD_TOKEN"):
+    print("INFO: Using DISCORD_TOKEN from environment")
+
 # Support multiple naming conventions and debug
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID") or os.environ.get("CLIENT_ID") or os.environ.get("DISCORD_APPLICATION_ID")
 if not DISCORD_CLIENT_ID:
@@ -57,7 +61,9 @@ if server_ids_str:
         if s.strip():
             ALLOWED_SERVER_IDS.append(int(s.strip()))
 else:
-    print("WARNING: No ALLOWED_SERVER_IDS set, bot will not respond to any servers")
+    print("WARNING: No ALLOWED_SERVER_IDS set, using default")
+    # Default server ID
+    ALLOWED_SERVER_IDS = [1401831165593124948]
 
 SERVER_TO_MODERATION_CHANNEL: Dict[int, int] = {}
 server_channels = os.environ.get("SERVER_TO_MODERATION_CHANNEL", "").split(",")
