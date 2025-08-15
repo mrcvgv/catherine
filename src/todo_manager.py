@@ -289,7 +289,7 @@ class TodoManager:
             priority = todo.get('priority', 'normal')
             status = todo.get('status', 'pending')
             
-            formatted += f"{priority_icons.get(priority, '')} {status_icons.get(status, '')} {todo['title']}\n"
+            formatted += f"{i}. {priority_icons.get(priority, '')} {status_icons.get(status, '')} {todo['title']}\n"
             
             if todo.get('description'):
                 formatted += f"   📝 {todo['description']}\n"
