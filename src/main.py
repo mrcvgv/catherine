@@ -100,10 +100,22 @@ async def on_ready():
                 messages.append(m)
         completion.MY_BOT_EXAMPLE_CONVOS.append(Conversation(messages=messages))
     
-    # Sync slash commands
+    # Sync slash commands globally
     try:
+        logger.info("Starting command sync...")
         synced = await tree.sync()
-        logger.info(f"Synced {len(synced)} command(s)")
+        logger.info(f"Successfully synced {len(synced)} command(s) globally")
+        
+        # Also sync to specific guilds if needed
+        from src.constants import ALLOWED_SERVER_IDS
+        for guild_id in ALLOWED_SERVER_IDS:
+            try:
+                guild = discord.Object(id=guild_id)
+                guild_commands = await tree.sync(guild=guild)
+                logger.info(f"Synced {len(guild_commands)} command(s) to guild {guild_id}")
+            except Exception as guild_error:
+                logger.error(f"Failed to sync commands to guild {guild_id}: {guild_error}")
+                
     except Exception as e:
         logger.error(f"Failed to sync commands: {e}")
 
@@ -130,15 +142,20 @@ async def chat_command(
     temperature: Optional[float] = 1.0,
     max_tokens: Optional[int] = 512,
 ):
+    logger.info(f"Chat command triggered by {interaction.user.name} in guild {interaction.guild_id}")
+    
+    # Immediately defer to avoid timeout
+    await interaction.response.defer(ephemeral=False)
+    
     try:
         # only support creating thread in text channel
         if not isinstance(interaction.channel, discord.TextChannel):
-            await interaction.response.send_message("This command can only be used in text channels.", ephemeral=True)
+            await interaction.followup.send("This command can only be used in text channels.", ephemeral=True)
             return
 
         # block servers not in allow list
         if should_block(guild=interaction.guild):
-            await interaction.response.send_message("This server is not authorized to use this bot.", ephemeral=True)
+            await interaction.followup.send("This server is not authorized to use this bot.", ephemeral=True)
             return
 
         user = interaction.user
@@ -146,7 +163,7 @@ async def chat_command(
 
         # Check for valid temperature
         if temperature is not None and (temperature < 0 or temperature > 1):
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"You supplied an invalid temperature: {temperature}. Temperature must be between 0 and 1.",
                 ephemeral=True,
             )
@@ -154,7 +171,7 @@ async def chat_command(
 
         # Check for valid max_tokens
         if max_tokens is not None and (max_tokens < 1 or max_tokens > 4096):
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"You supplied an invalid max_tokens: {max_tokens}. Max tokens must be between 1 and 4096.",
                 ephemeral=True,
             )
@@ -171,7 +188,7 @@ async def chat_command(
             )
             if len(blocked_str) > 0:
                 # message was blocked
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     f"Your prompt has been blocked by moderation.\n{message}",
                     ephemeral=True,
                 )
@@ -191,8 +208,7 @@ async def chat_command(
                 embed.color = discord.Color.yellow()
                 embed.title = "⚠️ This prompt was flagged by moderation."
 
-            await interaction.response.send_message(embed=embed)
-            response = await interaction.original_response()
+            response = await interaction.followup.send(embed=embed, wait=True)
 
             await send_moderation_flagged_message(
                 guild=interaction.guild,
@@ -203,7 +219,7 @@ async def chat_command(
             )
         except Exception as e:
             logger.exception(e)
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"Failed to start chat {str(e)}", ephemeral=True
             )
             return
@@ -228,18 +244,11 @@ async def chat_command(
             await process_response(
                 user=user, thread=thread, response_data=response_data
             )
-    except discord.errors.InteractionResponded:
-        logger.error("Interaction already responded to")
     except Exception as e:
         logger.exception(e)
-        try:
-            await interaction.response.send_message(
-                f"Failed to start chat: {str(e)}", ephemeral=True
-            )
-        except discord.errors.InteractionResponded:
-            await interaction.followup.send(
-                f"Failed to start chat: {str(e)}", ephemeral=True
-            )
+        await interaction.followup.send(
+            f"Failed to start chat: {str(e)}", ephemeral=True
+        )
 
 
 # calls for each message
