@@ -103,16 +103,26 @@ class TodoNLU:
             title = title_match.group(1)
         else:
             # キーワード後の文字列をタイトルとする
+            title = message  # デフォルト値
             for keyword in self.ACTION_KEYWORDS['create']:
                 if keyword in message.lower():
-                    parts = message.lower().split(keyword)
-                    if len(parts) > 1:
-                        title = parts[1].strip()
+                    # 元のメッセージを使って分割（大文字小文字保持）
+                    keyword_pos = message.lower().find(keyword)
+                    if keyword_pos != -1:
+                        if keyword_pos == 0:
+                            # キーワードが先頭にある場合、後ろの部分を取得
+                            title = message[len(keyword):].strip()
+                        else:
+                            # キーワードが後ろにある場合、前の部分を取得
+                            title = message[:keyword_pos].strip()
+                        
                         # 期限などの表現を除去
                         for time_key in self.TIME_PATTERNS.keys():
                             title = title.replace(time_key, '').strip()
                         break
-            else:
+            
+            # タイトルが空の場合はメッセージ全体を使用
+            if not title:
                 title = message
         
         # 優先度を検出
