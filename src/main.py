@@ -219,9 +219,10 @@ async def chat_command(
             )
             return
 
-        # create the thread
-        thread = await response.create_thread(
+        # create the thread from the channel instead of the response
+        thread = await interaction.channel.create_thread(
             name=f"{ACTIVATE_THREAD_PREFX} {user.name[:20]} - {message[:30]}",
+            message=response,
             slowmode_delay=1,
             reason="gpt-bot",
             auto_archive_duration=60,
