@@ -110,21 +110,49 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 response = "❌ 該当するTODOが見つかりません。番号を確認してください。"
         
         elif action == 'delete':
-            # TODO削除
-            todos = await todo_manager.get_todos(user_id=user_id, include_completed=True)
-            
-            if intent.get('todo_number') and intent['todo_number'] <= len(todos):
-                todo = todos[intent['todo_number'] - 1]
-                success = await todo_manager.delete_todo(todo['id'], user_id)
-                if success:
-                    response = f"🗑️ 「{todo['title']}」を削除しました。"
+            # TODO削除（複数削除対応）
+            if intent.get('todo_numbers') and len(intent['todo_numbers']) > 1:
+                # 複数削除
+                result = await todo_manager.delete_todos_by_numbers(intent['todo_numbers'], user_id)
+                if result['success']:
+                    deleted_titles = ', '.join(result['deleted_titles'])
+                    response = f"🗑️ {result['deleted_count']}個のTODOを削除しました: {deleted_titles}"
+                    if result.get('failed_numbers'):
+                        response += f"\n⚠️ 番号 {result['failed_numbers']} は削除できませんでした"
                 else:
-                    response = "❌ TODOの削除に失敗しました。"
+                    response = f"❌ {result.get('message', 'TODOの削除に失敗しました')}"
             else:
-                response = "❌ 該当するTODOが見つかりません。番号を確認してください。"
+                # 単一削除（従来の処理）
+                todos = await todo_manager.get_todos(user_id=user_id, include_completed=True)
+                
+                if intent.get('todo_number') and intent['todo_number'] <= len(todos):
+                    todo = todos[intent['todo_number'] - 1]
+                    success = await todo_manager.delete_todo(todo['id'], user_id)
+                    if success:
+                        response = f"🗑️ 「{todo['title']}」を削除しました。"
+                    else:
+                        response = "❌ TODOの削除に失敗しました。"
+                else:
+                    response = "❌ 該当するTODOが見つかりません。番号を確認してください。"
+        
+        elif action == 'update':
+            # TODO名前変更
+            if intent.get('todo_number') and intent.get('new_content'):
+                result = await todo_manager.update_todo_by_number(
+                    intent['todo_number'], 
+                    user_id, 
+                    intent['new_content']
+                )
+                if result['success']:
+                    response = f"✏️ TODO {intent['todo_number']} の名前を変更しました\n"
+                    response += f"📝 「{result['old_title']}」→「{result['new_title']}」"
+                else:
+                    response = f"❌ {result.get('message', 'TODOの更新に失敗しました')}"
+            else:
+                response = "❌ 番号と新しい名前を指定してください（例: 1は買い物リストにして）"
         
         else:
-            response = "❓ TODO操作を理解できませんでした。\n使い方:\n- TODO追加: 「〇〇をTODOに追加」\n- リスト表示: 「TODOリスト」\n- 完了: 「1番を完了」\n- 削除: 「2番を削除」"
+            response = "❓ TODO操作を理解できませんでした。\n使い方:\n- TODO追加: 「〇〇をTODOに追加」\n- リスト表示: 「TODOリスト」\n- 完了: 「1番を完了」\n- 削除: 「2番を削除」\n- 名前変更: 「1は○○にして」\n- 複数削除: 「1,2,3は削除」"
             
     except Exception as e:
         logger.error(f"TODO operation error: {e}")
@@ -550,5 +578,24 @@ async def on_message(message: DiscordMessage):
     except Exception as e:
         logger.exception(e)
 
+
+# Initialize reminder system
+if FIREBASE_ENABLED:
+    try:
+        from src.reminder_system import init_reminder_system
+        from src.todo_manager import todo_manager
+        
+        reminder_system = init_reminder_system(todo_manager, client)
+        
+        # Start reminder system in background
+        async def start_reminder_system():
+            await client.wait_until_ready()
+            logger.info("Starting reminder system...")
+            await reminder_system.start()
+        
+        client.loop.create_task(start_reminder_system())
+        logger.info("Reminder system initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize reminder system: {e}")
 
 client.run(DISCORD_BOT_TOKEN)

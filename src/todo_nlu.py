@@ -15,7 +15,7 @@ class TodoNLU:
         'list': ['リスト', '一覧', '見せて', '表示', '確認', '何がある', 'todo'],
         'complete': ['完了', '終了', '終わった', 'done', '済み', 'おわり'],
         'delete': ['削除', '消して', '取り消し', 'キャンセル', '中止'],
-        'update': ['変更', '修正', '編集', '更新'],
+        'update': ['変更', '修正', '編集', '更新', '名前', 'リネーム'],
         'remind': ['リマインド', 'リマインダー', '通知', '教えて', '忘れないで']
     }
     
@@ -163,13 +163,17 @@ class TodoNLU:
     
     def _parse_delete(self, message: str) -> Dict[str, Any]:
         """TODO削除コマンドを解析"""
-        # 番号を検出
-        number_match = re.search(r'(\d+)', message)
-        todo_number = int(number_match.group(1)) if number_match else None
+        # 複数番号を検出（例: 1,2,3 や 1.2.3 や 1 2 3）
+        numbers = re.findall(r'(\d+)', message)
+        todo_numbers = [int(num) for num in numbers] if numbers else []
+        
+        # 単一番号の場合は後方互換性のために維持
+        todo_number = todo_numbers[0] if len(todo_numbers) == 1 else None
         
         return {
             'action': 'delete',
             'todo_number': todo_number,
+            'todo_numbers': todo_numbers,  # 複数削除対応
             'confidence': 0.7
         }
     
@@ -181,12 +185,20 @@ class TodoNLU:
         
         # 新しい内容を検出
         new_content = None
-        for keyword in self.ACTION_KEYWORDS['update']:
-            if keyword in message.lower():
-                parts = message.split(keyword)
-                if len(parts) > 1:
-                    new_content = parts[1].strip()
-                    break
+        
+        # 「1は名前を○○にして」パターン
+        name_change_match = re.search(r'(\d+)(?:は|を)(?:名前を|)(.+?)(?:にして|に変更)', message)
+        if name_change_match:
+            todo_number = int(name_change_match.group(1))
+            new_content = name_change_match.group(2).strip()
+        else:
+            # 従来の変更パターン
+            for keyword in self.ACTION_KEYWORDS['update']:
+                if keyword in message.lower():
+                    parts = message.split(keyword)
+                    if len(parts) > 1:
+                        new_content = parts[1].strip()
+                        break
         
         return {
             'action': 'update',

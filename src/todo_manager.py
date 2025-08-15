@@ -126,6 +126,83 @@ class TodoManager:
             logger.error(f"Failed to delete TODO: {e}")
             return False
     
+    async def delete_todos_by_numbers(self, todo_numbers: List[int], user_id: str) -> Dict[str, Any]:
+        """番号指定で複数のTODOを削除"""
+        try:
+            # ユーザーのTODOリストを取得
+            todos = await self.get_todos(user_id)
+            
+            if not todos:
+                return {'success': False, 'message': 'TODOリストが空です'}
+            
+            # 番号を1ベースから0ベースに変換
+            deleted_count = 0
+            failed_numbers = []
+            deleted_titles = []
+            
+            for number in todo_numbers:
+                if 1 <= number <= len(todos):
+                    todo_to_delete = todos[number - 1]
+                    if await self.delete_todo(todo_to_delete['id'], user_id):
+                        deleted_count += 1
+                        deleted_titles.append(todo_to_delete.get('title', ''))
+                    else:
+                        failed_numbers.append(number)
+                else:
+                    failed_numbers.append(number)
+            
+            result = {
+                'success': deleted_count > 0,
+                'deleted_count': deleted_count,
+                'deleted_titles': deleted_titles,
+                'failed_numbers': failed_numbers
+            }
+            
+            if deleted_count > 0:
+                result['message'] = f'{deleted_count}個のTODOを削除しました'
+            if failed_numbers:
+                result['message'] += f' (番号 {failed_numbers} は削除できませんでした)'
+                
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to delete multiple TODOs: {e}")
+            return {'success': False, 'message': 'TODOの削除に失敗しました'}
+    
+    async def update_todo_by_number(self, todo_number: int, user_id: str, new_title: str) -> Dict[str, Any]:
+        """番号指定でTODOのタイトルを更新"""
+        try:
+            # ユーザーのTODOリストを取得
+            todos = await self.get_todos(user_id)
+            
+            if not todos:
+                return {'success': False, 'message': 'TODOリストが空です'}
+            
+            # 番号の有効性をチェック（1ベース）
+            if not (1 <= todo_number <= len(todos)):
+                return {'success': False, 'message': f'番号 {todo_number} は存在しません（1-{len(todos)}の範囲で指定してください）'}
+            
+            # 更新対象のTODOを取得
+            todo_to_update = todos[todo_number - 1]
+            old_title = todo_to_update.get('title', '')
+            
+            # タイトルを更新
+            success = await self.update_todo(todo_to_update['id'], user_id, title=new_title)
+            
+            if success:
+                return {
+                    'success': True,
+                    'message': f'TODO {todo_number} の名前を変更しました',
+                    'old_title': old_title,
+                    'new_title': new_title
+                }
+            else:
+                return {'success': False, 'message': 'TODOの更新に失敗しました'}
+            
+        except Exception as e:
+            logger.error(f"Failed to update TODO by number: {e}")
+            return {'success': False, 'message': 'TODOの更新に失敗しました'}
+    
     async def complete_todo(self, todo_id: str, user_id: str) -> bool:
         """TODOを完了にする"""
         return await self.update_todo(todo_id, user_id, status='completed')
@@ -212,7 +289,7 @@ class TodoManager:
             priority = todo.get('priority', 'normal')
             status = todo.get('status', 'pending')
             
-            formatted += f"{i}. {priority_icons.get(priority, '')} {status_icons.get(status, '')} **{todo['title']}**\n"
+            formatted += f"{priority_icons.get(priority, '')} {status_icons.get(status, '')} {todo['title']}\n"
             
             if todo.get('description'):
                 formatted += f"   📝 {todo['description']}\n"
