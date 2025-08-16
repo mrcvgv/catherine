@@ -144,6 +144,29 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 else:
                     response = "その番号は見つからないねぇ。ちゃんと確認しな"
         
+        elif action == 'priority':
+            # 優先度変更
+            if intent.get('todo_number') and intent.get('new_priority'):
+                result = await todo_manager.update_todo_priority_by_number(
+                    intent['todo_number'],
+                    user_id,
+                    intent['new_priority']
+                )
+                
+                if result['success']:
+                    priority_icons = {
+                        'urgent': '⚫',
+                        'high': '🔴',
+                        'normal': '🟡',
+                        'low': '🟢'
+                    }
+                    icon = priority_icons.get(intent['new_priority'], '')
+                    response = f"ふむ、優先度を変えるのかい？\n{icon} {result['message']}\n\nまあ、大事なことは先にやるもんだよ"
+                else:
+                    response = f"あらら、{result.get('message', '優先度を変更できなかったねぇ')}"
+            else:
+                response = "番号と新しい優先度を教えてごらん（例: 5は優先度激高に変えて）"
+        
         elif action == 'update':
             # TODO名前変更
             if intent.get('todo_number') and intent.get('new_content'):
@@ -283,7 +306,7 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 response = "❌ 番号を指定してください（例: 1を明日リマインド）"
         
         else:
-            response = "ふむ、何を言ってるのかわからないねぇ...\n\nこんな風に言ってごらん:\n- 「〇〇を追加」でTODO追加\n- 「リスト」で一覧表示\n- 「1番完了」で完了\n- 「2番削除」で削除\n- 「1は○○にして」で名前変更\n- 「1を明日リマインド」でリマインダー\n\nまったく、覚えが悪いねぇ..."
+            response = "ふむ、何を言ってるのかわからないねぇ...\n\nこんな風に言ってごらん:\n- 「〇〇を追加」でTODO追加\n- 「リスト」で一覧表示\n- 「1番完了」で完了\n- 「2番削除」で削除\n- 「1は○○にして」で名前変更\n- 「5は優先度激高に」で優先度変更\n- 「1を明日リマインド」でリマインダー\n\nまったく、覚えが悪いねぇ..."
             
     except Exception as e:
         logger.error(f"TODO operation error: {e}")

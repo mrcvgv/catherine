@@ -16,6 +16,7 @@ class TodoNLU:
         'complete': ['完了', '終了', '終わった', 'done', '済み', 'おわり'],
         'delete': ['削除', '消して', '取り消し', 'キャンセル', '中止'],
         'update': ['変更', '修正', '編集', '更新', '名前', 'リネーム'],
+        'priority': ['優先度', '激高', '重要度'],
         'remind': ['リマインド', 'リマインダー', '通知', '教えて', '忘れないで']
     }
     
@@ -81,6 +82,8 @@ class TodoNLU:
             return self._parse_delete(message)
         elif action == 'update':
             return self._parse_update(message)
+        elif action == 'priority':
+            return self._parse_priority(message)
         elif action == 'remind':
             return self._parse_remind(message)
         else:
@@ -92,6 +95,11 @@ class TodoNLU:
         if any(word in message for word in ['全リスト', 'リスト', '一覧', 'だして', 'くれ', '出して']):
             if not any(word in message for word in ['追加', '作成', '作って', '登録']):
                 return 'list'
+        
+        # 優先度変更の優先チェック（「5は優先度激高に」パターン）
+        if re.search(r'(\d+).*(?:優先度|激高|高|普通|低)', message):
+            if any(word in message for word in ['優先度', '激高', '高め', '低め', '変えて', 'にして', 'に変更']):
+                return 'priority'
         
         # リマインダー関連の優先チェック
         if any(word in message for word in ['リマインド', 'リマインダー', '通知', '忘れないで']):
@@ -314,6 +322,22 @@ class TodoNLU:
                 pass
         
         return None
+    
+    def _parse_priority(self, message: str) -> Dict[str, Any]:
+        """優先度変更コマンドを解析"""
+        # 番号を検出
+        number_match = re.search(r'(\d+)', message)
+        todo_number = int(number_match.group(1)) if number_match else None
+        
+        # 新しい優先度を検出
+        new_priority = self._detect_priority(message.lower())
+        
+        return {
+            'action': 'priority',
+            'todo_number': todo_number,
+            'new_priority': new_priority,
+            'confidence': 0.8
+        }
     
     def _parse_remind(self, message: str) -> Dict[str, Any]:
         """リマインド設定コマンドを解析"""
