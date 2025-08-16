@@ -320,8 +320,8 @@ class TodoNLU:
             hours = int(hours_match.group(1))
             return datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC) + timedelta(hours=hours)
         
-        # 毎日の時間指定パターン（例: 毎朝8:30、毎日8:30、毎日毎朝8:30）
-        daily_time_match = re.search(r'(?:毎日|毎朝|毎晩).*?(\d{1,2})[：:時](\d{1,2})', message)
+        # 毎日の時間指定パターン（例: 毎朝8:30、毎日8:30、毎日毎朝8:30、8:30、8 30）
+        daily_time_match = re.search(r'(?:毎日|毎朝|毎晩).*?(\d{1,2})[：:時\s](\d{1,2})', message)
         if daily_time_match:
             hour = int(daily_time_match.group(1))
             minute = int(daily_time_match.group(2))
