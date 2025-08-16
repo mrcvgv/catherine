@@ -171,7 +171,6 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
             todos = await todo_manager.get_todos(include_completed=False)
             if todos:
                 response += "\n\n" + "─" * 30 + "\n"
-                response += "📝 **現在のチームTODOリスト**\n\n"
                 response += todo_manager.format_todo_list(todos)
             
         elif action == 'list':
