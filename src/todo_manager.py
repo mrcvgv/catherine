@@ -329,27 +329,11 @@ class TodoManager:
         if not todos:
             return "📝 TODOリストは空です。"
         
-        priority_icons = {
-            'urgent': '🔴',
-            'high': '🟠',
-            'normal': '🟡',
-            'low': '🟢'
-        }
-        
-        status_icons = {
-            'pending': '⏳',
-            'in_progress': '🔄',
-            'completed': '✅',
-            'cancelled': '❌'
-        }
-        
         formatted = "📋 **TODOリスト**\n\n"
         
         for i, todo in enumerate(todos, 1):
-            priority = todo.get('priority', 'normal')
-            status = todo.get('status', 'pending')
-            
-            formatted += f"{i}. {priority_icons.get(priority, '')} {status_icons.get(status, '')} {todo['title']}\n"
+            # シンプルに番号とタイトルのみ表示
+            formatted += f"{i}. {todo['title']}\n"
             
             if todo.get('description'):
                 formatted += f"   📝 {todo['description']}\n"
@@ -357,7 +341,9 @@ class TodoManager:
             if todo.get('due_date'):
                 due_date = todo['due_date']
                 if isinstance(due_date, datetime):
-                    formatted += f"   📅 期限: {due_date.strftime('%Y-%m-%d %H:%M')}\n"
+                    # JSTで期限を表示
+                    due_date_jst = due_date.astimezone(pytz.timezone('Asia/Tokyo'))
+                    formatted += f"   📅 期限: {due_date_jst.strftime('%Y-%m-%d %H:%M')}\n"
             
             formatted += "\n"
         
