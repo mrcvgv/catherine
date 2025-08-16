@@ -167,6 +167,13 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 import random
                 response += "\n\n" + random.choice(witch_create_tips)
             
+            # TODO作成後に自動でチーム全体のリストを表示
+            todos = await todo_manager.get_todos(include_completed=False)
+            if todos:
+                response += "\n\n" + "─" * 30 + "\n"
+                response += "📝 **現在のチームTODOリスト**\n\n"
+                response += todo_manager.format_todo_list(todos)
+            
         elif action == 'list':
             # TODOリスト表示（チーム全体）
             todos = await todo_manager.get_todos(
