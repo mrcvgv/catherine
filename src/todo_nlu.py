@@ -373,9 +373,27 @@ class TodoNLU:
     
     def _parse_remind(self, message: str) -> Dict[str, Any]:
         """リマインド設定コマンドを解析"""
-        # 番号を検出
-        number_match = re.search(r'(\d+)', message)
-        todo_number = int(number_match.group(1)) if number_match else None
+        # カスタムメッセージを先に検出（「。」の後にあるメッセージ）
+        custom_message = None
+        todo_number = None
+        
+        if '。' in message:
+            parts = message.split('。', 1)
+            if len(parts) > 1 and parts[1].strip():
+                custom_message = parts[1].strip()
+                # カスタムメッセージがある場合は時間部分のみから番号を検出
+                time_part = parts[0]
+                number_match = re.search(r'(\d+)', time_part)
+                # 時間表現の文脈でのみ番号を検出（「分後」「時間後」「日後」など）
+                if number_match and any(time_word in time_part for time_word in ['分後', '時間後', '日後', '時', '：', ':']):
+                    # 時間指定の数字なのでTODO番号ではない
+                    todo_number = None
+                else:
+                    todo_number = int(number_match.group(1)) if number_match else None
+        else:
+            # 通常のパターン（カスタムメッセージなし）
+            number_match = re.search(r'(\d+)', message)
+            todo_number = int(number_match.group(1)) if number_match else None
         
         # 時間指定を検出
         remind_time = self._detect_due_date(message.lower())
@@ -412,13 +430,6 @@ class TodoNLU:
             channel_match = re.search(r'#(\w+)', message)
             if channel_match:
                 channel_target = channel_match.group(1)
-        
-        # カスタムメッセージを検出（「。」の後にあるメッセージ）
-        custom_message = None
-        if '。' in message:
-            parts = message.split('。', 1)
-            if len(parts) > 1 and parts[1].strip():
-                custom_message = parts[1].strip()
         
         return {
             'action': 'remind',
