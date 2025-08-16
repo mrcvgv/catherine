@@ -95,21 +95,25 @@ class TodoNLU:
     
     def _detect_action(self, message: str) -> Optional[str]:
         """メッセージからアクションを検出"""
-        # 特定パターンを優先チェック
-        if any(word in message for word in ['全リスト', 'リスト', '一覧', 'だして', 'くれ', '出して']):
-            if not any(word in message for word in ['追加', '作成', '作って', '登録']):
-                return 'list'
+        # リマインダー関連の最優先チェック（時間指定があるパターン）
+        if any(word in message for word in ['リマインド', 'リマインダー', '通知', '忘れないで']):
+            # 番号が含まれているか、全リストの場合、または時間指定がある場合
+            has_number = re.search(r'(\d+)', message)
+            has_list = any(word in message for word in ['全リスト', 'リスト', '一覧'])
+            has_time = any(word in message for word in ['毎日', '毎朝', '毎晩', '時', '：', ':']) or re.search(r'\d+[：:]\d+', message)
+            
+            if has_number or has_list or has_time:
+                return 'remind'
         
         # 優先度変更の優先チェック（「5は優先度激高に」パターン）
         if re.search(r'(\d+).*(?:優先度|激高|高|普通|低)', message):
             if any(word in message for word in ['優先度', '激高', '高め', '低め', '変えて', 'にして', 'に変更']):
                 return 'priority'
         
-        # リマインダー関連の優先チェック
-        if any(word in message for word in ['リマインド', 'リマインダー', '通知', '忘れないで']):
-            # 番号が含まれているか、全リストの場合
-            if re.search(r'(\d+)', message) or any(word in message for word in ['全リスト', 'リスト', '一覧']):
-                return 'remind'
+        # リスト表示のチェック（リマインダーでない場合）
+        if any(word in message for word in ['全リスト', 'リスト', '一覧', 'だして', 'くれ', '出して']):
+            if not any(word in message for word in ['追加', '作成', '作って', '登録', 'リマインド', '通知']):
+                return 'list'
         
         max_score = 0
         detected_action = None
