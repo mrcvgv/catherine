@@ -373,23 +373,41 @@ class TodoNLU:
     
     def _parse_remind(self, message: str) -> Dict[str, Any]:
         """リマインド設定コマンドを解析"""
-        # カスタムメッセージを先に検出（「。」の後にあるメッセージ）
+        # カスタムメッセージを検出（「。」の後、または特定のパターン）
         custom_message = None
         todo_number = None
         
+        # パターン1: 「。」区切り
         if '。' in message:
             parts = message.split('。', 1)
             if len(parts) > 1 and parts[1].strip():
                 custom_message = parts[1].strip()
-                # カスタムメッセージがある場合は時間部分のみから番号を検出
                 time_part = parts[0]
-                number_match = re.search(r'(\d+)', time_part)
-                # 時間表現の文脈でのみ番号を検出（「分後」「時間後」「日後」など）
-                if number_match and any(time_word in time_part for time_word in ['分後', '時間後', '日後', '時', '：', ':']):
-                    # 時間指定の数字なのでTODO番号ではない
-                    todo_number = None
+        else:
+            # パターン2: 「リマインド」の後にカスタムメッセージ（「起こして」「起きて」など）
+            remind_match = re.search(r'リマインド[　\s]*(.+)', message)
+            if remind_match:
+                potential_custom = remind_match.group(1).strip()
+                # 簡単なカスタムメッセージのキーワードをチェック
+                custom_keywords = ['起こして', '起きて', '起こしてくれ', '起きてくれ', '教えて', '知らせて', '呼んで']
+                if any(keyword in potential_custom for keyword in custom_keywords):
+                    custom_message = potential_custom
+                    # カスタムメッセージ部分を除いた部分から時間を検出
+                    time_part = message.replace(remind_match.group(0), 'リマインド')
                 else:
-                    todo_number = int(number_match.group(1)) if number_match else None
+                    time_part = message
+            else:
+                time_part = message
+        
+        # 時間部分から番号を検出（時間表現の文脈かTODO番号かを判定）
+        if custom_message:
+            # カスタムメッセージがある場合は時間部分のみから番号を検出
+            number_match = re.search(r'(\d+)', time_part)
+            if number_match and any(time_word in time_part for time_word in ['分後', '時間後', '日後', '時', '：', ':']):
+                # 時間指定の数字なのでTODO番号ではない
+                todo_number = None
+            else:
+                todo_number = int(number_match.group(1)) if number_match else None
         else:
             # 通常のパターン（カスタムメッセージなし）
             number_match = re.search(r'(\d+)', message)
