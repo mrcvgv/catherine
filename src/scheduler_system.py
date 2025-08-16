@@ -169,7 +169,7 @@ class SchedulerSystem:
                 if todo_data.get('custom_message'):
                     # カスタムメッセージがある場合
                     custom_msg = todo_data['custom_message']
-                    message = f"**リマインダー** {mention}\\n{custom_msg}"
+                    message = f"{mention}\n{custom_msg}"
                 else:
                     # 通常のTODOリマインダー
                     title = todo_data.get('title', 'TODO')
@@ -184,7 +184,7 @@ class SchedulerSystem:
                     ]
                     import random
                     witch_comment = random.choice(witch_reminders)
-                    message = f"**リマインダー** {mention}\\n{title}\\n{witch_comment}"
+                    message = f"{mention}\n{title}\n{witch_comment}"
             
             await channel.send(message)
             logger.info(f"スケジュールリマインダー送信完了: {channel_name}")

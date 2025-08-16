@@ -388,7 +388,7 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                 ]
                                 import random
                                 urgent_comment = random.choice(witch_urgent)
-                                await channel.send(f"**リマインダー** {mention}\\n{result.get('todo_title', 'TODO')}\\n{urgent_comment}")
+                                await channel.send(f"{mention}\n{result.get('todo_title', 'TODO')}\n{urgent_comment}")
                             else:
                                 logger.error(f"Channel '{channel_name}' not found")
                                 
