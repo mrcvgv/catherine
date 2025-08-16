@@ -296,6 +296,7 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     elif result.get('remind_time'):
                         # スケジュールされたリマインダーの場合もスケジューラーに登録
                         from scheduler_system import scheduler_system
+                        logger.info(f"Scheduling reminder: {result}")
                         if scheduler_system:
                             todo_data = {
                                 'user_id': user_id,
@@ -305,11 +306,14 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                 'is_list_reminder': False
                             }
                             
-                            await scheduler_system.schedule_reminder(
+                            task_id = await scheduler_system.schedule_reminder(
                                 result['remind_time'], 
                                 todo_data, 
                                 is_recurring=False
                             )
+                            logger.info(f"Scheduled reminder task: {task_id}")
+                        else:
+                            logger.error("Scheduler system not available for individual reminder")
                 else:
                     response = f"❌ {result.get('message', 'リマインダーの設定に失敗しました')}"
             else:
@@ -761,8 +765,17 @@ if FIREBASE_ENABLED:
         async def start_systems():
             await client.wait_until_ready()
             logger.info("Starting reminder and scheduler systems...")
-            await reminder_system.start()
-            await scheduler_system.start()
+            try:
+                await reminder_system.start()
+                logger.info("Reminder system started successfully")
+            except Exception as e:
+                logger.error(f"Failed to start reminder system: {e}")
+            
+            try:
+                await scheduler_system.start()
+                logger.info("Scheduler system started successfully")
+            except Exception as e:
+                logger.error(f"Failed to start scheduler system: {e}")
         
         client.loop.create_task(start_systems())
         logger.info("Reminder and scheduler systems initialized")

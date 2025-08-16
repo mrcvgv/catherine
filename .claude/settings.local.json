@@ -121,7 +121,8 @@
       "Bash(npm install:*)",
       "Bash(git reset:*)",
       "Bash(railway status:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(railway logs:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

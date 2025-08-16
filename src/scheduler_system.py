@@ -63,29 +63,38 @@ class SchedulerSystem:
         try:
             task_info = self.scheduled_tasks.get(task_id)
             if not task_info:
+                logger.error(f"Task {task_id} not found in scheduled_tasks")
                 return
             
             remind_time = task_info['remind_time']
             todo_data = task_info['todo_data']
             is_recurring = task_info.get('is_recurring', False)
             
+            logger.info(f"Executing reminder task {task_id} scheduled for {remind_time}")
+            
             # 指定時間まで待機
             now = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
             if remind_time > now:
                 wait_seconds = (remind_time - now).total_seconds()
+                logger.info(f"Waiting {wait_seconds} seconds until {remind_time}")
                 await asyncio.sleep(wait_seconds)
+            else:
+                logger.info(f"Reminder time has passed, executing immediately")
             
             # リマインダーを送信
+            logger.info(f"Sending scheduled reminder for task {task_id}")
             await self._send_scheduled_reminder(todo_data)
             
             # 繰り返しタスクの場合は次回をスケジュール
             if is_recurring:
                 next_remind_time = remind_time + timedelta(days=1)  # 毎日繰り返し
+                logger.info(f"Scheduling next recurring reminder for {next_remind_time}")
                 await self.schedule_reminder(next_remind_time, todo_data, is_recurring=True)
             
             # タスクを削除
             if task_id in self.scheduled_tasks:
                 del self.scheduled_tasks[task_id]
+                logger.info(f"Completed and removed task {task_id}")
                 
         except asyncio.CancelledError:
             logger.info(f"スケジュールされたリマインダーがキャンセルされました: {task_id}")
