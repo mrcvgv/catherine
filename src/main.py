@@ -287,7 +287,18 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                     mention = f'@{mention_target}'
                                 
                                 # リマインダーメッセージを送信
-                                await channel.send(f"🔔 **リマインダー** {mention}\n📝 {result.get('todo_title', 'TODO')}\n⚡ 今すぐ対応が必要です！")
+                                witch_urgent = [
+                                    "ほら、今すぐやらないとマズいよ！",
+                                    "急ぎの用事だから、すぐに取り掛かりな",
+                                    "さあさあ、今すぐ始めるんだよ",
+                                    "待ったなしだね、頑張りな",
+                                    "のんびりしてる場合じゃないよ",
+                                    "急いで、急いで！",
+                                    "今すぐ片付けちゃいな"
+                                ]
+                                import random
+                                urgent_comment = random.choice(witch_urgent)
+                                await channel.send(f"🔔 **リマインダー** {mention}\n📝 {result.get('todo_title', 'TODO')}\n{urgent_comment}")
                             else:
                                 logger.error(f"Channel '{channel_name}' not found")
                                 

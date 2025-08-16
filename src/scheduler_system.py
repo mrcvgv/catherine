@@ -153,7 +153,18 @@ class SchedulerSystem:
             else:
                 # 個別TODO通知
                 title = todo_data.get('title', 'TODO')
-                message = f"🔔 **リマインダー** {mention}\n📝 {title}\n⏰ 時間になりました！"
+                witch_reminders = [
+                    "時間だよ、忘れてないかい？",
+                    "ほら、やる時間が来たよ",
+                    "約束の時間だねぇ",
+                    "さあ、取り掛かる時間だよ",
+                    "忘れんぼうさん、時間だよ",
+                    "やれやれ、またお知らせの時間かい",
+                    "ふふ、私が教えてあげるよ"
+                ]
+                import random
+                witch_comment = random.choice(witch_reminders)
+                message = f"🔔 **リマインダー** {mention}\n📝 {title}\n{witch_comment}"
             
             await channel.send(message)
             logger.info(f"スケジュールリマインダー送信完了: {channel_name}")
