@@ -146,9 +146,16 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 result = await todo_manager.delete_todos_by_numbers(intent['todo_numbers'], user_id)
                 if result['success']:
                     deleted_titles = ', '.join(result['deleted_titles'])
-                    response = f"ふむ、{result['deleted_count']}個も消すのかい？\n🗑️ {deleted_titles}\n\nまあ、あんたの判断に任せるよ"
+                    witch_multi_delete = [
+                        f"ふむ、{result['deleted_count']}個も消すのかい？\n{deleted_titles}\n\nまあ、あんたの判断に任せるよ",
+                        f"{result['deleted_count']}個まとめて片付けるのね\n{deleted_titles}\n\n一気にやるタイプかい",
+                        f"あらあら、{result['deleted_count']}個も削除ね\n{deleted_titles}\n\n思い切りがいいじゃないか",
+                        f"やれやれ、{result['deleted_count']}個も消すの？\n{deleted_titles}\n\n後悔しないようにね"
+                    ]
+                    import random
+                    response = random.choice(witch_multi_delete)
                     if result.get('failed_numbers'):
-                        response += f"\n⚠️ でも番号 {result['failed_numbers']} は消せなかったよ"
+                        response += f"\nでも番号 {result['failed_numbers']} は消せなかったよ"
                 else:
                     witch_delete_fail = [
                         "あらら、削除できなかったみたいだねぇ",
@@ -204,8 +211,14 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     intent['new_content']
                 )
                 if result['success']:
-                    response = f"✏️ TODO {intent['todo_number']} の名前を変更しました\n"
-                    response += f"📝 「{result['old_title']}」→「{result['new_title']}」"
+                    witch_rename = [
+                        f"TODO {intent['todo_number']} の名前を変更したよ\n「{result['old_title']}」→「{result['new_title']}」\n\n気が変わりやすいねぇ",
+                        f"名前変更完了だよ\n「{result['old_title']}」→「{result['new_title']}」\n\nまあ、分かりやすい方がいいからね",
+                        f"タイトルを変えたね\n「{result['old_title']}」→「{result['new_title']}」\n\n新しい名前の方がマシかい？",
+                        f"リネーム完了さ\n「{result['old_title']}」→「{result['new_title']}」\n\nころころ変えるもんじゃないよ？"
+                    ]
+                    import random
+                    response = random.choice(witch_rename)
                 else:
                     witch_update_fail = [
                         "あらら、名前変更に失敗したねぇ",
@@ -397,7 +410,14 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 response = "❌ 番号を指定してください（例: 1を明日リマインド）"
         
         else:
-            response = "ふむ、何を言ってるのかわからないねぇ...\n\nこんな風に言ってごらん:\n- 「〇〇を追加」でTODO追加\n- 「リスト」で一覧表示\n- 「1番完了」で完了\n- 「2番削除」で削除\n- 「1は○○にして」で名前変更\n- 「5は優先度激高に」で優先度変更\n- 「1を明日リマインド」でリマインダー\n\nまったく、覚えが悪いねぇ..."
+            witch_help_messages = [
+                "ふむ、何を言ってるのかわからないねぇ...\n\n「〇〇を追加」「リスト」「1番削除」「5は優先度激高に」\nこんな風に言ってごらん。覚えが悪いねぇ",
+                "あらあら、理解できないよ...\n\n「タスクを追加」「一覧見せて」「優先度変更」\nもう少し分かりやすく言いな",
+                "やれやれ、何のことだい？\n\n「TODO追加」「削除」「リマインド設定」\n基本的な使い方を覚えておくれよ",
+                "おや、意味がわからないねぇ...\n\nシンプルに「追加」「削除」「リスト」って言えばいいのに\nまったく、困った子だね"
+            ]
+            import random
+            response = random.choice(witch_help_messages)
             
     except Exception as e:
         logger.error(f"TODO operation error: {e}")
