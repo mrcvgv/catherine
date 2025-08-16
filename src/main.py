@@ -211,6 +211,14 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 success = await todo_manager.complete_todo(todo['id'], user_id)
                 if success:
                     response = witch_personality.enhance_todo_response('complete', {'title': todo['title']})
+                    
+                    # 完了後に自動でリストを表示
+                    remaining_todos = await todo_manager.get_todos(include_completed=False)
+                    if remaining_todos:
+                        response += "\n\n" + "─" * 30 + "\n"
+                        response += todo_manager.format_todo_list(remaining_todos)
+                    else:
+                        response += "\n\nあらあら、全部完了したのかい？偉いねぇ"
                 else:
                     response = "あらら、完了にできなかったみたいだねぇ..."
             else:
@@ -233,6 +241,14 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     response = random.choice(witch_multi_delete)
                     if result.get('failed_numbers'):
                         response += f"\nでも番号 {result['failed_numbers']} は消せなかったよ"
+                    
+                    # 複数削除後に自動でリストを表示
+                    remaining_todos = await todo_manager.get_todos(include_completed=False)
+                    if remaining_todos:
+                        response += "\n\n" + "─" * 30 + "\n"
+                        response += todo_manager.format_todo_list(remaining_todos)
+                    else:
+                        response += "\n\nあらあら、全部なくなったじゃないか"
                 else:
                     witch_delete_fail = [
                         "あらら、削除できなかったみたいだねぇ",
@@ -251,6 +267,14 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     success = await todo_manager.delete_todo(todo['id'], user_id)
                     if success:
                         response = witch_personality.enhance_todo_response('delete', {'title': todo['title']})
+                        
+                        # 単一削除後に自動でリストを表示
+                        remaining_todos = await todo_manager.get_todos(include_completed=False)
+                        if remaining_todos:
+                            response += "\n\n" + "─" * 30 + "\n"
+                            response += todo_manager.format_todo_list(remaining_todos)
+                        else:
+                            response += "\n\nあらあら、全部なくなったじゃないか"
                     else:
                         response = "やれやれ、削除できなかったよ。困ったねぇ"
                 else:
