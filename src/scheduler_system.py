@@ -126,22 +126,35 @@ class SchedulerSystem:
             
             # メンションを構築
             mention_target = todo_data.get('mention_target', 'everyone')
+            logger.info(f"Building mention for target: {mention_target}")
+            
             if mention_target == 'everyone':
                 mention = '@everyone'
             elif mention_target == 'mrc':
-                # mrcvglユーザーを検索
+                # mrcvglユーザーを検索（複数のパターンで検索）
                 target_user = None
+                search_patterns = ['mrcvgl', 'mrc']
                 for member in channel.guild.members:
-                    if 'mrcvgl' in member.name.lower() or 'mrcvgl' in member.display_name.lower():
+                    member_name = member.name.lower()
+                    member_display = member.display_name.lower()
+                    logger.info(f"Checking member: {member.name} (display: {member.display_name})")
+                    if any(pattern in member_name or pattern in member_display for pattern in search_patterns):
                         target_user = member
+                        logger.info(f"Found mrc user: {member.name} (ID: {member.id})")
                         break
                 mention = target_user.mention if target_user else '@mrcvgl'
             elif mention_target == 'supy':
-                # supy000ユーザーを検索
+                # supy000ユーザーを検索（複数のパターンで検索）
                 target_user = None
+                search_patterns = ['supy000', 'supy']
+                logger.info(f"Guild has {len(channel.guild.members)} members")
                 for member in channel.guild.members:
-                    if 'supy000' in member.name.lower() or 'supy000' in member.display_name.lower():
+                    member_name = member.name.lower()
+                    member_display = member.display_name.lower()
+                    logger.info(f"Checking member: {member.name} (display: {member.display_name})")
+                    if any(pattern in member_name or pattern in member_display for pattern in search_patterns):
                         target_user = member
+                        logger.info(f"Found supy user: {member.name} (ID: {member.id})")
                         break
                 mention = target_user.mention if target_user else '@supy000'
             else:
@@ -149,10 +162,10 @@ class SchedulerSystem:
             
             # メッセージを送信
             if todo_data.get('is_list_reminder'):
-                # 全リスト通知
+                # 全リスト通知（チーム全体）
                 from todo_manager import todo_manager
                 user_id = str(todo_data['user_id'])
-                todos = await todo_manager.get_todos(user_id)
+                todos = await todo_manager.get_todos()
                 
                 if todos:
                     list_text = todo_manager.format_todo_list(todos)

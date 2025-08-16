@@ -63,35 +63,47 @@ thread_data = defaultdict()
 @client.event
 async def setup_hook():
     """Bot起動時にシステムを初期化"""
+    logger.info("Setup hook called - gradual system initialization")
+    
     if FIREBASE_ENABLED:
         try:
             import sys
             import os
             sys.path.append(os.path.dirname(os.path.abspath(__file__)))
             
-            from reminder_system import init_reminder_system, ReminderSystem
+            # 段階的にシステムを初期化
+            logger.info("Phase 1: Initializing scheduler system only...")
             from scheduler_system import init_scheduler_system
-            from todo_manager import todo_manager
-            
-            reminder_system = init_reminder_system(todo_manager, client)
             scheduler_system = init_scheduler_system(client)
             
-            logger.info("Starting reminder and scheduler systems...")
             try:
-                await reminder_system.start()
-                logger.info("Reminder system started successfully")
-            except Exception as e:
-                logger.error(f"Failed to start reminder system: {e}")
-            
-            try:
+                logger.info("Starting scheduler system...")
                 await scheduler_system.start()
                 logger.info("Scheduler system started successfully")
             except Exception as e:
                 logger.error(f"Failed to start scheduler system: {e}")
+            
+            # Phase 2: リマインダーシステムを初期化
+            logger.info("Phase 2: Initializing reminder system...")
+            from reminder_system import init_reminder_system
+            from todo_manager import todo_manager
+            reminder_system = init_reminder_system(todo_manager, client)
+            
+            try:
+                logger.info("Starting reminder system as background task...")
+                # リマインダーシステムを非同期タスクとして開始
+                asyncio.create_task(reminder_system.start())
+                logger.info("Reminder system background task created successfully")
+            except Exception as e:
+                logger.error(f"Failed to start reminder system: {e}")
                 
-            logger.info("Reminder and scheduler systems initialized in setup_hook")
+            logger.info("Phase 1 & 2 system initialization completed in setup_hook")
         except Exception as e:
             logger.error(f"Failed to initialize systems in setup_hook: {e}")
+    else:
+        logger.info("Firebase not enabled, skipping system initialization")
+    
+    logger.info("Setup hook completed")
 
 # Handle TODO commands
 async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str:
@@ -142,9 +154,8 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 response += "\n\n" + random.choice(witch_create_tips)
             
         elif action == 'list':
-            # TODOリスト表示
+            # TODOリスト表示（チーム全体）
             todos = await todo_manager.get_todos(
-                user_id=user_id,
                 include_completed=intent.get('include_completed', False)
             )
             
@@ -172,8 +183,8 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     response += "\n" + random.choice(witch_tips)
             
         elif action == 'complete':
-            # TODO完了
-            todos = await todo_manager.get_todos(user_id=user_id)
+            # TODO完了（チーム全体）
+            todos = await todo_manager.get_todos()
             
             if intent.get('todo_number') and intent['todo_number'] <= len(todos):
                 todo = todos[intent['todo_number'] - 1]
@@ -213,7 +224,7 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     response = f"{random.choice(witch_delete_fail)}\\n{result.get('message', '')}"
             else:
                 # 単一削除（従来の処理）
-                todos = await todo_manager.get_todos(user_id=user_id, include_completed=True)
+                todos = await todo_manager.get_todos(include_completed=True)
                 
                 if intent.get('todo_number') and intent['todo_number'] <= len(todos):
                     todo = todos[intent['todo_number'] - 1]
@@ -392,19 +403,29 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                 if mention_target == 'everyone':
                                     mention = '@everyone'
                                 elif mention_target == 'mrc':
-                                    # mrcvglユーザーを検索
+                                    # mrcvglユーザーを検索（複数パターン）
                                     mrc_user = None
+                                    search_patterns = ['mrcvgl', 'mrc']
                                     for member in channel.guild.members:
-                                        if 'mrcvgl' in member.name.lower() or 'mrcvgl' in member.display_name.lower():
+                                        member_name = member.name.lower()
+                                        member_display = member.display_name.lower()
+                                        logger.info(f"[main.py] Checking member: {member.name} (display: {member.display_name})")
+                                        if any(pattern in member_name or pattern in member_display for pattern in search_patterns):
                                             mrc_user = member
+                                            logger.info(f"[main.py] Found mrc user: {member.name} (ID: {member.id})")
                                             break
                                     mention = mrc_user.mention if mrc_user else '@mrcvgl'
                                 elif mention_target == 'supy':
-                                    # supy000ユーザーを検索
+                                    # supy000ユーザーを検索（複数パターン）
                                     supy_user = None
+                                    search_patterns = ['supy000', 'supy']
                                     for member in channel.guild.members:
-                                        if 'supy000' in member.name.lower() or 'supy000' in member.display_name.lower():
+                                        member_name = member.name.lower()
+                                        member_display = member.display_name.lower()
+                                        logger.info(f"[main.py] Checking member: {member.name} (display: {member.display_name})")
+                                        if any(pattern in member_name or pattern in member_display for pattern in search_patterns):
                                             supy_user = member
+                                            logger.info(f"[main.py] Found supy user: {member.name} (ID: {member.id})")
                                             break
                                     mention = supy_user.mention if supy_user else '@supy000'
                                 else:

@@ -384,13 +384,22 @@ class TodoNLU:
                 custom_message = parts[1].strip()
                 time_part = parts[0]
         else:
-            # パターン2: 「リマインド」の後にカスタムメッセージ（「起こして」「起きて」など）
+            # パターン2: 「リマインド」の後にカスタムメッセージ
             remind_match = re.search(r'リマインド[　\s]*(.+)', message)
             if remind_match:
                 potential_custom = remind_match.group(1).strip()
-                # 簡単なカスタムメッセージのキーワードをチェック
-                custom_keywords = ['起こして', '起きて', '起こしてくれ', '起きてくれ', '教えて', '知らせて', '呼んで']
-                if any(keyword in potential_custom for keyword in custom_keywords):
+                # カスタムメッセージのキーワードを拡張
+                custom_keywords = [
+                    '起こして', '起きて', '起こしてくれ', '起きてくれ', '教えて', '知らせて', '呼んで',
+                    '何してる', '何してる？', '何してるか', '何してるの', '何しててる', '何しててる？',
+                    '確認して', '聞いて', '連絡して', '伝えて', '声かけて', 'チェックして'
+                ]
+                # より柔軟な検出：メンション先が含まれていて、かつカスタムキーワードがあるか、または明らかにメッセージっぽい
+                has_custom_keyword = any(keyword in potential_custom for keyword in custom_keywords)
+                has_mention = any(word in potential_custom for word in ['supy', 'mrc', '@'])
+                is_question = '？' in potential_custom or '?' in potential_custom
+                
+                if has_custom_keyword or (has_mention and len(potential_custom) > 3) or is_question:
                     custom_message = potential_custom
                     # カスタムメッセージ部分を除いた部分から時間を検出
                     time_part = message.replace(remind_match.group(0), 'リマインド')
@@ -416,9 +425,13 @@ class TodoNLU:
         # 時間指定を検出
         remind_time = self._detect_due_date(message.lower())
         
+        # カスタムメッセージがあって時間指定がない場合は即座実行
+        if custom_message and not remind_time:
+            remind_time = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC) + timedelta(seconds=1)
+        
         # 時間の種類を判定
         remind_type = 'custom'
-        if '今すぐ' in message or 'すぐ' in message:
+        if '今すぐ' in message or 'すぐ' in message or (custom_message and not any(word in message for word in ['分後', '時間後', '日後', '毎日', '毎朝', '毎晩'])):
             remind_type = 'immediate'
         elif any(word in message for word in ['毎日', '毎朝', '毎晩', '毎日毎朝']):
             remind_type = 'recurring'

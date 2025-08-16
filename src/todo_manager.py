@@ -20,10 +20,10 @@ class TodoManager:
     
     async def create_todo(self, user_id: str, title: str, description: str = "", 
                          due_date: Optional[datetime] = None, priority: str = "normal") -> Dict[str, Any]:
-        """TODOを作成"""
+        """TODOを作成（チーム共有）"""
         try:
             todo_data = {
-                'user_id': user_id,
+                'created_by': user_id,  # 作成者として記録
                 'title': title,
                 'description': description,
                 'created_at': datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC),
@@ -47,11 +47,12 @@ class TodoManager:
             logger.error(f"Failed to create TODO: {e}")
             raise
     
-    async def get_todos(self, user_id: str, status: Optional[str] = None, 
+    async def get_todos(self, user_id: str = None, status: Optional[str] = None, 
                         include_completed: bool = False) -> List[Dict[str, Any]]:
-        """ユーザーのTODOリストを取得（優先度順にソート）"""
+        """チーム全体のTODOリストを取得（優先度順にソート）"""
         try:
-            query = self.db.collection('todos').where(filter=FieldFilter('user_id', '==', user_id))
+            # チーム全体のTODOを取得（user_idフィルターを削除）
+            query = self.db.collection('todos')
             
             if status:
                 query = query.where(filter=FieldFilter('status', '==', status))
@@ -82,7 +83,7 @@ class TodoManager:
             return []
     
     async def update_todo(self, todo_id: str, user_id: str, **updates) -> bool:
-        """TODOを更新"""
+        """TODOを更新（チーム共有）"""
         try:
             doc_ref = self.db.collection('todos').document(todo_id)
             doc = doc_ref.get()
@@ -91,20 +92,20 @@ class TodoManager:
                 logger.warning(f"TODO {todo_id} not found")
                 return False
             
-            # 所有者チェック
-            if doc.to_dict().get('user_id') != user_id:
-                logger.warning(f"User {user_id} not authorized to update TODO {todo_id}")
-                return False
+            # チーム共有なので所有者チェックを削除
+            # 誰でも編集可能
             
-            # 更新日時を追加
+            # 更新者情報を追加
             updates['updated_at'] = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
+            updates['updated_by'] = user_id
             
             # 完了処理
             if updates.get('status') == 'completed':
                 updates['completed_at'] = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
+                updates['completed_by'] = user_id
             
             doc_ref.update(updates)
-            logger.info(f"Updated TODO {todo_id}")
+            logger.info(f"Updated TODO {todo_id} by user {user_id}")
             return True
             
         except Exception as e:
@@ -112,7 +113,7 @@ class TodoManager:
             return False
     
     async def delete_todo(self, todo_id: str, user_id: str) -> bool:
-        """TODOを削除"""
+        """TODOを削除（チーム共有）"""
         try:
             doc_ref = self.db.collection('todos').document(todo_id)
             doc = doc_ref.get()
@@ -120,13 +121,11 @@ class TodoManager:
             if not doc.exists:
                 return False
             
-            # 所有者チェック
-            if doc.to_dict().get('user_id') != user_id:
-                logger.warning(f"User {user_id} not authorized to delete TODO {todo_id}")
-                return False
+            # チーム共有なので所有者チェックを削除
+            # 誰でも削除可能
             
             doc_ref.delete()
-            logger.info(f"Deleted TODO {todo_id}")
+            logger.info(f"Deleted TODO {todo_id} by user {user_id}")
             return True
             
         except Exception as e:
@@ -134,10 +133,10 @@ class TodoManager:
             return False
     
     async def delete_todos_by_numbers(self, todo_numbers: List[int], user_id: str) -> Dict[str, Any]:
-        """番号指定で複数のTODOを削除"""
+        """番号指定で複数のTODOを削除（チーム共有）"""
         try:
-            # ユーザーのTODOリストを取得
-            todos = await self.get_todos(user_id)
+            # チーム全体のTODOリストを取得
+            todos = await self.get_todos()
             
             if not todos:
                 return {'success': False, 'message': 'TODOリストが空です'}
@@ -177,10 +176,10 @@ class TodoManager:
             return {'success': False, 'message': 'TODOの削除に失敗しました'}
     
     async def update_todo_priority_by_number(self, todo_number: int, user_id: str, new_priority: str) -> Dict[str, Any]:
-        """番号指定でTODOの優先度を更新"""
+        """番号指定でTODOの優先度を更新（チーム共有）"""
         try:
-            # ユーザーのTODOリストを取得
-            todos = await self.get_todos(user_id)
+            # チーム全体のTODOリストを取得
+            todos = await self.get_todos()
             
             if not todos:
                 return {'success': False, 'message': 'TODOリストが空です'}
@@ -218,10 +217,10 @@ class TodoManager:
             return {'success': False, 'message': 'TODOの優先度更新に失敗しました'}
     
     async def update_todo_by_number(self, todo_number: int, user_id: str, new_title: str) -> Dict[str, Any]:
-        """番号指定でTODOのタイトルを更新"""
+        """番号指定でTODOのタイトルを更新（チーム共有）"""
         try:
-            # ユーザーのTODOリストを取得
-            todos = await self.get_todos(user_id)
+            # チーム全体のTODOリストを取得
+            todos = await self.get_todos()
             
             if not todos:
                 return {'success': False, 'message': 'TODOリストが空です'}
@@ -252,10 +251,10 @@ class TodoManager:
             return {'success': False, 'message': 'TODOの更新に失敗しました'}
     
     async def set_reminder_by_number(self, todo_number: int, user_id: str, remind_time: datetime, remind_type: str = 'custom', mention_target: str = 'everyone', channel_target: str = 'todo') -> Dict[str, Any]:
-        """番号指定でTODOにリマインダーを設定"""
+        """番号指定でTODOにリマインダーを設定（チーム共有）"""
         try:
-            # ユーザーのTODOリストを取得
-            todos = await self.get_todos(user_id)
+            # チーム全体のTODOリストを取得
+            todos = await self.get_todos()
             
             if not todos:
                 return {'success': False, 'message': 'TODOリストが空です'}
@@ -350,10 +349,10 @@ class TodoManager:
             return False
     
     async def search_todos(self, user_id: str, query_text: str) -> List[Dict[str, Any]]:
-        """TODOを検索"""
+        """TODOを検索（チーム共有）"""
         try:
             # 全てのTODOを取得して検索（Firestoreのテキスト検索は制限があるため）
-            all_todos = await self.get_todos(user_id, include_completed=True)
+            all_todos = await self.get_todos(include_completed=True)
             
             query_lower = query_text.lower()
             matched_todos = []
@@ -373,9 +372,9 @@ class TodoManager:
             return []
     
     def format_todo_list(self, todos: List[Dict[str, Any]]) -> str:
-        """TODOリストを読みやすい形式にフォーマット（優先度順）"""
+        """TODOリストを読みやすい形式にフォーマット（優先度順・作成者情報付き）"""
         if not todos:
-            return "📝 TODOリストは空です。"
+            return "📝 チームTODOリストは空です。"
         
         # 優先度アイコン定義（激高、高、普通、低）
         priority_icons = {
@@ -391,7 +390,8 @@ class TodoManager:
             # 優先度アイコンを先頭に、番号とタイトルを表示
             priority = todo.get('priority', 'normal')
             priority_icon = priority_icons.get(priority, '🟡')
-            formatted += f"{priority_icon} {i}. {todo['title']}\n"
+            created_by = todo.get('created_by', 'unknown')
+            formatted += f"{priority_icon} {i}. {todo['title']} (作成者: <@{created_by}>)\n"
             
             if todo.get('description'):
                 formatted += f"   📝 {todo['description']}\n"
@@ -402,6 +402,10 @@ class TodoManager:
                     # JSTで期限を表示
                     due_date_jst = due_date.astimezone(pytz.timezone('Asia/Tokyo'))
                     formatted += f"   📅 期限: {due_date_jst.strftime('%Y-%m-%d %H:%M')}\n"
+            
+            # 最終更新者情報を表示
+            if todo.get('updated_by') and todo.get('updated_by') != todo.get('created_by'):
+                formatted += f"   ✏️ 最終更新: <@{todo.get('updated_by')}>\n"
             
             formatted += "\n"
         
