@@ -59,6 +59,40 @@ client = discord.Client(intents=intents)
 tree = discord.app_commands.CommandTree(client)
 thread_data = defaultdict()
 
+# システム初期化用のsetup_hook
+@client.event
+async def setup_hook():
+    """Bot起動時にシステムを初期化"""
+    if FIREBASE_ENABLED:
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+            
+            from reminder_system import init_reminder_system, ReminderSystem
+            from scheduler_system import init_scheduler_system
+            from todo_manager import todo_manager
+            
+            reminder_system = init_reminder_system(todo_manager, client)
+            scheduler_system = init_scheduler_system(client)
+            
+            logger.info("Starting reminder and scheduler systems...")
+            try:
+                await reminder_system.start()
+                logger.info("Reminder system started successfully")
+            except Exception as e:
+                logger.error(f"Failed to start reminder system: {e}")
+            
+            try:
+                await scheduler_system.start()
+                logger.info("Scheduler system started successfully")
+            except Exception as e:
+                logger.error(f"Failed to start scheduler system: {e}")
+                
+            logger.info("Reminder and scheduler systems initialized in setup_hook")
+        except Exception as e:
+            logger.error(f"Failed to initialize systems in setup_hook: {e}")
+
 # Handle TODO commands
 async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str:
     """TODO操作を処理"""
@@ -865,39 +899,6 @@ async def on_message(message: DiscordMessage):
         logger.exception(e)
 
 
-# Initialize reminder and scheduler systems
-if FIREBASE_ENABLED:
-    try:
-        import sys
-        import os
-        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-        
-        from reminder_system import init_reminder_system, ReminderSystem
-        from scheduler_system import init_scheduler_system
-        from todo_manager import todo_manager
-        
-        reminder_system = init_reminder_system(todo_manager, client)
-        scheduler_system = init_scheduler_system(client)
-        
-        # Start systems in background
-        async def start_systems():
-            await client.wait_until_ready()
-            logger.info("Starting reminder and scheduler systems...")
-            try:
-                await reminder_system.start()
-                logger.info("Reminder system started successfully")
-            except Exception as e:
-                logger.error(f"Failed to start reminder system: {e}")
-            
-            try:
-                await scheduler_system.start()
-                logger.info("Scheduler system started successfully")
-            except Exception as e:
-                logger.error(f"Failed to start scheduler system: {e}")
-        
-        client.loop.create_task(start_systems())
-        logger.info("Reminder and scheduler systems initialized")
-    except Exception as e:
-        logger.error(f"Failed to initialize systems: {e}")
+# システム初期化はsetup_hookで実行される
 
 client.run(DISCORD_BOT_TOKEN)
