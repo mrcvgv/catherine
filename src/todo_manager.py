@@ -402,9 +402,6 @@ class TodoManager:
                     due_date_jst = due_date.astimezone(pytz.timezone('Asia/Tokyo'))
                     formatted += f"   📅 期限: {due_date_jst.strftime('%Y-%m-%d %H:%M')}\n"
             
-            # 最終更新者情報を表示
-            if todo.get('updated_by') and todo.get('updated_by') != todo.get('created_by'):
-                formatted += f"   ✏️ 最終更新: <@{todo.get('updated_by')}>\n"
             
             formatted += "\n"
         
