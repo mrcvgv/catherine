@@ -62,6 +62,7 @@ thread_data = defaultdict()
 async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str:
     """TODO操作を処理"""
     from src.todo_manager import todo_manager
+    from personality_system import witch_personality
     
     action = intent.get('action')
     user_id = str(user.id)
@@ -77,12 +78,17 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 priority=intent.get('priority', 'normal')
             )
             
-            response = f"✅ TODOを追加しました！\n\n"
-            response += f"📝 **{todo['title']}**\n"
+            # 魔女風のレスポンス
+            response = witch_personality.enhance_todo_response('create', {
+                'title': todo['title'],
+                'priority': todo.get('priority', 'normal')
+            })
+            
             if todo.get('due_date'):
-                response += f"📅 期限: {todo['due_date'].strftime('%Y-%m-%d %H:%M')}\n"
-            response += f"🎯 優先度: {todo['priority']}\n"
-            response += f"\n💡 ヒント: 「TODOリスト」と言うと一覧が見れます！"
+                due_date_jst = todo['due_date'].astimezone(pytz.timezone('Asia/Tokyo'))
+                response += f"\n📅 期限: {due_date_jst.strftime('%Y-%m-%d %H:%M')}"
+                
+            response += "\n\n💡 「リスト」って言えば見せてあげるよ"
             
         elif action == 'list':
             # TODOリスト表示
@@ -90,10 +96,13 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 user_id=user_id,
                 include_completed=intent.get('include_completed', False)
             )
-            response = todo_manager.format_todo_list(todos)
             
-            if not intent.get('include_completed'):
-                response += "\n💡 完了済みも見たい場合は「完了したTODOも見せて」と言ってください！"
+            # 魔女風の前置き
+            intro = witch_personality.enhance_todo_response('list', {'count': len(todos)})
+            response = intro + "\n\n" + todo_manager.format_todo_list(todos)
+            
+            if not intent.get('include_completed') and len(todos) > 0:
+                response += "\n💡 完了したのも見たいなら「完了も見せて」って言いな"
             
         elif action == 'complete':
             # TODO完了
@@ -103,11 +112,11 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 todo = todos[intent['todo_number'] - 1]
                 success = await todo_manager.complete_todo(todo['id'], user_id)
                 if success:
-                    response = f"✅ 「{todo['title']}」を完了にしました！お疲れ様でした！🎉"
+                    response = witch_personality.enhance_todo_response('complete', {'title': todo['title']})
                 else:
-                    response = "❌ TODOの完了に失敗しました。"
+                    response = "あらら、完了にできなかったみたいだねぇ..."
             else:
-                response = "❌ 該当するTODOが見つかりません。番号を確認してください。"
+                response = "おや？その番号は見つからないよ。もう一度確認してごらん"
         
         elif action == 'delete':
             # TODO削除（複数削除対応）
@@ -116,11 +125,11 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 result = await todo_manager.delete_todos_by_numbers(intent['todo_numbers'], user_id)
                 if result['success']:
                     deleted_titles = ', '.join(result['deleted_titles'])
-                    response = f"🗑️ {result['deleted_count']}個のTODOを削除しました: {deleted_titles}"
+                    response = f"ふむ、{result['deleted_count']}個も消すのかい？\n🗑️ {deleted_titles}\n\nまあ、あんたの判断に任せるよ"
                     if result.get('failed_numbers'):
-                        response += f"\n⚠️ 番号 {result['failed_numbers']} は削除できませんでした"
+                        response += f"\n⚠️ でも番号 {result['failed_numbers']} は消せなかったよ"
                 else:
-                    response = f"❌ {result.get('message', 'TODOの削除に失敗しました')}"
+                    response = f"あらら、{result.get('message', '削除できなかったみたいだねぇ')}"
             else:
                 # 単一削除（従来の処理）
                 todos = await todo_manager.get_todos(user_id=user_id, include_completed=True)
@@ -129,11 +138,11 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     todo = todos[intent['todo_number'] - 1]
                     success = await todo_manager.delete_todo(todo['id'], user_id)
                     if success:
-                        response = f"🗑️ 「{todo['title']}」を削除しました。"
+                        response = witch_personality.enhance_todo_response('delete', {'title': todo['title']})
                     else:
-                        response = "❌ TODOの削除に失敗しました。"
+                        response = "やれやれ、削除できなかったよ。困ったねぇ"
                 else:
-                    response = "❌ 該当するTODOが見つかりません。番号を確認してください。"
+                    response = "その番号は見つからないねぇ。ちゃんと確認しな"
         
         elif action == 'update':
             # TODO名前変更
@@ -274,11 +283,11 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 response = "❌ 番号を指定してください（例: 1を明日リマインド）"
         
         else:
-            response = "❓ TODO操作を理解できませんでした。\n使い方:\n- TODO追加: 「〇〇をTODOに追加」\n- リスト表示: 「TODOリスト」\n- 完了: 「1番を完了」\n- 削除: 「2番を削除」\n- 名前変更: 「1は○○にして」\n- 複数削除: 「1,2,3は削除」\n- リマインダー: 「1を明日リマインド」「2を今すぐリマインド」"
+            response = "ふむ、何を言ってるのかわからないねぇ...\n\nこんな風に言ってごらん:\n- 「〇〇を追加」でTODO追加\n- 「リスト」で一覧表示\n- 「1番完了」で完了\n- 「2番削除」で削除\n- 「1は○○にして」で名前変更\n- 「1を明日リマインド」でリマインダー\n\nまったく、覚えが悪いねぇ..."
             
     except Exception as e:
         logger.error(f"TODO operation error: {e}")
-        response = f"❌ エラーが発生しました: {str(e)}"
+        response = f"あらら、何かおかしなことが起きちゃったよ: {str(e)[:50]}...\nやれやれ、困ったねぇ"
     
     return response
 
