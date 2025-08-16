@@ -147,15 +147,29 @@ class SchedulerSystem:
                 
                 if todos:
                     list_text = todo_manager.format_todo_list(todos)
-                    message = f"🔔 **定時リマインダー** {mention}\n\n{list_text}"
+                    witch_daily_greetings = [
+                        f"**定時リマインダー** {mention}\\n\\n{list_text}\\n\\nさあ、今日も頑張るんだよ",
+                        f"**定時リマインダー** {mention}\\n\\n{list_text}\\n\\n一つずつ片付けていきな",
+                        f"**定時リマインダー** {mention}\\n\\n{list_text}\\n\\nやることが山積みだねぇ",
+                        f"**定時リマインダー** {mention}\\n\\n{list_text}\\n\\n優先度順になってるから、上から順にやりな"
+                    ]
+                    import random
+                    message = random.choice(witch_daily_greetings)
                 else:
-                    message = f"🔔 **定時リマインダー** {mention}\n📝 TODOリストは空です"
+                    witch_empty_list = [
+                        f"**定時リマインダー** {mention}\\nTODOリストは空っぽだよ。珍しいねぇ",
+                        f"**定時リマインダー** {mention}\\nやることが何もないね。のんびりしてるのかい？",
+                        f"**定時リマインダー** {mention}\\nリストは空だよ。全部片付いたのかな？",
+                        f"**定時リマインダー** {mention}\\n何もないじゃないか。サボってるのかい？"
+                    ]
+                    import random
+                    message = random.choice(witch_empty_list)
             else:
                 # 個別TODO通知またはカスタムメッセージ
                 if todo_data.get('custom_message'):
                     # カスタムメッセージがある場合
                     custom_msg = todo_data['custom_message']
-                    message = f"🔔 **リマインダー** {mention}\n{custom_msg}"
+                    message = f"**リマインダー** {mention}\\n{custom_msg}"
                 else:
                     # 通常のTODOリマインダー
                     title = todo_data.get('title', 'TODO')
@@ -170,7 +184,7 @@ class SchedulerSystem:
                     ]
                     import random
                     witch_comment = random.choice(witch_reminders)
-                    message = f"🔔 **リマインダー** {mention}\n📝 {title}\n{witch_comment}"
+                    message = f"**リマインダー** {mention}\\n{title}\\n{witch_comment}"
             
             await channel.send(message)
             logger.info(f"スケジュールリマインダー送信完了: {channel_name}")

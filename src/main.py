@@ -89,7 +89,17 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 due_date_jst = todo['due_date'].astimezone(pytz.timezone('Asia/Tokyo'))
                 response += f"\n📅 期限: {due_date_jst.strftime('%Y-%m-%d %H:%M')}"
                 
-            response += "\n\n💡 「リスト」って言えば見せてあげるよ（優先度順に表示されるからね）"
+            witch_create_tips = [
+                "「リスト」って言えば見せてあげるよ",
+                "よくできました、偉いねぇ",
+                "また一つ増えちゃったね",
+                "ちゃんと覚えておいたからね",
+                "やることが増えるのも悪くないさ",
+                "忙しいのは良いことだよ",
+                "さて、いつやるのかな？"
+            ]
+            import random
+            response += "\n\n" + random.choice(witch_create_tips)
             
         elif action == 'list':
             # TODOリスト表示
@@ -140,7 +150,14 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     if result.get('failed_numbers'):
                         response += f"\n⚠️ でも番号 {result['failed_numbers']} は消せなかったよ"
                 else:
-                    response = f"あらら、{result.get('message', '削除できなかったみたいだねぇ')}"
+                    witch_delete_fail = [
+                        "あらら、削除できなかったみたいだねぇ",
+                        "やれやれ、うまくいかなかったよ",
+                        "おや？何か間違えたようだね",
+                        "困ったねぇ、消せなかったよ"
+                    ]
+                    import random
+                    response = f"{random.choice(witch_delete_fail)}\\n{result.get('message', '')}"
             else:
                 # 単一削除（従来の処理）
                 todos = await todo_manager.get_todos(user_id=user_id, include_completed=True)
@@ -190,9 +207,23 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     response = f"✏️ TODO {intent['todo_number']} の名前を変更しました\n"
                     response += f"📝 「{result['old_title']}」→「{result['new_title']}」"
                 else:
-                    response = f"❌ {result.get('message', 'TODOの更新に失敗しました')}"
+                    witch_update_fail = [
+                        "あらら、名前変更に失敗したねぇ",
+                        "やれやれ、うまくいかなかったよ",
+                        "困ったね、変更できなかったみたい",
+                        "おや、何かがおかしいようだね"
+                    ]
+                    import random
+                    response = f"{random.choice(witch_update_fail)}\\n{result.get('message', 'TODOの更新に失敗しました')}"
             else:
-                response = "❌ 番号と新しい名前を指定してください（例: 1は買い物リストにして）"
+                witch_update_help = [
+                    "番号と新しい名前を教えてごらん（例: 1は買い物リストにして）",
+                    "どの番号の何を変えたいのか言いな",
+                    "番号と新しい名前、両方必要だよ",
+                    "何番のタイトルをどう変えるのかい？"
+                ]
+                import random
+                response = random.choice(witch_update_help)
         
         elif action == 'remind':
             # リマインダー設定
@@ -332,7 +363,7 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                 ]
                                 import random
                                 urgent_comment = random.choice(witch_urgent)
-                                await channel.send(f"🔔 **リマインダー** {mention}\n📝 {result.get('todo_title', 'TODO')}\n{urgent_comment}")
+                                await channel.send(f"**リマインダー** {mention}\\n{result.get('todo_title', 'TODO')}\\n{urgent_comment}")
                             else:
                                 logger.error(f"Channel '{channel_name}' not found")
                                 
