@@ -27,12 +27,12 @@ class TodoNLU:
         'low': ['低', 'あとで', '後回し', 'いつでも']
     }
     
-    # 時間表現パターン
+    # 時間表現パターン（東京時間ベース）
     TIME_PATTERNS = {
-        '今日': lambda: datetime.now(pytz.UTC).replace(hour=23, minute=59),
-        '明日': lambda: (datetime.now(pytz.UTC) + timedelta(days=1)).replace(hour=23, minute=59),
-        '明後日': lambda: (datetime.now(pytz.UTC) + timedelta(days=2)).replace(hour=23, minute=59),
-        '来週': lambda: (datetime.now(pytz.UTC) + timedelta(weeks=1)).replace(hour=23, minute=59),
+        '今日': lambda: datetime.now(pytz.timezone('Asia/Tokyo')).replace(hour=23, minute=59).astimezone(pytz.UTC),
+        '明日': lambda: (datetime.now(pytz.timezone('Asia/Tokyo')) + timedelta(days=1)).replace(hour=23, minute=59).astimezone(pytz.UTC),
+        '明後日': lambda: (datetime.now(pytz.timezone('Asia/Tokyo')) + timedelta(days=2)).replace(hour=23, minute=59).astimezone(pytz.UTC),
+        '来週': lambda: (datetime.now(pytz.timezone('Asia/Tokyo')) + timedelta(weeks=1)).replace(hour=23, minute=59).astimezone(pytz.UTC),
         '今週末': lambda: TodoNLU._get_weekend(),
         '月曜': lambda: TodoNLU._get_next_weekday(0),
         '火曜': lambda: TodoNLU._get_next_weekday(1),
@@ -45,21 +45,23 @@ class TodoNLU:
     
     @staticmethod
     def _get_weekend():
-        """次の週末を取得"""
-        now = datetime.now(pytz.UTC)
+        """次の週末を取得（東京時間ベース）"""
+        now = datetime.now(pytz.timezone('Asia/Tokyo'))
         days_until_saturday = (5 - now.weekday()) % 7
         if days_until_saturday == 0:
             days_until_saturday = 7
-        return (now + timedelta(days=days_until_saturday)).replace(hour=23, minute=59)
+        weekend = (now + timedelta(days=days_until_saturday)).replace(hour=23, minute=59)
+        return weekend.astimezone(pytz.UTC)
     
     @staticmethod
     def _get_next_weekday(target_day: int):
-        """次の特定曜日を取得"""
-        now = datetime.now(pytz.UTC)
+        """次の特定曜日を取得（東京時間ベース）"""
+        now = datetime.now(pytz.timezone('Asia/Tokyo'))
         days_ahead = target_day - now.weekday()
         if days_ahead <= 0:
             days_ahead += 7
-        return (now + timedelta(days=days_ahead)).replace(hour=23, minute=59)
+        next_day = (now + timedelta(days=days_ahead)).replace(hour=23, minute=59)
+        return next_day.astimezone(pytz.UTC)
     
     def parse_message(self, message: str) -> Dict[str, Any]:
         """メッセージを解析してTODO操作を理解"""
@@ -252,7 +254,7 @@ class TodoNLU:
             try:
                 due_date = datetime(year, month, day, 23, 59, tzinfo=pytz.UTC)
                 # 過去の日付の場合は来年にする
-                if due_date < datetime.now(pytz.UTC):
+                if due_date < datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC):
                     due_date = due_date.replace(year=year + 1)
                 return due_date
             except ValueError:
@@ -262,28 +264,53 @@ class TodoNLU:
         minutes_match = re.search(r'(\d+)分後', message)
         if minutes_match:
             minutes = int(minutes_match.group(1))
-            return datetime.now(pytz.UTC) + timedelta(minutes=minutes)
+            return datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC) + timedelta(minutes=minutes)
         
         # 「X日後」パターン
         days_match = re.search(r'(\d+)日後', message)
         if days_match:
             days = int(days_match.group(1))
-            return (datetime.now(pytz.UTC) + timedelta(days=days)).replace(hour=23, minute=59)
+            jst_time = (datetime.now(pytz.timezone('Asia/Tokyo')) + timedelta(days=days)).replace(hour=23, minute=59)
+            return jst_time.astimezone(pytz.UTC)
         
         # 「X時間後」パターン
         hours_match = re.search(r'(\d+)時間後', message)
         if hours_match:
             hours = int(hours_match.group(1))
-            return datetime.now(pytz.UTC) + timedelta(hours=hours)
+            return datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC) + timedelta(hours=hours)
         
-        # 毎日の時間指定パターン（例: 毎朝8:30）
+        # 毎日の時間指定パターン（例: 毎朝8:30、毎日8:30）
         daily_time_match = re.search(r'毎日.*?(\d{1,2})[：:時](\d{1,2})', message)
         if daily_time_match:
             hour = int(daily_time_match.group(1))
             minute = int(daily_time_match.group(2))
-            # 明日の指定時刻を返す（毎日繰り返しのフラグ付き）
-            tomorrow = datetime.now(pytz.UTC) + timedelta(days=1)
-            return tomorrow.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            # 東京時間で次回の指定時刻を計算
+            now_jst = datetime.now(pytz.timezone('Asia/Tokyo'))
+            target_time_today = now_jst.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            
+            # 今日の時刻が過ぎていれば明日に設定
+            if target_time_today <= now_jst:
+                target_time = target_time_today + timedelta(days=1)
+            else:
+                target_time = target_time_today
+            
+            return target_time.astimezone(pytz.UTC)
+        
+        # 日付パターン（例: 12/25, 12月25日）- 東京時間ベース
+        date_match = re.search(r'(\d{1,2})[/月](\d{1,2})', message)
+        if date_match:
+            month = int(date_match.group(1))
+            day = int(date_match.group(2))
+            now_jst = datetime.now(pytz.timezone('Asia/Tokyo'))
+            year = now_jst.year
+            try:
+                due_date = datetime(year, month, day, 23, 59, tzinfo=pytz.timezone('Asia/Tokyo'))
+                # 過去の日付の場合は来年にする
+                if due_date < now_jst:
+                    due_date = due_date.replace(year=year + 1)
+                return due_date.astimezone(pytz.UTC)
+            except ValueError:
+                pass
         
         return None
     

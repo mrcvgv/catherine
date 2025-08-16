@@ -295,7 +295,7 @@ async def save_conversation_to_firebase(user_id: str, channel_id: str, message: 
             'channel_id': channel_id,
             'user_message': message,
             'bot_response': response,
-            'timestamp': datetime.now(pytz.UTC).isoformat(),
+            'timestamp': datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC).isoformat(),
             'message_type': 'chat_completion'
         }
         

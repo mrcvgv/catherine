@@ -57,7 +57,7 @@ class ReminderSystem:
         """期限が近いTODOを取得"""
         try:
             # 全ユーザーのTODOから期限が近いものを検索
-            now = datetime.now(pytz.UTC)
+            now = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
             upcoming_threshold = now + timedelta(hours=1)  # 1時間以内
             overdue_threshold = now - timedelta(hours=1)   # 1時間前まで
             
@@ -92,7 +92,7 @@ class ReminderSystem:
             return False
         
         last_reminder = todo_data['last_reminder']
-        now = datetime.now(pytz.UTC)
+        now = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
         
         # 2時間以内に通知済みの場合はスキップ
         return (now - last_reminder).total_seconds() < 7200
@@ -103,7 +103,7 @@ class ReminderSystem:
             user_id = str(todo_data['user_id'])
             title = todo_data.get('title', '無題')
             due_date = todo_data['due_date']
-            now = datetime.now(pytz.UTC)
+            now = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
             
             # メッセージを作成
             if due_date < now:
@@ -194,7 +194,7 @@ class ReminderSystem:
             await self.todo_manager.update_todo(
                 todo_id, 
                 user_id, 
-                last_reminder=datetime.now(pytz.UTC)
+                last_reminder=datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
             )
         except Exception as e:
             logger.error(f"最後の通知時間更新失敗: {e}")
@@ -202,7 +202,7 @@ class ReminderSystem:
     async def schedule_reminder(self, todo_data: Dict[str, Any], reminder_time: datetime):
         """特定の時間にリマインダーをスケジュール"""
         try:
-            now = datetime.now(pytz.UTC)
+            now = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
             delay = (reminder_time - now).total_seconds()
             
             if delay > 0:

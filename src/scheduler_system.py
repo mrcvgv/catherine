@@ -48,7 +48,7 @@ class SchedulerSystem:
             'remind_time': remind_time,
             'todo_data': todo_data,
             'is_recurring': is_recurring,
-            'created_at': datetime.now(pytz.UTC)
+            'created_at': datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
         }
         
         # 非同期タスクを作成
@@ -70,7 +70,7 @@ class SchedulerSystem:
             is_recurring = task_info.get('is_recurring', False)
             
             # 指定時間まで待機
-            now = datetime.now(pytz.UTC)
+            now = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
             if remind_time > now:
                 wait_seconds = (remind_time - now).total_seconds()
                 await asyncio.sleep(wait_seconds)

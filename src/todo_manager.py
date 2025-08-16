@@ -26,8 +26,8 @@ class TodoManager:
                 'user_id': user_id,
                 'title': title,
                 'description': description,
-                'created_at': datetime.now(pytz.UTC),
-                'updated_at': datetime.now(pytz.UTC),
+                'created_at': datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC),
+                'updated_at': datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC),
                 'due_date': due_date,
                 'priority': priority,  # low, normal, high, urgent
                 'status': 'pending',  # pending, in_progress, completed, cancelled
@@ -90,11 +90,11 @@ class TodoManager:
                 return False
             
             # 更新日時を追加
-            updates['updated_at'] = datetime.now(pytz.UTC)
+            updates['updated_at'] = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
             
             # 完了処理
             if updates.get('status') == 'completed':
-                updates['completed_at'] = datetime.now(pytz.UTC)
+                updates['completed_at'] = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
             
             doc_ref.update(updates)
             logger.info(f"Updated TODO {todo_id}")
@@ -268,7 +268,7 @@ class TodoManager:
     async def get_pending_reminders(self) -> List[Dict[str, Any]]:
         """リマインダーが必要なTODOを取得"""
         try:
-            now = datetime.now(pytz.UTC)
+            now = datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC)
             
             # 期限が近づいているTODOを取得
             query = (self.db.collection('todos')
