@@ -89,17 +89,23 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 due_date_jst = todo['due_date'].astimezone(pytz.timezone('Asia/Tokyo'))
                 response += f"\n📅 期限: {due_date_jst.strftime('%Y-%m-%d %H:%M')}"
                 
-            witch_create_tips = [
-                "「リスト」って言えば見せてあげるよ",
-                "よくできました、偉いねぇ",
-                "また一つ増えちゃったね",
-                "ちゃんと覚えておいたからね",
-                "やることが増えるのも悪くないさ",
-                "忙しいのは良いことだよ",
-                "さて、いつやるのかな？"
-            ]
-            import random
-            response += "\n\n" + random.choice(witch_create_tips)
+            # 学習システムから適応的な返答を取得
+            try:
+                from learning_system import catherine_learning
+                adaptive_response = await catherine_learning.generate_adaptive_response(
+                    'todo_create', {'priority': todo.get('priority', 'normal')}
+                )
+                response += "\n\n" + adaptive_response
+            except Exception as e:
+                # フォールバック
+                witch_create_tips = [
+                    "「リスト」って言えば見せてあげるよ",
+                    "よくできました、偉いねぇ",
+                    "また一つ増えちゃったね",
+                    "ちゃんと覚えておいたからね"
+                ]
+                import random
+                response += "\n\n" + random.choice(witch_create_tips)
             
         elif action == 'list':
             # TODOリスト表示
@@ -113,17 +119,23 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
             response = intro + "\n\n" + todo_manager.format_todo_list(todos)
             
             if not intent.get('include_completed') and len(todos) > 0:
-                witch_tips = [
-                    "さあ、今日も頑張るんだよ",
-                    "一つずつ片付けていきな",
-                    "やることが山積みだねぇ",
-                    "まったく、忙しい人だこと",
-                    "計画的にやるのが一番さ",
-                    "無理は禁物だからね",
-                    "優先度を考えて取り組みな"
-                ]
-                import random
-                response += "\n" + random.choice(witch_tips)
+                # 学習システムから適応的な一言を取得
+                try:
+                    from learning_system import catherine_learning
+                    adaptive_tip = await catherine_learning.generate_adaptive_response(
+                        'todo_list', {'todo_count': len(todos)}
+                    )
+                    response += "\n" + adaptive_tip
+                except Exception as e:
+                    # フォールバック
+                    witch_tips = [
+                        "さあ、今日も頑張るんだよ",
+                        "一つずつ片付けていきな",
+                        "やることが山積みだねぇ",
+                        "無理は禁物だからね"
+                    ]
+                    import random
+                    response += "\n" + random.choice(witch_tips)
             
         elif action == 'complete':
             # TODO完了
@@ -653,6 +665,15 @@ async def on_message(message: DiscordMessage):
                         message=content,
                         response=response_text
                     )
+                    
+                    # 学習システムで対話から学習
+                    try:
+                        from learning_system import catherine_learning
+                        await catherine_learning.learn_from_conversation(
+                            str(user.id), content, response_text
+                        )
+                    except Exception as e:
+                        logger.error(f"Learning system error: {e}")
                 return
         except ImportError:
             logger.warning("TODO modules not available")
