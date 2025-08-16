@@ -15,7 +15,7 @@ class TodoNLU:
         'list': ['リスト', '一覧', '見せて', '表示', '確認', '何がある', 'todo', 'だして', 'くれ', '出して'],
         'complete': ['完了', '終了', '終わった', 'done', '済み', 'おわり'],
         'delete': ['削除', '消して', '取り消し', 'キャンセル', '中止'],
-        'update': ['変更', '修正', '編集', '更新', '名前', 'リネーム'],
+        'update': ['変更', '修正', '編集', '更新', '名前', 'リネーム', 'を', 'は', 'に', 'の'],
         'priority': ['優先度', '激高', '重要度'],
         'remind': ['リマインド', 'リマインダー', '通知', '教えて', '忘れないで']
     }
@@ -227,13 +227,37 @@ class TodoNLU:
         # 新しい内容を検出
         new_content = None
         
-        # 「1は名前を○○にして」パターン
-        name_change_match = re.search(r'(\d+)(?:は|を)(?:名前を|)(.+?)(?:にして|に変更)', message)
-        if name_change_match:
-            todo_number = int(name_change_match.group(1))
-            new_content = name_change_match.group(2).strip()
-        else:
-            # 従来の変更パターン
+        # より多様なパターンに対応
+        patterns = [
+            # 「1は名前を○○にして」パターン
+            r'(\d+)(?:は|を)(?:名前を|)(.+?)(?:にして|に変更)',
+            # 「1を○○に変更」パターン
+            r'(\d+)を(.+?)(?:に変更|にして|に修正)',
+            # 「1の名前を○○」パターン
+            r'(\d+)の(?:名前を|タイトルを|)(.+)',
+            # 「○番を××に」パターン
+            r'(\d+)番を(.+)に',
+            # 「○番は××」パターン
+            r'(\d+)番は(.+)',
+            # 「○は××にして」パターン
+            r'(\d+)は(.+?)(?:にして|に)',
+            # 「○を××にして」パターン
+            r'(\d+)を(.+?)(?:にして|に)',
+            # 「○を××」パターン
+            r'(\d+)を(.+)',
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, message)
+            if match:
+                todo_number = int(match.group(1))
+                new_content = match.group(2).strip()
+                # 不要な語尾を除去
+                new_content = re.sub(r'(?:して|に変更|に修正|にして)$', '', new_content).strip()
+                break
+        
+        # パターンマッチしなかった場合の従来の方法
+        if not new_content:
             for keyword in self.ACTION_KEYWORDS['update']:
                 if keyword in message.lower():
                     parts = message.split(keyword)
@@ -245,7 +269,7 @@ class TodoNLU:
             'action': 'update',
             'todo_number': todo_number,
             'new_content': new_content,
-            'confidence': 0.6
+            'confidence': 0.8 if new_content else 0.3
         }
     
     def _detect_priority(self, message: str) -> str:
@@ -361,14 +385,38 @@ class TodoNLU:
         number_match = re.search(r'(\d+)', message)
         todo_number = int(number_match.group(1)) if number_match else None
         
-        # 新しい優先度を検出
-        new_priority = self._detect_priority(message.lower())
+        # より多様なパターンに対応
+        priority_patterns = [
+            # 「○は優先度××に」パターン
+            r'(\d+)は(?:優先度|)(.+?)(?:に|にして)',
+            # 「○の優先度を××に」パターン
+            r'(\d+)の優先度を(.+?)(?:に|にして)',
+            # 「○番を××に」パターン（優先度関連の場合）
+            r'(\d+)番を(.+?)(?:に|にして)',
+            # 「○を××優先度に」パターン
+            r'(\d+)を(.+?)(?:優先度に|に)',
+        ]
+        
+        extracted_priority = None
+        for pattern in priority_patterns:
+            match = re.search(pattern, message)
+            if match:
+                todo_number = int(match.group(1))
+                priority_text = match.group(2).strip()
+                # 優先度キーワードから実際の優先度を検出
+                extracted_priority = self._detect_priority(priority_text)
+                if extracted_priority:
+                    break
+        
+        # パターンマッチしなかった場合の従来の方法
+        if not extracted_priority:
+            extracted_priority = self._detect_priority(message.lower())
         
         return {
             'action': 'priority',
             'todo_number': todo_number,
-            'new_priority': new_priority,
-            'confidence': 0.8
+            'new_priority': extracted_priority,
+            'confidence': 0.8 if extracted_priority and todo_number else 0.3
         }
     
     def _parse_remind(self, message: str) -> Dict[str, Any]:

@@ -274,6 +274,12 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     }
                     icon = priority_icons.get(intent['new_priority'], '')
                     response = f"ふむ、優先度を変えるのかい？\n{icon} {result['message']}\n\n📋 リストは自動的に優先度順に並び替えられるよ。激高が一番上にくるからね"
+                    
+                    # 優先度変更後に自動でリストを表示
+                    todos = await todo_manager.get_todos(include_completed=False)
+                    if todos:
+                        response += "\n\n" + "─" * 30 + "\n"
+                        response += todo_manager.format_todo_list(todos)
                 else:
                     response = f"あらら、{result.get('message', '優先度を変更できなかったねぇ')}"
             else:
@@ -296,6 +302,12 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                     ]
                     import random
                     response = random.choice(witch_rename)
+                    
+                    # タイトル変更後に自動でリストを表示
+                    todos = await todo_manager.get_todos(include_completed=False)
+                    if todos:
+                        response += "\n\n" + "─" * 30 + "\n"
+                        response += todo_manager.format_todo_list(todos)
                 else:
                     witch_update_fail = [
                         "あらら、名前変更に失敗したねぇ",
