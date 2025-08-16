@@ -37,6 +37,7 @@ from src.constants import (
 )
 import asyncio
 import pytz
+import uuid
 from src.utils import (
     logger,
     should_block,
@@ -61,6 +62,8 @@ thread_data = defaultdict()
 
 # システム初期化フラグ
 _systems_initialized = False
+# Bot インスタンス識別子
+BOT_INSTANCE_ID = str(uuid.uuid4())[:8]
 
 # システム初期化用のsetup_hook
 @client.event
@@ -72,7 +75,7 @@ async def setup_hook():
         logger.info("Systems already initialized, skipping setup_hook")
         return
         
-    logger.info("Setup hook called - gradual system initialization")
+    logger.info(f"[BOT-{BOT_INSTANCE_ID}] Setup hook called - gradual system initialization")
     
     if FIREBASE_ENABLED:
         try:
@@ -534,7 +537,7 @@ async def save_conversation_to_firebase(user_id: str, channel_id: str, message: 
 
 @client.event
 async def on_ready():
-    logger.info(f"We have logged in as {client.user}. Invite URL: {BOT_INVITE_URL}")
+    logger.info(f"[BOT-{BOT_INSTANCE_ID}] We have logged in as {client.user}. Invite URL: {BOT_INVITE_URL}")
     completion.MY_BOT_NAME = client.user.name
     completion.MY_BOT_EXAMPLE_CONVOS = []
     for c in EXAMPLE_CONVOS:
@@ -753,9 +756,9 @@ async def on_message(message: DiscordMessage):
         if isinstance(message.channel, discord.DMChannel):
             logger.info(f"DM from {user}: {content[:50]}")
         else:
-            logger.info(f"Message from {user} in {message.guild}: {content[:50]}")
+            logger.info(f"[BOT-{BOT_INSTANCE_ID}] Message from {user} in {message.guild}: {content[:50]}")
             
-        logger.info("Processing normal message (non-TODO)")
+        logger.info(f"[BOT-{BOT_INSTANCE_ID}] Processing normal message (non-TODO)")
         
         # Moderate the message
         flagged_str, blocked_str = moderate_message(
@@ -940,4 +943,5 @@ async def on_message(message: DiscordMessage):
 
 # システム初期化はsetup_hookで実行される
 
+logger.info(f"[BOT-{BOT_INSTANCE_ID}] Starting Discord bot...")
 client.run(DISCORD_BOT_TOKEN)
