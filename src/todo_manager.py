@@ -390,8 +390,7 @@ class TodoManager:
             # 優先度アイコンを先頭に、番号とタイトルを表示
             priority = todo.get('priority', 'normal')
             priority_icon = priority_icons.get(priority, '🟡')
-            created_by = todo.get('created_by', 'unknown')
-            formatted += f"{priority_icon} {i}. {todo['title']} (作成者: <@{created_by}>)\n"
+            formatted += f"{priority_icon} {i}. {todo['title']}\n"
             
             if todo.get('description'):
                 formatted += f"   📝 {todo['description']}\n"
