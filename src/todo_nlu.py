@@ -22,10 +22,14 @@ class TodoNLU:
     
     # 優先度キーワード（激高、高、普通、低）
     PRIORITY_KEYWORDS = {
-        'urgent': ['激高', '緊急', '至急', 'すぐ', '今すぐ', 'ASAP', '最優先', '超重要'],
-        'high': ['高', '重要', '大事', '優先', '高め'],
-        'normal': ['普通', '通常', 'ノーマル', '中'],
-        'low': ['低', '低い', 'あとで', '後回し', 'いつでも', '余裕']
+        'urgent': ['激高', '最高優先度', '最優先', '超緊急', '超重要', '緊急', '至急', 
+                  'すぐ', '今すぐ', 'ASAP', 'クリティカル', '最重要', '即座', '即時'],
+        'high': ['高優先度', '高い', '高め', '重要', '大事', '優先', '急ぎ', 
+                '早め', '重視', '大切'],
+        'normal': ['普通', '通常', 'ノーマル', '中', '中程度', '標準', 
+                  'デフォルト', 'ふつう', '並'],
+        'low': ['低優先度', '低い', '低め', 'あとで', '後回し', 'いつでも', 
+               '余裕', 'ゆっくり', '時間がある時', '暇な時', '後で']
     }
     
     # 時間表現パターン（東京時間ベース）
@@ -241,12 +245,36 @@ class TodoNLU:
         }
     
     def _detect_priority(self, message: str) -> str:
-        """メッセージから優先度を検出"""
-        for priority, keywords in self.PRIORITY_KEYWORDS.items():
-            for keyword in keywords:
-                if keyword in message:
-                    return priority
-        return 'normal'
+        """メッセージから優先度を検出（長いキーワードを優先）"""
+        # 「激高」が「高」より優先されるよう、長いキーワードから順にチェック
+        message_lower = message.lower()
+        
+        # urgent（激高）を最初にチェック - 最も具体的なキーワードから
+        urgent_keywords = ['激高', '最高優先度', '最優先', '超緊急', '超重要', 'クリティカル', 
+                          '最重要', '即座', '即時', '緊急', '至急', 'すぐ', '今すぐ', 'asap']
+        if any(keyword in message_lower for keyword in urgent_keywords):
+            return 'urgent'
+        
+        # low（低）をチェック - 「高」の誤認識を防ぐため先にチェック
+        low_keywords = ['低優先度', '低い', '低め', 'あとで', '後回し', 'いつでも', 
+                       '余裕', 'ゆっくり', '時間がある時', '暇な時', '後で']
+        if any(keyword in message_lower for keyword in low_keywords):
+            return 'low'
+        
+        # high（高）をチェック（「激高」「低」が含まれていないことを確認）
+        if '激高' not in message_lower and '低' not in message_lower:
+            high_keywords = ['高優先度', '高い', '高め', '高', '重要', '大事', '優先', 
+                           '急ぎ', '早め', '重視', '大切']
+            if any(keyword in message_lower for keyword in high_keywords):
+                return 'high'
+        
+        # normal（普通）をチェック
+        normal_keywords = ['普通', '通常', 'ノーマル', '中程度', '標準', 
+                         'デフォルト', 'ふつう', '並', '中']
+        if any(keyword in message_lower for keyword in normal_keywords):
+            return 'normal'
+        
+        return 'normal'  # デフォルト
     
     def _detect_due_date(self, message: str) -> Optional[datetime]:
         """メッセージから期限を検出"""
