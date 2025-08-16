@@ -197,7 +197,40 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
         elif action == 'remind':
             # リマインダー設定
             logger.info(f"Remind intent: {intent}")  # デバッグログ
-            if intent.get('is_list_reminder'):
+            
+            # カスタムメッセージリマインダーの場合
+            if intent.get('custom_message') and not intent.get('todo_number') and not intent.get('is_list_reminder'):
+                remind_time = intent.get('remind_time')
+                if remind_time:
+                    from scheduler_system import scheduler_system
+                    if scheduler_system:
+                        todo_data = {
+                            'user_id': user_id,
+                            'custom_message': intent['custom_message'],
+                            'channel_target': intent.get('channel_target', 'todo'),
+                            'mention_target': intent.get('mention_target', 'everyone'),
+                            'is_list_reminder': False
+                        }
+                        
+                        task_id = await scheduler_system.schedule_reminder(
+                            remind_time, 
+                            todo_data, 
+                            is_recurring=False
+                        )
+                        
+                        # JSTで表示
+                        time_jst = remind_time.astimezone(pytz.timezone('Asia/Tokyo'))
+                        time_str = time_jst.strftime('%Y-%m-%d %H:%M JST')
+                        mention_str = f'@{intent.get("mention_target", "everyone")}'
+                        channel_str = f'#{intent.get("channel_target", "todo")}チャンネル'
+                        
+                        response = f"🔔 カスタムメッセージ「{intent['custom_message']}」のリマインダーを{time_str}に{channel_str}で{mention_str}宛に設定しました"
+                    else:
+                        response = "❌ スケジューラーシステムが利用できません"
+                else:
+                    response = "❌ リマインダー時間を指定してください"
+                    
+            elif intent.get('is_list_reminder'):
                 # 全リスト通知の設定
                 remind_time = intent.get('remind_time')
                 remind_type = intent.get('remind_type', 'custom')
@@ -315,7 +348,8 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                 'title': result.get('todo_title', 'TODO'),
                                 'channel_target': result.get('channel_target', 'todo'),
                                 'mention_target': result.get('mention_target', 'everyone'),
-                                'is_list_reminder': False
+                                'is_list_reminder': False,
+                                'custom_message': result.get('custom_message')
                             }
                             
                             task_id = await scheduler_system.schedule_reminder(

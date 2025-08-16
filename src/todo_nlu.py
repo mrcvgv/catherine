@@ -413,6 +413,13 @@ class TodoNLU:
             if channel_match:
                 channel_target = channel_match.group(1)
         
+        # カスタムメッセージを検出（「。」の後にあるメッセージ）
+        custom_message = None
+        if '。' in message:
+            parts = message.split('。', 1)
+            if len(parts) > 1 and parts[1].strip():
+                custom_message = parts[1].strip()
+        
         return {
             'action': 'remind',
             'todo_number': todo_number,
@@ -421,6 +428,7 @@ class TodoNLU:
             'mention_target': mention_target,
             'channel_target': channel_target,
             'is_list_reminder': is_list_reminder,
+            'custom_message': custom_message,
             'confidence': 0.7
         }
 
