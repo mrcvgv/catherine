@@ -1,390 +1,217 @@
-# Catherine AI - OpenAI GPT Discord Bot + Firebase Integration
+# Catherine AI - 荒れ地の魔女風 TODO管理 Discord Bot
 
-## 🤖 Overview
-Advanced Discord bot powered by OpenAI's latest GPT models (including GPT-4o) with Firebase conversation logging and long-term memory. Based on OpenAI's official GPT Discord Bot with enhanced Firebase integration for persistent conversation storage and intelligent context retention.
+## 🧙‍♀️ 概要
 
-## ✨ Features
+Catherineは荒れ地の魔女のような品のあるおばあさんの性格を持つAI秘書です。  
+Discord上でTODO管理、リマインダー設定、そして自然な会話ができます。
 
-### 🧠 **AI Conversation**
-- **Latest OpenAI Models**: Supports GPT-4o, GPT-4o-mini, GPT-4, and GPT-3.5-turbo
-- **Thread-based Conversations**: Each conversation runs in a dedicated Discord thread
-- **Context Retention**: Maintains conversation history within threads
-- **Long-term Memory**: Firebase integration provides persistent conversation history
-- **Intelligent Moderation**: Built-in content filtering and moderation
-- **Customizable Personality**: Configure bot behavior via `config.yaml`
+## ✨ 主な機能
 
-### 🔥 **Firebase Long-term Memory**
-- **Conversation Logging**: All conversations automatically saved to Firestore
-- **Memory Retention**: Bot can reference past conversations across sessions
-- **User History Tracking**: Track conversation patterns and usage over time
-- **Persistent Storage**: Never lose conversation data
-- **Structured Data**: Organized conversation data with timestamps and metadata
-- **Cross-session Context**: Bot remembers you across different conversations
+### 📝 **TODO管理システム**
+- **自然言語でTODO操作**: 「アクリルキーホルダー入稿を追加」のような自然な文章でTODO追加
+- **優先度システム**: ⚫激高、🔴高、🟡普通、🟢低の4段階優先度
+- **自動ソート**: 優先度順に自動並び替え（激高 → 高 → 普通 → 低）
+- **複数削除**: 「1.2.3.5は削除して」で複数のTODOを一度に削除
+- **優先度変更**: 「5は優先度激高に変えて」で簡単に優先度変更
+- **名前変更**: 「1は買い物リストにして」でTODO名前変更
 
-### 🛡️ **Moderation & Safety**
-- **Content Filtering**: Automatic detection of inappropriate content
-- **Server-specific Controls**: Configure moderation per Discord server
-- **Admin Controls**: Manage allowed servers and moderation channels
-- **Safe Conversations**: Blocked content is automatically removed
+### ⏰ **リマインダーシステム**
+- **個別リマインダー**: 「1を1分後にリマインドして」で個別TODO通知
+- **毎日リマインダー**: 「毎日毎朝8:30に全リストをリマインドして」で定期通知
+- **チャンネル指定**: #todoチャンネルなど、指定したチャンネルに通知
+- **メンション機能**: @everyoneや特定ユーザーへのメンション通知
 
-## 📋 Commands
+### 🎭 **荒れ地の魔女パーソナリティ**
+- **魔女風の口調**: 「ふふ、また仕事を増やすのかい？」のような品のある魔女らしい話し方
+- **ランダムな一言**: TODOリスト表示時に毎回違った魔女らしいコメント
+- **時間帯挨拶**: 朝、昼、夜に応じた魔女らしい挨拶
+- **優先度コメント**: 優先度に応じた魔女らしいアドバイス
 
-### **Primary Commands**
+## 🗣️ 使い方
 
-#### `/chat [message] [model] [temperature] [max_tokens]`
-Start a new AI conversation thread.
+### **基本的なTODO操作**
 
-**Parameters:**
-- `message` (required): Your initial message to the AI
-- `model` (optional): AI model to use (default: gpt-3.5-turbo)
-- `temperature` (optional): Creativity level 0.0-1.0 (default: 1.0)
-- `max_tokens` (optional): Maximum response length (default: 512)
-
-**Examples:**
+#### TODO追加
 ```
-/chat Hello, how are you today?
-/chat Tell me a story model:gpt-4 temperature:0.8
-/chat Explain quantum physics max_tokens:1000
+アクリルキーホルダー入稿を追加
+「買い物リスト」を作成
+明日までに資料作成（激高優先度）
 ```
 
-**What happens:**
-1. Creates a new public thread
-2. Bot responds with an embed showing conversation details
-3. Continue the conversation by sending messages in the thread
-4. All messages are saved to Firebase automatically
+#### TODOリスト表示
+```
+リスト
+一覧見せて
+TODOだして
+```
 
-### **Thread Conversations**
-Once a `/chat` command creates a thread, you can:
+#### TODO削除
+```
+1番削除
+2.3.5は消して
+1と4を削除して
+```
 
-- **Continue Chatting**: Just send messages normally in the thread
-- **Context Preserved**: Bot remembers everything said in the thread
-- **Auto-close**: Thread closes automatically after reaching message limit or inactivity
-- **Moderation**: All messages are filtered for safety
+#### 優先度変更
+```
+5は優先度激高に変えて
+3を高優先度にして
+1は普通にして
+```
 
-**Thread Features:**
-- Thread name starts with "🤖-chat" prefix
-- Maximum of 100 messages per thread
-- Automatic closure when limit reached
-- Real-time typing indicators
-- Message history preserved
+#### TODO名前変更
+```
+1は買い物リストにして
+2の名前を会議準備に変更
+```
 
-## 🚀 Setup & Installation
+### **リマインダー設定**
 
-### **1. Prerequisites**
-- Python 3.9+ (tested with Python 3.12)
-- Discord Bot Token
-- OpenAI API Key
-- Firebase Project (optional, for conversation logging)
+#### 個別リマインダー
+```
+1を1分後にリマインドして
+3を明日リマインド
+5を今すぐリマインド
+```
 
-### **2. Environment Configuration**
+#### 毎日リマインダー
+```
+毎日毎朝8:30に全リストをリマインドして
+毎晩22:00にリストを通知して
+```
 
-Copy `.env.example` to `.env` and configure:
+### **Catherineとの会話**
+TODOコマンド以外にも、Catherineと自然に会話できます。OpenAI GPT-4oを使った高品質な対話が可能です。
 
+## 🎯 優先度システム
+
+### 優先度レベル
+- **⚫ 激高**: 最高優先度、緊急、クリティカル、即座対応
+- **🔴 高**: 重要、大事、優先、急ぎ
+- **🟡 普通**: 通常、標準、デフォルト（設定なしの場合）
+- **🟢 低**: 後回し、あとで、いつでも、余裕がある時
+
+### 自動ソート機能
+- TODOリストは常に優先度順で表示
+- 優先度変更時に自動的にリストが並び替え
+- 同じ優先度内では作成日順でソート
+
+## ⚙️ セットアップ
+
+### 1. 環境変数設定
 ```env
-# Required Settings
-OPENAI_API_KEY=sk-your-openai-api-key-here
-DISCORD_BOT_TOKEN=your-discord-bot-token-here
-DISCORD_CLIENT_ID=your-discord-client-id-here
+# Discord設定
+DISCORD_BOT_TOKEN=your-bot-token
+DISCORD_CLIENT_ID=your-client-id
+ALLOWED_SERVER_IDS=your-server-ids
 
-# Server Configuration  
-ALLOWED_SERVER_IDS=123456789,987654321
-SERVER_TO_MODERATION_CHANNEL=server_id:channel_id
+# OpenAI設定
+OPENAI_API_KEY=sk-your-openai-key
 
-# AI Configuration
-DEFAULT_MODEL=gpt-4o
+# Firebase設定（TODO管理用）
+# firebase-key.json ファイルをプロジェクトルートに配置
 ```
 
-### **3. Discord Bot Setup**
+### 2. Discordボット権限
+- メッセージを送信
+- メッセージ履歴を読む
+- スラッシュコマンドを使用
+- メンション@everyoneを使用
 
-1. **Create Application**: Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. **Create Bot**: Go to Bot tab → Add Bot
-3. **Get Token**: Copy bot token to `.env`
-4. **Enable Intents**: Turn ON "Message Content Intent"
-5. **Get Client ID**: Copy from OAuth2 → General
-6. **Bot Permissions**: 
-   - Send Messages
-   - Send Messages in Threads  
-   - Create Public Threads
-   - Manage Messages (for moderation)
-   - Manage Threads
-   - Read Message History
-   - Use Application Commands
+### 3. Firebase設定
+- Firestoreデータベースを有効化
+- サービスアカウントキーを`firebase-key.json`として保存
 
-### **4. OpenAI API Setup**
+## 🚀 デプロイ
 
-1. **Get API Key**: Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
-2. **Create Key**: Generate new secret key
-3. **Add to .env**: `OPENAI_API_KEY=sk-your-key-here`
-4. **Set Model**: Choose `gpt-4o`, `gpt-4o-mini`, `gpt-4`, or `gpt-3.5-turbo`
-
-### **5. Firebase Setup (Optional)**
-
-Firebase enables conversation logging and history tracking.
-
-1. **Create Project**: [Firebase Console](https://console.firebase.google.com)
-2. **Enable Firestore**: Create Firestore database
-3. **Service Account**: Project Settings → Service Accounts → Generate Key
-4. **Add JSON File**: Place service account JSON in project root as `firebase-key.json`
-
-**Firebase Collections Created:**
-- `conversations`: Stores all chat interactions
-  ```json
-  {
-    "user_id": "123456789",
-    "channel_id": "987654321", 
-    "user_message": "Hello!",
-    "bot_response": "Hi there! How can I help?",
-    "timestamp": "2024-01-01T12:00:00Z",
-    "message_type": "chat_completion"
-  }
-  ```
-
-### **6. Installation & Running**
-
-**Local Development:**
+### Railway（推奨）
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# リポジトリをRailwayに接続
+# 環境変数を設定
+# 自動デプロイ
+```
 
-# Run the bot
+### ローカル実行
+```bash
+pip install -r requirements.txt
 python -m src.main
 ```
 
-**Docker:**
-```bash
-# Build image
-docker build -t catherine-ai .
+## 🤖 Catherineの性格
 
-# Run container  
-docker run -d --env-file .env catherine-ai
+### 基本的な話し方
+- 「ふふ、○○だね」「やれやれ、○○だよ」
+- 「あらあら」「おやおや」「まったく」
+- 品があって少し意地悪だけど優しいおばあさん
+
+### TODOに対するコメント例
+- 「ふむ、『アクリルキーホルダー入稿』ね。覚えておいてあげるよ」
+- 「また仕事を増やすのかい？まったく、忙しい人だねぇ」
+- 「優先度を変えるのかい？まあ、大事なことは先にやるもんだよ」
+
+### ランダムな一言集
+- 「さあ、今日も頑張るんだよ」
+- 「一つずつ片付けていきな」
+- 「やることが山積みだねぇ」
+- 「まったく、忙しい人だこと」
+
+## 📊 データ管理
+
+### Firebase構造
 ```
+todos/
+  ├── user_id: "Discord ユーザーID"
+  ├── title: "TODOタイトル"
+  ├── priority: "urgent|high|normal|low"
+  ├── status: "pending|completed"
+  ├── created_at: "作成日時（JST）"
+  └── due_date: "期限日時（設定時）"
 
-## 🌐 Deployment
-
-### **Railway (Recommended)**
-
-Railway deployment is fully configured and ready.
-
-1. **Connect Repository**: Link your GitHub repo to Railway
-2. **Set Environment Variables**: Configure in Railway dashboard
-3. **Deploy**: Automatic deployment on git push
-
-**Required Railway Environment Variables:**
-```
-OPENAI_API_KEY=sk-your-key-here
-DISCORD_BOT_TOKEN=your-token-here
-DISCORD_CLIENT_ID=your-client-id-here
-ALLOWED_SERVER_IDS=your-server-ids
-```
-
-**Files for Railway:**
-- `railway.toml`: Deployment configuration
-- `Procfile`: Start command
-- `requirements.txt`: Dependencies
-
-### **Other Platforms**
-
-The bot can be deployed to any platform supporting Python:
-- **Heroku**: Use `Procfile`
-- **Google Cloud**: Use `runtime.txt` 
-- **AWS**: Use Lambda or EC2
-- **DigitalOcean**: App Platform or Droplets
-
-## ⚙️ Configuration
-
-### **Bot Personality (`src/config.yaml`)**
-
-Customize the AI's behavior and personality:
-
-```yaml
-name: Catherine AI
-instructions: |
-  You are Catherine AI, a helpful and friendly assistant.
-  You provide thoughtful, accurate responses.
-  You maintain a warm and supportive tone.
-  You can discuss any topic but keep conversations appropriate.
-  
-example_conversations:
-  - messages:
-      - user: Hello!
-        text: Hi there! I'm Catherine AI. How can I help you today?
-      - user: What can you do?
-        text: I can help with questions, have conversations, provide explanations, and much more! What would you like to talk about?
-```
-
-### **Moderation Settings (`src/constants.py`)**
-
-Fine-tune content moderation:
-
-```python
-# Moderation thresholds (0.0 = strict, 1.0 = permissive)
-HATE_THRESHOLD = 0.7
-HATE_THREATENING_THRESHOLD = 0.7  
-HARASSMENT_THRESHOLD = 0.7
-SELF_HARM_THRESHOLD = 0.7
-SEXUAL_THRESHOLD = 0.7
-SEXUAL_MINORS_THRESHOLD = 0.7
-VIOLENCE_THRESHOLD = 0.7
-VIOLENCE_GRAPHIC_THRESHOLD = 0.7
-```
-
-### **Advanced Settings**
-
-Modify behavior in `src/constants.py`:
-
-```python
-# Thread settings
-MAX_THREAD_MESSAGES = 100        # Messages before auto-close
-SECONDS_DELAY_RECEIVING_MSG = 2  # Delay before processing
-ACTIVATE_THREAD_PREFX = "🤖-chat"  # Thread name prefix
-
-# AI settings  
-AVAILABLE_MODELS = ["gpt-3.5-turbo", "gpt-4", "gpt-4o", "gpt-4o-mini"]
-DEFAULT_MODEL = "gpt-4o"
-```
-
-## 📊 Usage Examples
-
-### **Basic Conversation**
-```
-User: /chat Hello, what's the weather like today?
-Catherine: I don't have access to real-time weather data, but I'd be happy to help you in other ways! Is there something specific you'd like to know or discuss?
-
-User: Tell me about artificial intelligence
-Catherine: [Continues conversation in thread with detailed AI explanation...]
-```
-
-### **Creative Writing**
-```
-User: /chat Write a short story about a robot temperature:0.9 max_tokens:800
-Catherine: [Creates thread and writes creative story...]
-```
-
-### **Technical Help**
-```  
-User: /chat Explain how to use Python decorators model:gpt-4
-Catherine: [Provides detailed Python decorator explanation...]
-```
-
-### **Conversation Management**
-- **New Topic**: Start new `/chat` command
-- **Continue**: Keep chatting in existing thread  
-- **History**: All conversations saved to Firebase
-- **Moderation**: Inappropriate content automatically handled
-
-## 🔧 Advanced Features
-
-### **Multi-Server Support**
-- Configure different servers with `ALLOWED_SERVER_IDS`
-- Per-server moderation channels
-- Server-specific conversation logging
-
-### **Firebase Data Structure**
-```
 conversations/
-  ├── {document_id}/
-      ├── user_id: "123456789"
-      ├── channel_id: "thread_id"  
-      ├── user_message: "User's message"
-      ├── bot_response: "AI response"
-      ├── timestamp: "ISO timestamp"
-      └── message_type: "chat_completion"
+  ├── user_id: "ユーザーID"
+  ├── user_message: "ユーザーメッセージ"
+  ├── bot_response: "Catherineの返答"
+  └── timestamp: "日時（JST）"
 ```
 
-### **Monitoring & Analytics**
-- Track conversation patterns in Firebase
-- Monitor user engagement
-- Analyze popular topics and usage
+## 🔧 カスタマイズ
 
-### **Error Handling**
-- Automatic retry for API failures
-- Graceful handling of rate limits
-- Comprehensive error logging
-- Failed message recovery
+### 魔女パーソナリティの調整
+`src/personality_system.py`で話し方や性格をカスタマイズ可能：
+- 基本的な口調パターン
+- 状況別の返答バリエーション
+- 時間帯別の挨拶
 
-## 🚨 Troubleshooting
+### NLU（自然言語理解）の調整
+`src/todo_nlu.py`でコマンド認識をカスタマイズ：
+- 優先度キーワードの追加
+- 新しいアクションパターンの追加
+- 時間表現の拡張
 
-### **Common Issues**
+## 🚨 トラブルシューティング
 
-**Bot doesn't respond to `/chat`:**
-- Check `DISCORD_BOT_TOKEN` is correct
-- Verify bot has required permissions
-- Ensure server ID is in `ALLOWED_SERVER_IDS`
+### よくある問題
 
-**OpenAI API errors:**
-- Verify `OPENAI_API_KEY` is valid
-- Check API usage/billing limits
-- Try different model (gpt-3.5-turbo vs gpt-4)
+**Catherineが反応しない**
+- Discord Bot Tokenが正しいか確認
+- サーバーIDがALLOWED_SERVER_IDSに含まれているか確認
 
-**Firebase connection issues:**
-- Confirm service account JSON file is present
-- Check Firestore database is enabled
-- Verify Firebase project configuration
+**TODOが保存されない**
+- firebase-key.jsonファイルが存在するか確認
+- Firestoreが有効化されているか確認
 
-**Moderation too strict/loose:**
-- Adjust threshold values in `constants.py`
-- Configure `SERVER_TO_MODERATION_CHANNEL`
+**リマインダーが動作しない**
+- スケジューラーシステムが起動しているか確認
+- 時間指定が正しく認識されているか確認
 
-### **Debug Mode**
+## 💡 使用のコツ
 
-Enable detailed logging by setting:
-```python
-logging.basicConfig(level=logging.DEBUG)
-```
-
-## 📈 Performance & Limits
-
-### **Rate Limits**
-- **OpenAI API**: 3,500 requests/minute (varies by plan)
-- **Discord API**: 50 requests/second globally
-- **Thread Limit**: 100 messages per conversation
-
-### **Optimization Tips**
-- Use `gpt-3.5-turbo` for faster, cheaper responses
-- Set appropriate `max_tokens` limits
-- Configure `temperature` based on use case
-- Monitor Firebase usage costs
-
-### **Scaling**
-- Deploy multiple instances for high traffic
-- Use Redis for shared session storage
-- Implement conversation archiving
-- Set up load balancing
-
-## 🤝 Contributing
-
-This bot is based on OpenAI's official GPT Discord Bot template with Firebase integration enhancements.
-
-**Development:**
-1. Fork the repository
-2. Create feature branch
-3. Add tests for new features  
-4. Submit pull request
-
-**Bug Reports:**
-- Use GitHub Issues
-- Include error logs
-- Provide reproduction steps
-
-## 📝 License
-
-MIT License - Use freely for personal and commercial projects.
-
-## 🙏 Acknowledgments
-
-- **OpenAI**: GPT Discord Bot template
-- **Firebase**: Conversation storage and analytics
-- **Discord.py**: Discord API wrapper
-- **Railway**: Deployment platform
+1. **自然な文章でOK**: 「○○を追加して」「○○は削除」など自然に話しかける
+2. **優先度は後からでも変更可能**: まずはTODOを追加してから優先度調整
+3. **番号で操作**: 表示された番号で削除や変更が簡単
+4. **毎日リマインダーが便利**: 朝の習慣として全TODOを確認
+5. **Catherineとの雑談も楽しめる**: TODO以外の話題でも会話可能
 
 ---
 
-## 💡 Pro Tips
-
-1. **Conversation Management**: Use descriptive `/chat` messages to set context
-2. **Model Selection**: Use GPT-4o for best performance, GPT-4o-mini for speed, GPT-4 for complex tasks, GPT-3.5-turbo for casual chat
-3. **Temperature Control**: Lower values (0.3) for factual answers, higher (0.8) for creativity
-4. **Firebase Analytics**: Query conversation data for insights and improvements
-5. **Moderation Tuning**: Start strict, then relax based on your community needs
-
-**Happy chatting with Catherine AI! 🤖✨**
+**荒れ地の魔女Catherineと一緒に、効率的なTODO管理を始めましょう！ 🧙‍♀️✨**
