@@ -169,6 +169,47 @@ class TodoManager:
             logger.error(f"Failed to delete multiple TODOs: {e}")
             return {'success': False, 'message': 'TODOの削除に失敗しました'}
     
+    async def update_todo_priority_by_number(self, todo_number: int, user_id: str, new_priority: str) -> Dict[str, Any]:
+        """番号指定でTODOの優先度を更新"""
+        try:
+            # ユーザーのTODOリストを取得
+            todos = await self.get_todos(user_id)
+            
+            if not todos:
+                return {'success': False, 'message': 'TODOリストが空です'}
+            
+            # 番号の有効性をチェック（1ベース）
+            if not (1 <= todo_number <= len(todos)):
+                return {'success': False, 'message': f'番号 {todo_number} は存在しません（1-{len(todos)}の範囲で指定してください）'}
+            
+            # 更新対象のTODOを取得
+            todo_to_update = todos[todo_number - 1]
+            old_priority = todo_to_update.get('priority', 'normal')
+            
+            # 優先度を更新
+            success = await self.update_todo(todo_to_update['id'], user_id, priority=new_priority)
+            
+            priority_names = {
+                'urgent': '激高',
+                'high': '高',
+                'normal': '普通',
+                'low': '低'
+            }
+            
+            if success:
+                return {
+                    'success': True,
+                    'message': f'TODO {todo_number} の優先度を{priority_names.get(new_priority, new_priority)}に変更しました',
+                    'old_priority': old_priority,
+                    'new_priority': new_priority
+                }
+            else:
+                return {'success': False, 'message': 'TODOの優先度更新に失敗しました'}
+            
+        except Exception as e:
+            logger.error(f"Failed to update TODO priority by number: {e}")
+            return {'success': False, 'message': 'TODOの優先度更新に失敗しました'}
+    
     async def update_todo_by_number(self, todo_number: int, user_id: str, new_title: str) -> Dict[str, Any]:
         """番号指定でTODOのタイトルを更新"""
         try:
@@ -329,11 +370,21 @@ class TodoManager:
         if not todos:
             return "📝 TODOリストは空です。"
         
+        # 優先度アイコン定義（激高、高、普通、低）
+        priority_icons = {
+            'urgent': '⚫',   # 激高
+            'high': '🔴',     # 高
+            'normal': '🟡',   # 普通
+            'low': '🟢'       # 低い
+        }
+        
         formatted = "📋 **TODOリスト**\n\n"
         
         for i, todo in enumerate(todos, 1):
-            # シンプルに番号とタイトルのみ表示
-            formatted += f"{i}. {todo['title']}\n"
+            # 優先度アイコンを先頭に、番号とタイトルを表示
+            priority = todo.get('priority', 'normal')
+            priority_icon = priority_icons.get(priority, '🟡')
+            formatted += f"{priority_icon} {i}. {todo['title']}\n"
             
             if todo.get('description'):
                 formatted += f"   📝 {todo['description']}\n"
