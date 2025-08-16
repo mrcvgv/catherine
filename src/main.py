@@ -153,10 +153,12 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
         
         elif action == 'remind':
             # リマインダー設定
+            logger.info(f"Remind intent: {intent}")  # デバッグログ
             if intent.get('is_list_reminder'):
                 # 全リスト通知の設定
                 remind_time = intent.get('remind_time')
                 remind_type = intent.get('remind_type', 'custom')
+                logger.info(f"Setting list reminder at {remind_time}, type: {remind_type}")  # デバッグログ
                 
                 if remind_time:
                     # スケジューラーに登録
@@ -176,7 +178,9 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                             is_recurring=(remind_type == 'recurring')
                         )
                         
-                        time_str = remind_time.strftime('%Y-%m-%d %H:%M')
+                        # JSTで表示
+                        time_jst = remind_time.astimezone(pytz.timezone('Asia/Tokyo'))
+                        time_str = time_jst.strftime('%Y-%m-%d %H:%M JST')
                         mention_str = f'@{intent.get("mention_target", "everyone")}'
                         channel_str = f'#{intent.get("channel_target", "todo")}チャンネル'
                         recurring_str = '（毎日繰り返し）' if remind_type == 'recurring' else ''

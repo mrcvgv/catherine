@@ -95,7 +95,8 @@ class TodoNLU:
         
         # リマインダー関連の優先チェック
         if any(word in message for word in ['リマインド', 'リマインダー', '通知', '忘れないで']):
-            if re.search(r'(\d+)', message):  # 番号が含まれている場合
+            # 番号が含まれているか、全リストの場合
+            if re.search(r'(\d+)', message) or any(word in message for word in ['全リスト', 'リスト', '一覧']):
                 return 'remind'
         
         max_score = 0
@@ -279,8 +280,8 @@ class TodoNLU:
             hours = int(hours_match.group(1))
             return datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC) + timedelta(hours=hours)
         
-        # 毎日の時間指定パターン（例: 毎朝8:30、毎日8:30）
-        daily_time_match = re.search(r'毎日.*?(\d{1,2})[：:時](\d{1,2})', message)
+        # 毎日の時間指定パターン（例: 毎朝8:30、毎日8:30、毎日毎朝8:30）
+        daily_time_match = re.search(r'(?:毎日|毎朝|毎晩).*?(\d{1,2})[：:時](\d{1,2})', message)
         if daily_time_match:
             hour = int(daily_time_match.group(1))
             minute = int(daily_time_match.group(2))
@@ -327,7 +328,7 @@ class TodoNLU:
         remind_type = 'custom'
         if '今すぐ' in message or 'すぐ' in message:
             remind_type = 'immediate'
-        elif any(word in message for word in ['毎日', '毎朝', '毎晩']):
+        elif any(word in message for word in ['毎日', '毎朝', '毎晩', '毎日毎朝']):
             remind_type = 'recurring'
         
         # 全リスト通知の判定

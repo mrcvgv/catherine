@@ -243,7 +243,9 @@ class TodoManager:
                         'todo_title': title
                     }
                 else:
-                    time_str = remind_time.strftime('%Y-%m-%d %H:%M') if remind_time else '指定時間'
+                    # JSTで表示
+                    time_jst = remind_time.astimezone(pytz.timezone('Asia/Tokyo')) if remind_time else None
+                    time_str = time_jst.strftime('%Y-%m-%d %H:%M JST') if time_jst else '指定時間'
                     mention_str = f'@{mention_target}' if mention_target != 'everyone' else '@everyone'
                     channel_str = f'#{channel_target}チャンネル'
                     return {
