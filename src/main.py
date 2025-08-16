@@ -88,7 +88,7 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                 due_date_jst = todo['due_date'].astimezone(pytz.timezone('Asia/Tokyo'))
                 response += f"\n📅 期限: {due_date_jst.strftime('%Y-%m-%d %H:%M')}"
                 
-            response += "\n\n💡 「リスト」って言えば見せてあげるよ"
+            response += "\n\n💡 「リスト」って言えば見せてあげるよ（優先度順に表示されるからね）"
             
         elif action == 'list':
             # TODOリスト表示
@@ -161,7 +161,7 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                         'low': '🟢'
                     }
                     icon = priority_icons.get(intent['new_priority'], '')
-                    response = f"ふむ、優先度を変えるのかい？\n{icon} {result['message']}\n\nまあ、大事なことは先にやるもんだよ"
+                    response = f"ふむ、優先度を変えるのかい？\n{icon} {result['message']}\n\n📋 リストは自動的に優先度順に並び替えられるよ。激高が一番上にくるからね"
                 else:
                     response = f"あらら、{result.get('message', '優先度を変更できなかったねぇ')}"
             else:

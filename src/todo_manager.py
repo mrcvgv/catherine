@@ -49,7 +49,7 @@ class TodoManager:
     
     async def get_todos(self, user_id: str, status: Optional[str] = None, 
                         include_completed: bool = False) -> List[Dict[str, Any]]:
-        """ユーザーのTODOリストを取得"""
+        """ユーザーのTODOリストを取得（優先度順にソート）"""
         try:
             query = self.db.collection('todos').where(filter=FieldFilter('user_id', '==', user_id))
             
@@ -67,6 +67,13 @@ class TodoManager:
                 todo_data = doc.to_dict()
                 todo_data['id'] = doc.id
                 todos.append(todo_data)
+            
+            # 優先度でソート：激高 → 高 → 普通 → 低い
+            priority_order = {'urgent': 0, 'high': 1, 'normal': 2, 'low': 3}
+            todos.sort(key=lambda todo: (
+                priority_order.get(todo.get('priority', 'normal'), 2),  # 優先度順
+                todo.get('created_at', datetime.min.replace(tzinfo=pytz.UTC))  # 同じ優先度なら作成日順
+            ))
             
             return todos
             
@@ -366,7 +373,7 @@ class TodoManager:
             return []
     
     def format_todo_list(self, todos: List[Dict[str, Any]]) -> str:
-        """TODOリストを読みやすい形式にフォーマット"""
+        """TODOリストを読みやすい形式にフォーマット（優先度順）"""
         if not todos:
             return "📝 TODOリストは空です。"
         
@@ -378,7 +385,7 @@ class TodoManager:
             'low': '🟢'       # 低い
         }
         
-        formatted = "📋 **TODOリスト**\n\n"
+        formatted = "📋 **TODOリスト** （優先度順）\n\n"
         
         for i, todo in enumerate(todos, 1):
             # 優先度アイコンを先頭に、番号とタイトルを表示
