@@ -102,7 +102,17 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
             response = intro + "\n\n" + todo_manager.format_todo_list(todos)
             
             if not intent.get('include_completed') and len(todos) > 0:
-                response += "\n💡 完了したのも見たいなら「完了も見せて」って言いな"
+                witch_tips = [
+                    "💡 終わったやつも見たいなら「完了も見せて」だよ",
+                    "💡 片付いたのも確認したいなら「完了も見せて」って言うんだ",
+                    "💡 済んだタスクも見るには「完了も見せて」だね",
+                    "💡 やり終えたのも表示したいなら「完了も見せて」さ",
+                    "💡 完了分も確認するなら「完了も見せて」って頼みな",
+                    "💡 終了済みも見たければ「完了も見せて」と言いな",
+                    "💡 片付けたやつも見るには「完了も見せて」だよ"
+                ]
+                import random
+                response += "\n" + random.choice(witch_tips)
             
         elif action == 'complete':
             # TODO完了
