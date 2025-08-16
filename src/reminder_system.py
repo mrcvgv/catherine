@@ -23,6 +23,7 @@ class ReminderSystem:
     async def start(self):
         """リマインダーシステムを開始"""
         if self.running:
+            logger.info("リマインダーシステムは既に実行中です")
             return
             
         self.running = True

@@ -59,10 +59,19 @@ client = discord.Client(intents=intents)
 tree = discord.app_commands.CommandTree(client)
 thread_data = defaultdict()
 
+# システム初期化フラグ
+_systems_initialized = False
+
 # システム初期化用のsetup_hook
 @client.event
 async def setup_hook():
     """Bot起動時にシステムを初期化"""
+    global _systems_initialized
+    
+    if _systems_initialized:
+        logger.info("Systems already initialized, skipping setup_hook")
+        return
+        
     logger.info("Setup hook called - gradual system initialization")
     
     if FIREBASE_ENABLED:
@@ -98,10 +107,12 @@ async def setup_hook():
                 logger.error(f"Failed to start reminder system: {e}")
                 
             logger.info("Phase 1 & 2 system initialization completed in setup_hook")
+            _systems_initialized = True
         except Exception as e:
             logger.error(f"Failed to initialize systems in setup_hook: {e}")
     else:
         logger.info("Firebase not enabled, skipping system initialization")
+        _systems_initialized = True
     
     logger.info("Setup hook completed")
 

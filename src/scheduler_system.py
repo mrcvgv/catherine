@@ -21,6 +21,7 @@ class SchedulerSystem:
     async def start(self):
         """スケジューラーを開始"""
         if self.running:
+            logger.info("スケジューラーシステムは既に実行中です")
             return
             
         self.running = True
