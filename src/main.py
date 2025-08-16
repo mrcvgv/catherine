@@ -364,7 +364,7 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                         if 'mrcvgl' in member.name.lower() or 'mrcvgl' in member.display_name.lower():
                                             mrc_user = member
                                             break
-                                    mention = mrc_user.mention if mrc_user else '<@mrcvgl>'
+                                    mention = mrc_user.mention if mrc_user else '@mrcvgl'
                                 elif mention_target == 'supy':
                                     # supy000ユーザーを検索
                                     supy_user = None
@@ -372,7 +372,7 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                         if 'supy000' in member.name.lower() or 'supy000' in member.display_name.lower():
                                             supy_user = member
                                             break
-                                    mention = supy_user.mention if supy_user else '<@supy000>'
+                                    mention = supy_user.mention if supy_user else '@supy000'
                                 else:
                                     mention = f'@{mention_target}'
                                 

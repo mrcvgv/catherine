@@ -135,7 +135,7 @@ class SchedulerSystem:
                     if 'mrcvgl' in member.name.lower() or 'mrcvgl' in member.display_name.lower():
                         target_user = member
                         break
-                mention = target_user.mention if target_user else '<@mrcvgl>'
+                mention = target_user.mention if target_user else '@mrcvgl'
             elif mention_target == 'supy':
                 # supy000ユーザーを検索
                 target_user = None
@@ -143,7 +143,7 @@ class SchedulerSystem:
                     if 'supy000' in member.name.lower() or 'supy000' in member.display_name.lower():
                         target_user = member
                         break
-                mention = target_user.mention if target_user else '<@supy000>'
+                mention = target_user.mention if target_user else '@supy000'
             else:
                 mention = f'@{mention_target}'
             
