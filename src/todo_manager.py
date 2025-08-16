@@ -385,7 +385,7 @@ class TodoManager:
             'low': '🟢'       # 低い
         }
         
-        formatted = "📋 **TODOリスト** （優先度順）\n\n"
+        formatted = ""
         
         for i, todo in enumerate(todos, 1):
             # 優先度アイコンを先頭に、番号とタイトルを表示

@@ -120,7 +120,8 @@
       "Bash(railway login:*)",
       "Bash(npm install:*)",
       "Bash(git reset:*)",
-      "Bash(railway status:*)"
+      "Bash(railway status:*)",
+      "WebSearch"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
