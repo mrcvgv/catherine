@@ -718,6 +718,7 @@ async def on_message(message: DiscordMessage):
             todo_intent = todo_nlu.parse_message(content)
             
             if todo_intent.get('action') and todo_intent.get('confidence', 0) > 0.5:
+                logger.info(f"Processing TODO command: {todo_intent.get('action')} (confidence: {todo_intent.get('confidence')})")
                 # TODO操作を実行
                 async with message.channel.typing():
                     response_text = await handle_todo_command(user, todo_intent)
@@ -740,15 +741,21 @@ async def on_message(message: DiscordMessage):
                         )
                     except Exception as e:
                         logger.error(f"Learning system error: {e}")
+                logger.info("TODO command processed successfully, returning early")
                 return
         except ImportError:
             logger.warning("TODO modules not available")
+        except Exception as e:
+            logger.error(f"Error in TODO processing: {e}")
+            # TODO処理でエラーが起きても通常の処理に進む
         
         # Log the message
         if isinstance(message.channel, discord.DMChannel):
             logger.info(f"DM from {user}: {content[:50]}")
         else:
             logger.info(f"Message from {user} in {message.guild}: {content[:50]}")
+            
+        logger.info("Processing normal message (non-TODO)")
         
         # Moderate the message
         flagged_str, blocked_str = moderate_message(
@@ -770,7 +777,7 @@ async def on_message(message: DiscordMessage):
         # Show typing indicator
         async with message.channel.typing():
             # Generate response using GPT-4o
-            logger.info(f"Generating response for: {content[:50]}")
+            logger.info(f"Generating GPT response for: {content[:50]}")
             try:
                 # Create thread config for the response
                 thread_config = ThreadConfig(
