@@ -128,13 +128,22 @@ class SchedulerSystem:
             mention_target = todo_data.get('mention_target', 'everyone')
             if mention_target == 'everyone':
                 mention = '@everyone'
-            elif mention_target in ['mrc', 'supy']:
+            elif mention_target == 'mrc':
+                # mrcvglユーザーを検索
                 target_user = None
                 for member in channel.guild.members:
-                    if mention_target in member.name.lower() or mention_target in member.display_name.lower():
+                    if 'mrcvgl' in member.name.lower() or 'mrcvgl' in member.display_name.lower():
                         target_user = member
                         break
-                mention = target_user.mention if target_user else f'@{mention_target}'
+                mention = target_user.mention if target_user else '<@mrcvgl>'
+            elif mention_target == 'supy':
+                # supy000ユーザーを検索
+                target_user = None
+                for member in channel.guild.members:
+                    if 'supy000' in member.name.lower() or 'supy000' in member.display_name.lower():
+                        target_user = member
+                        break
+                mention = target_user.mention if target_user else '<@supy000>'
             else:
                 mention = f'@{mention_target}'
             

@@ -358,21 +358,21 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                 if mention_target == 'everyone':
                                     mention = '@everyone'
                                 elif mention_target == 'mrc':
-                                    # mrcのユーザーIDを検索
+                                    # mrcvglユーザーを検索
                                     mrc_user = None
                                     for member in channel.guild.members:
-                                        if 'mrc' in member.name.lower() or 'mrc' in member.display_name.lower():
+                                        if 'mrcvgl' in member.name.lower() or 'mrcvgl' in member.display_name.lower():
                                             mrc_user = member
                                             break
-                                    mention = mrc_user.mention if mrc_user else '@mrc'
+                                    mention = mrc_user.mention if mrc_user else '<@mrcvgl>'
                                 elif mention_target == 'supy':
-                                    # supyのユーザーIDを検索
+                                    # supy000ユーザーを検索
                                     supy_user = None
                                     for member in channel.guild.members:
-                                        if 'supy' in member.name.lower() or 'supy' in member.display_name.lower():
+                                        if 'supy000' in member.name.lower() or 'supy000' in member.display_name.lower():
                                             supy_user = member
                                             break
-                                    mention = supy_user.mention if supy_user else '@supy'
+                                    mention = supy_user.mention if supy_user else '<@supy000>'
                                 else:
                                     mention = f'@{mention_target}'
                                 
