@@ -79,7 +79,7 @@ mention_handler = None
 @client.event
 async def setup_hook():
     """Bot起動時にシステムを初期化"""
-    global _systems_initialized
+    global _systems_initialized, notion_integration, google_integration, mention_handler
     
     if _systems_initialized:
         logger.info("Systems already initialized, skipping setup_hook")
@@ -130,7 +130,6 @@ async def setup_hook():
                     logger.info(f"MCP Bridge initialized successfully")
                     
                     # Notion統合を初期化
-                    global notion_integration, google_integration, mention_handler
                     notion_integration = NotionIntegration(mcp_bridge)
                     google_integration = GoogleIntegration(mcp_bridge)
                     mention_handler = DiscordMentionHandler(client)
@@ -152,8 +151,8 @@ async def setup_hook():
     else:
         logger.info("Firebase not enabled, skipping system initialization")
         # Firebase不使用時も基本的なメンションハンドラーは初期化
-        global mention_handler
-        mention_handler = DiscordMentionHandler(client)
+        if mention_handler is None:
+            mention_handler = DiscordMentionHandler(client)
         _systems_initialized = True
     
     logger.info("Setup hook completed")
