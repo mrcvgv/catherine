@@ -118,7 +118,6 @@ class AdvancedNLU:
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=0.1,  # 一貫性のため低い温度
                 max_completion_tokens=1000,
                 response_format={"type": "json_object"}
             )
@@ -247,7 +246,6 @@ class AdvancedNLU:
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=0.7,  # 創造性のため少し高い温度
                 max_completion_tokens=500
             )
 

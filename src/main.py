@@ -17,12 +17,14 @@ logging.basicConfig(
 
 # Firebase integration
 try:
+    # Add parent directory to path for firebase_config import
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from firebase_config import firebase_manager
     FIREBASE_ENABLED = True
     logging.info("Firebase integration enabled")
-except ImportError:
+except ImportError as e:
     FIREBASE_ENABLED = False
-    logging.warning("Firebase integration not available")
+    logging.warning(f"Firebase integration not available: {e}")
 
 from src.base import Message, Conversation, ThreadConfig
 from src.constants import (
@@ -159,10 +161,23 @@ async def setup_hook():
         except Exception as e:
             logger.error(f"Failed to initialize systems in setup_hook: {e}")
     else:
-        logger.info("Firebase not enabled, skipping system initialization")
+        logger.info("Firebase not enabled, initializing minimal systems")
         # Firebase不使用時も基本的なメンションハンドラーは初期化
         if mention_handler is None:
             mention_handler = DiscordMentionHandler(client)
+        
+        # 最低限のTODO manager初期化を試行
+        try:
+            from src.unified_todo_manager import unified_todo_manager
+            logger.info("Attempting to initialize unified TODO manager without Firebase...")
+            await unified_todo_manager.initialize()
+            if unified_todo_manager.initialized:
+                logger.info("Unified TODO manager initialized successfully (external services only)")
+            else:
+                logger.warning("Unified TODO manager initialization failed")
+        except Exception as e:
+            logger.error(f"Failed to initialize minimal TODO manager: {e}")
+            
         _systems_initialized = True
     
     logger.info("Setup hook completed")
