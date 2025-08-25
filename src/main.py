@@ -786,9 +786,8 @@ async def on_message(message: DiscordMessage):
                 await message.reply(response)
                 
                 # 会話をFirebaseに保存
-                if _systems_initialized and firebase_enabled:
-                    await save_conversation_to_firebase(user, content, response)
-                    await record_feedback(user, content, response, 'neutral')
+                if _systems_initialized and FIREBASE_ENABLED:
+                    await save_conversation_to_firebase(str(user.id), str(message.channel.id), content, response)
                 
                 logger.info("Message processed successfully by unified handler")
                 return
