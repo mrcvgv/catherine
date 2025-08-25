@@ -48,6 +48,27 @@ if not DISCORD_CLIENT_ID:
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY") 
 if not OPENAI_API_KEY:
     print("ERROR: OPENAI_API_KEY not found")
+
+# Channel configuration  
+ALLOWED_CHANNEL_NAMES = os.environ.get("ALLOWED_CHANNEL_NAMES", "catherine,todo,general").split(",")
+CATHERINE_CHANNELS = os.environ.get("CATHERINE_CHANNELS", "catherine").split(",")
+
+# Channel ID-based configuration (more precise than names)
+ALLOWED_CHANNEL_IDS = []
+if os.environ.get("ALLOWED_CHANNEL_IDS"):
+    try:
+        ALLOWED_CHANNEL_IDS = [int(id.strip()) for id in os.environ.get("ALLOWED_CHANNEL_IDS").split(",")]
+    except ValueError:
+        print("WARNING: Invalid ALLOWED_CHANNEL_IDS format")
+
+CATHERINE_CHANNEL_IDS = []
+if os.environ.get("CATHERINE_CHANNEL_IDS"):
+    try:
+        CATHERINE_CHANNEL_IDS = [int(id.strip()) for id in os.environ.get("CATHERINE_CHANNEL_IDS").split(",")]
+    except ValueError:
+        print("WARNING: Invalid CATHERINE_CHANNEL_IDS format")
+
+if not OPENAI_API_KEY:
     print("Checking for OpenAI-related env vars:", [k for k in os.environ.keys() if "OPENAI" in k or "API" in k])
     raise ValueError("OPENAI_API_KEY is required")
 

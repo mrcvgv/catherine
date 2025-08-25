@@ -16,6 +16,11 @@ class GoogleMCPServer extends MCPBaseServer {
         this.sheets = null;
         this.gmail = null;
         this.drive = null;
+        this.docs = null;
+        this.tasks = null;
+        
+        // OAuth認証クライアントも追加
+        this.oauthClient = null;
         this.calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
         this.driveFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
         
@@ -32,6 +37,20 @@ class GoogleMCPServer extends MCPBaseServer {
         this.registerTool('list_drive_files', 'List files in Google Drive folder', this.listDriveFiles.bind(this));
         this.registerTool('download_from_drive', 'Download file from Google Drive', this.downloadFromDrive.bind(this));
         this.registerTool('create_drive_folder', 'Create folder in Google Drive', this.createDriveFolder.bind(this));
+        
+        // Gmail読み取り機能
+        this.registerTool('get_gmail_subjects', 'Get Gmail email subjects', this.getGmailSubjects.bind(this));
+        this.registerTool('read_gmail', 'Read Gmail messages', this.readGmail.bind(this));
+        
+        // Google Tasks機能
+        this.registerTool('create_task', 'Create Google Task', this.createTask.bind(this));
+        this.registerTool('list_tasks', 'List Google Tasks', this.listTasks.bind(this));
+        this.registerTool('complete_task', 'Complete Google Task', this.completeTask.bind(this));
+        
+        // Google Docs機能
+        this.registerTool('create_doc', 'Create Google Document', this.createDoc.bind(this));
+        this.registerTool('update_doc', 'Update Google Document', this.updateDoc.bind(this));
+        this.registerTool('read_doc', 'Read Google Document content', this.readDoc.bind(this));
         
         // 初期化
         this.initialize();
@@ -54,17 +73,35 @@ class GoogleMCPServer extends MCPBaseServer {
                     'https://www.googleapis.com/auth/calendar',
                     'https://www.googleapis.com/auth/spreadsheets',
                     'https://www.googleapis.com/auth/gmail.send',
-                    'https://www.googleapis.com/auth/drive'
+                    'https://www.googleapis.com/auth/drive',
+                    'https://www.googleapis.com/auth/documents'
                 ]
             });
             
             const authClient = await this.auth.getClient();
+            
+            // OAuth認証も設定（Gmail読み取り、Tasksのため）
+            const CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID;
+            const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+            const REFRESH_TOKEN = process.env.GOOGLE_FULL_REFRESH_TOKEN || process.env.GMAIL_REFRESH_TOKEN;
+            
+            if (CLIENT_ID && CLIENT_SECRET && REFRESH_TOKEN) {
+                this.oauthClient = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, 'http://localhost:3000/oauth2/callback');
+                this.oauthClient.setCredentials({ refresh_token: REFRESH_TOKEN });
+            }
             
             // Google API クライアント初期化
             this.calendar = google.calendar({ version: 'v3', auth: authClient });
             this.sheets = google.sheets({ version: 'v4', auth: authClient });
             this.gmail = google.gmail({ version: 'v1', auth: authClient });
             this.drive = google.drive({ version: 'v3', auth: authClient });
+            this.docs = google.docs({ version: 'v1', auth: authClient });
+            
+            // OAuth用のクライアント（Gmail読み取り、Tasks用）
+            if (this.oauthClient) {
+                this.gmailOAuth = google.gmail({ version: 'v1', auth: this.oauthClient });
+                this.tasks = google.tasks({ version: 'v1', auth: this.oauthClient });
+            }
             
             console.error('[Google] API clients initialized successfully');
             
@@ -617,6 +654,340 @@ class GoogleMCPServer extends MCPBaseServer {
                 success: false,
                 error: error.message
             };
+        }
+    }
+
+    // Gmail読み取り機能
+    async getGmailSubjects(params) {
+        try {
+            if (!this.gmailOAuth) {
+                return { success: false, error: 'OAuth Gmail client not initialized' };
+            }
+            
+            const { max_results = 5, query = '' } = params;
+            
+            const response = await this.gmailOAuth.users.messages.list({
+                userId: 'me',
+                maxResults: max_results,
+                q: query
+            });
+
+            if (!response.data.messages) {
+                return { success: true, messages: [], count: 0 };
+            }
+
+            const messages = [];
+            for (const message of response.data.messages) {
+                const detail = await this.gmailOAuth.users.messages.get({
+                    userId: 'me',
+                    id: message.id
+                });
+
+                const headers = detail.data.payload.headers;
+                const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+                const from = headers.find(h => h.name === 'From')?.value || 'Unknown';
+                const date = headers.find(h => h.name === 'Date')?.value || '';
+
+                messages.push({
+                    id: message.id,
+                    subject,
+                    from,
+                    date,
+                    snippet: detail.data.snippet
+                });
+            }
+
+            console.error(`[Google] Retrieved ${messages.length} Gmail subjects`);
+            return { success: true, messages, count: messages.length };
+
+        } catch (error) {
+            console.error('[Google] Error getting Gmail subjects:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async readGmail(params) {
+        try {
+            if (!this.gmailOAuth) {
+                return { success: false, error: 'OAuth Gmail client not initialized' };
+            }
+            
+            const { message_id } = params;
+            
+            const response = await this.gmailOAuth.users.messages.get({
+                userId: 'me',
+                id: message_id
+            });
+
+            const headers = response.data.payload.headers;
+            const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+            const from = headers.find(h => h.name === 'From')?.value || 'Unknown';
+            const date = headers.find(h => h.name === 'Date')?.value || '';
+
+            // メール本文を取得
+            let body = '';
+            if (response.data.payload.body && response.data.payload.body.data) {
+                body = Buffer.from(response.data.payload.body.data, 'base64').toString();
+            } else if (response.data.payload.parts) {
+                const textPart = response.data.payload.parts.find(part => 
+                    part.mimeType === 'text/plain' && part.body && part.body.data
+                );
+                if (textPart) {
+                    body = Buffer.from(textPart.body.data, 'base64').toString();
+                }
+            }
+
+            console.error(`[Google] Read Gmail message: ${message_id}`);
+            return {
+                success: true,
+                message: {
+                    id: message_id,
+                    subject,
+                    from,
+                    date,
+                    body,
+                    snippet: response.data.snippet
+                }
+            };
+
+        } catch (error) {
+            console.error('[Google] Error reading Gmail:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Google Tasks機能
+    async createTask(params) {
+        try {
+            if (!this.tasks) {
+                return { success: false, error: 'Tasks client not initialized' };
+            }
+            
+            const { title, notes, due_date } = params;
+            
+            const taskData = {
+                title: title || 'Catherine Task',
+                notes: notes || ''
+            };
+            
+            if (due_date) {
+                taskData.due = new Date(due_date).toISOString();
+            }
+            
+            // デフォルトタスクリストを取得
+            const taskLists = await this.tasks.tasklists.list();
+            const defaultTaskList = taskLists.data.items[0];
+            
+            const response = await this.tasks.tasks.insert({
+                tasklist: defaultTaskList.id,
+                resource: taskData
+            });
+            
+            console.error(`[Google] Created task: ${response.data.id}`);
+            return {
+                success: true,
+                task_id: response.data.id,
+                title: response.data.title,
+                due: response.data.due,
+                message: `Created task: ${title}`
+            };
+            
+        } catch (error) {
+            console.error('[Google] Error creating task:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async listTasks(params) {
+        try {
+            if (!this.tasks) {
+                return { success: false, error: 'Tasks client not initialized' };
+            }
+            
+            const { max_results = 10, completed = false } = params;
+            
+            // デフォルトタスクリストを取得
+            const taskLists = await this.tasks.tasklists.list();
+            const defaultTaskList = taskLists.data.items[0];
+            
+            const response = await this.tasks.tasks.list({
+                tasklist: defaultTaskList.id,
+                maxResults: max_results,
+                showCompleted: completed
+            });
+            
+            const tasks = (response.data.items || []).map(task => ({
+                id: task.id,
+                title: task.title,
+                notes: task.notes,
+                due: task.due,
+                status: task.status,
+                updated: task.updated
+            }));
+            
+            console.error(`[Google] Listed ${tasks.length} tasks`);
+            return { success: true, tasks, count: tasks.length };
+            
+        } catch (error) {
+            console.error('[Google] Error listing tasks:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async completeTask(params) {
+        try {
+            if (!this.tasks) {
+                return { success: false, error: 'Tasks client not initialized' };
+            }
+            
+            const { task_id } = params;
+            
+            // デフォルトタスクリストを取得
+            const taskLists = await this.tasks.tasklists.list();
+            const defaultTaskList = taskLists.data.items[0];
+            
+            const response = await this.tasks.tasks.patch({
+                tasklist: defaultTaskList.id,
+                task: task_id,
+                resource: {
+                    status: 'completed'
+                }
+            });
+            
+            console.error(`[Google] Completed task: ${task_id}`);
+            return {
+                success: true,
+                task_id: response.data.id,
+                title: response.data.title,
+                message: `Completed task: ${response.data.title}`
+            };
+            
+        } catch (error) {
+            console.error('[Google] Error completing task:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Google Docs機能
+    async createDoc(params) {
+        try {
+            if (!this.docs) {
+                await this.initialize();
+            }
+            
+            const { title, content = '' } = params;
+            
+            const createResponse = await this.docs.documents.create({
+                resource: {
+                    title: title || 'Catherine Document'
+                }
+            });
+
+            const documentId = createResponse.data.documentId;
+            
+            // コンテンツがある場合は追加
+            if (content) {
+                await this.docs.documents.batchUpdate({
+                    documentId,
+                    resource: {
+                        requests: [{
+                            insertText: {
+                                location: { index: 1 },
+                                text: content
+                            }
+                        }]
+                    }
+                });
+            }
+            
+            console.error(`[Google] Created document: ${documentId}`);
+            return {
+                success: true,
+                document_id: documentId,
+                title: createResponse.data.title,
+                url: `https://docs.google.com/document/d/${documentId}/edit`,
+                message: `Created document: ${title}`
+            };
+            
+        } catch (error) {
+            console.error('[Google] Error creating document:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async updateDoc(params) {
+        try {
+            if (!this.docs) {
+                await this.initialize();
+            }
+            
+            const { document_id, content, append = true } = params;
+            
+            const requests = [{
+                insertText: {
+                    location: { index: append ? undefined : 1 },
+                    text: content
+                }
+            }];
+            
+            await this.docs.documents.batchUpdate({
+                documentId: document_id,
+                resource: { requests }
+            });
+            
+            console.error(`[Google] Updated document: ${document_id}`);
+            return {
+                success: true,
+                document_id,
+                url: `https://docs.google.com/document/d/${document_id}/edit`,
+                message: 'Document updated successfully'
+            };
+            
+        } catch (error) {
+            console.error('[Google] Error updating document:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async readDoc(params) {
+        try {
+            if (!this.docs) {
+                await this.initialize();
+            }
+            
+            const { document_id } = params;
+            
+            const response = await this.docs.documents.get({
+                documentId: document_id
+            });
+            
+            // ドキュメントのテキストを抽出
+            let text = '';
+            if (response.data.body && response.data.body.content) {
+                response.data.body.content.forEach(element => {
+                    if (element.paragraph) {
+                        element.paragraph.elements.forEach(el => {
+                            if (el.textRun) {
+                                text += el.textRun.content;
+                            }
+                        });
+                    }
+                });
+            }
+            
+            console.error(`[Google] Read document: ${document_id}`);
+            return {
+                success: true,
+                document_id,
+                title: response.data.title,
+                content: text,
+                revision_id: response.data.revisionId,
+                url: `https://docs.google.com/document/d/${document_id}/edit`
+            };
+            
+        } catch (error) {
+            console.error('[Google] Error reading document:', error);
+            return { success: false, error: error.message };
         }
     }
 }

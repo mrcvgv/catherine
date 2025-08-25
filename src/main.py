@@ -56,6 +56,7 @@ from src.context_manager import context_manager
 from src.notion_integration import NotionIntegration
 from src.google_integration import GoogleIntegration
 from src.mention_utils import DiscordMentionHandler, get_mention_string
+from src.channel_utils import should_respond_to_message, get_channel_info
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -763,6 +764,12 @@ async def on_message(message: DiscordMessage):
         
         # block servers not in allow list
         if should_block(guild=message.guild):
+            return
+        
+        # チャンネル制限チェック - Catherineが応答すべきかどうか
+        if not should_respond_to_message(message):
+            channel_info = get_channel_info(message)
+            logger.info(f"Message ignored - not responding in channel '{channel_info.get('channel_name', 'unknown')}' (Catherine channels only or mention required)")
             return
         
         # Handle all messages (DM or channel)
