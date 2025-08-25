@@ -344,6 +344,29 @@ class TodoNLU:
             hours = int(hours_match.group(1))
             return datetime.now(pytz.timezone('Asia/Tokyo')).astimezone(pytz.UTC) + timedelta(hours=hours)
         
+        # シンプルな時刻指定パターン（例: 15時、8時30分、14:30）
+        simple_time_match = re.search(r'(\d{1,2})時(?:(\d{1,2})分)?', message)
+        if not simple_time_match:
+            simple_time_match = re.search(r'(\d{1,2})[：:](\d{1,2})', message)
+        
+        if simple_time_match:
+            hour = int(simple_time_match.group(1))
+            minute = int(simple_time_match.group(2)) if simple_time_match.group(2) else 0
+            
+            # 有効な時刻かチェック
+            if 0 <= hour <= 23 and 0 <= minute <= 59:
+                # 東京時間で今日の指定時刻を計算
+                now_jst = datetime.now(pytz.timezone('Asia/Tokyo'))
+                target_time_today = now_jst.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                
+                # 今日の時刻が過ぎていれば明日に設定
+                if target_time_today <= now_jst:
+                    target_time = target_time_today + timedelta(days=1)
+                else:
+                    target_time = target_time_today
+                
+                return target_time.astimezone(pytz.UTC)
+
         # 毎日の時間指定パターン（例: 毎朝8:30、毎日8:30、毎日毎朝8:30、8:30、8 30）
         daily_time_match = re.search(r'(?:毎日|毎朝|毎晩).*?(\d{1,2})[：:時\s](\d{1,2})', message)
         if daily_time_match:
