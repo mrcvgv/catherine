@@ -54,7 +54,7 @@ from src.moderation import (
 )
 from src.context_manager import context_manager
 from src.notion_integration import NotionIntegration
-from src.google_integration import GoogleIntegration
+# Google integration now handled by google_services_integration.py
 from src.mention_utils import DiscordMentionHandler, get_mention_string
 from src.channel_utils import should_respond_to_message, get_channel_info
 
@@ -72,14 +72,13 @@ BOT_INSTANCE_ID = str(uuid.uuid4())[:8]
 
 # グローバル変数
 notion_integration = None
-google_integration = None
 mention_handler = None
 
 # システム初期化用のsetup_hook
 @client.event
 async def setup_hook():
     """Bot起動時にシステムを初期化"""
-    global _systems_initialized, notion_integration, google_integration, mention_handler
+    global _systems_initialized, notion_integration, mention_handler
     
     if _systems_initialized:
         logger.info("Systems already initialized, skipping setup_hook")
@@ -131,18 +130,15 @@ async def setup_hook():
                     
                     # Notion統合を初期化
                     notion_integration = NotionIntegration(mcp_bridge)
-                    google_integration = GoogleIntegration(mcp_bridge)
                     mention_handler = DiscordMentionHandler(client)
-                    logger.info("Notion, Google integration, and mention handler initialized")
+                    logger.info("Notion integration and mention handler initialized")
                 else:
                     logger.info("MCP Bridge initialization skipped (no servers configured)")
                     notion_integration = None
-                    google_integration = None
                     mention_handler = DiscordMentionHandler(client)
             except Exception as e:
                 logger.warning(f"MCP Bridge initialization failed (optional): {e}")
                 notion_integration = None
-                google_integration = None
                 mention_handler = DiscordMentionHandler(client)
             
             _systems_initialized = True

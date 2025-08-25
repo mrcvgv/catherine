@@ -215,17 +215,16 @@ class UnifiedMessageHandler:
 
     # TODO関連メソッド
     async def _handle_todo_create(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
-        """TODO作成 - 外部統合TODOマネージャーを使用"""
+        """TODO作成 - 統合TODOマネージャーを使用（スマートルーティング）"""
         try:
-            # 外部TODOマネージャーを優先使用
-            from src.external_todo_manager import external_todo_manager
+            from src.unified_todo_manager import unified_todo_manager
             
             title = parameters.get('title', 'New TODO')
             priority = parameters.get('priority', 'normal')
             due_date = parameters.get('due_date')
             description = parameters.get('description', '')
             
-            result = await external_todo_manager.create_todo(
+            result = await unified_todo_manager.create_todo(
                 title=title,
                 user_id=user_id,
                 priority=priority,
@@ -236,156 +235,67 @@ class UnifiedMessageHandler:
             return result
             
         except Exception as e:
-            # フォールバック: 従来のTODOマネージャー
-            logger.warning(f"External TODO manager failed, using fallback: {e}")
-            if self.todo_manager:
-                title = parameters.get('title', 'New TODO')
-                priority = parameters.get('priority', 'normal')
-                due_date = parameters.get('due_date')
-                
-                result = await self.todo_manager.create_todo(
-                    user_id=user_id,
-                    title=title,
-                    priority=priority,
-                    due_date=due_date
-                )
-                return result
-            else:
-                return {'success': False, 'error': 'TODOマネージャーが利用できません'}
+            logger.error(f"Unified TODO manager failed: {e}")
+            return {'success': False, 'error': f'TODO作成に失敗しました: {str(e)}'}
 
     async def _handle_todo_list(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
-        """TODO一覧 - 外部統合TODOマネージャーを使用"""
+        """TODO一覧 - 統合TODOマネージャーを使用（全サービス統合表示）"""
         try:
-            # 外部TODOマネージャーを優先使用
-            from src.external_todo_manager import external_todo_manager
+            from src.unified_todo_manager import unified_todo_manager
             
             include_completed = parameters.get('include_completed', False)
             
-            result = await external_todo_manager.list_todos(
+            result = await unified_todo_manager.list_todos(
                 user_id=user_id,
                 include_completed=include_completed
             )
             
             if result.get('success') and result.get('todos'):
-                formatted_list = external_todo_manager.format_todo_list(result['todos'])
+                formatted_list = unified_todo_manager.format_todo_list(result['todos'])
                 result['formatted_list'] = formatted_list
                 
             return result
             
         except Exception as e:
-            # フォールバック: 従来のTODOマネージャー
-            logger.warning(f"External TODO manager failed, using fallback: {e}")
-            if self.todo_manager:
-                include_completed = parameters.get('include_completed', False)
-                
-                todos = await self.todo_manager.get_todos(
-                    user_id=user_id,
-                    include_completed=include_completed
-                )
-                
-                if todos:
-                    formatted_list = self.todo_manager.format_todo_list(todos)
-                    return {
-                        'success': True,
-                        'count': len(todos),
-                        'formatted_list': formatted_list,
-                        'todos': todos
-                    }
-                else:
-                    return {
-                        'success': True,
-                        'count': 0,
-                        'message': 'TODOはありません'
-                    }
-            else:
-                return {'success': False, 'error': 'TODOマネージャーが利用できません'}
+            logger.error(f"Unified TODO manager failed: {e}")
+            return {'success': False, 'error': f'TODO一覧取得に失敗しました: {str(e)}'}
 
     async def _handle_todo_complete(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
-        """TODO完了 - 外部統合TODOマネージャーを使用"""
+        """TODO完了 - 統合TODOマネージャーを使用"""
         try:
-            # 外部TODOマネージャーを優先使用
-            from src.external_todo_manager import external_todo_manager
+            from src.unified_todo_manager import unified_todo_manager
             
             todo_number = parameters.get('todo_number')
-            title_keywords = parameters.get('title_keywords')
             
             if todo_number:
-                return await external_todo_manager.complete_todo_by_number(todo_number, user_id)
-            elif title_keywords:
-                # タイトルキーワードでの完了は現在未実装
-                return {'success': False, 'error': 'タイトルキーワードでの完了は現在サポートされていません。番号を指定してください。'}
+                return await unified_todo_manager.complete_todo_by_number(todo_number, user_id)
             else:
                 return {'success': False, 'error': 'TODO番号が必要です'}
                 
         except Exception as e:
-            # フォールバック: 従来のTODOマネージャー
-            logger.warning(f"External TODO manager failed, using fallback: {e}")
-            if self.todo_manager:
-                todo_number = parameters.get('todo_number')
-                title_keywords = parameters.get('title_keywords')
-                
-                if todo_number:
-                    return await self.todo_manager.complete_todo_by_number(todo_number, user_id)
-                elif title_keywords:
-                    return await self.todo_manager.complete_todo_by_title(title_keywords, user_id)
-                else:
-                    return {'success': False, 'error': 'TODO番号またはタイトルが必要です'}
-            else:
-                return {'success': False, 'error': 'TODOマネージャーが利用できません'}
+            logger.error(f"Unified TODO manager failed: {e}")
+            return {'success': False, 'error': f'TODO完了に失敗しました: {str(e)}'}
 
     async def _handle_todo_delete(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
-        """TODO削除 - 外部統合TODOマネージャーを使用"""
-        try:
-            # 外部TODOマネージャーを優先使用
-            from src.external_todo_manager import external_todo_manager
-            
-            todo_numbers = parameters.get('todo_numbers', [])
-            todo_number = parameters.get('todo_number')
-            
-            if todo_number:
-                todo_numbers = [todo_number]
-            
-            if todo_numbers:
-                return await external_todo_manager.delete_todos_by_numbers(todo_numbers, user_id)
-            else:
-                return {'success': False, 'error': 'TODO番号が必要です'}
-                
-        except Exception as e:
-            # フォールバック: 従来のTODOマネージャー
-            logger.warning(f"External TODO manager failed, using fallback: {e}")
-            if self.todo_manager:
-                todo_numbers = parameters.get('todo_numbers', [])
-                todo_number = parameters.get('todo_number')
-                
-                if todo_number:
-                    todo_numbers = [todo_number]
-                
-                if todo_numbers:
-                    return await self.todo_manager.delete_todos_by_numbers(todo_numbers, user_id)
-                else:
-                    return {'success': False, 'error': 'TODO番号が必要です'}
-            else:
-                return {'success': False, 'error': 'TODOマネージャーが利用できません'}
+        """TODO削除 - 安全のため無効化（完了機能を使用）"""
+        return {
+            'success': False, 
+            'error': 'TODO削除は安全のため無効化されています。代わりに「完了」機能を使用してください。'
+        }
 
     async def _handle_todo_update(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
-        """TODO更新"""
-        todo_number = parameters.get('todo_number')
-        new_content = parameters.get('new_content')
-        
-        if todo_number and new_content:
-            return await self.todo_manager.update_todo_by_number(todo_number, user_id, new_content)
-        else:
-            return {'success': False, 'error': 'TODO番号と新しい内容が必要です'}
+        """TODO更新 - 複雑すぎるため無効化（削除&作成を推奨）"""
+        return {
+            'success': False,
+            'error': 'TODO更新は複雑すぎるため無効化されています。完了して新しく作成してください。'
+        }
 
     async def _handle_todo_priority(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
-        """TODO優先度変更"""
-        todo_number = parameters.get('todo_number')
-        new_priority = parameters.get('new_priority')
-        
-        if todo_number and new_priority:
-            return await self.todo_manager.change_todo_priority(todo_number, user_id, new_priority)
-        else:
-            return {'success': False, 'error': 'TODO番号と新しい優先度が必要です'}
+        """TODO優先度変更 - 複雑すぎるため無効化"""
+        return {
+            'success': False,
+            'error': 'TODO優先度変更は複雑すぎるため無効化されています。作成時に適切な優先度を設定してください。'
+        }
 
     async def _handle_todo_remind(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
         """リマインダー設定"""
