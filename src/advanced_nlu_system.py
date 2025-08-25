@@ -18,7 +18,7 @@ class AdvancedNLU:
     
     def __init__(self):
         self.client = AsyncOpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        self.model = os.getenv('DEFAULT_MODEL', 'gpt-4o')
+        self.model = os.getenv('DEFAULT_MODEL', 'gpt-5-mini')
         
         # システムプロンプト
         self.system_prompt = """あなたはCatherine AIの自然言語理解エンジンです。

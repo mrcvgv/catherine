@@ -90,17 +90,17 @@ class GoogleMCPServer extends MCPBaseServer {
                 this.oauthClient.setCredentials({ refresh_token: REFRESH_TOKEN });
             }
             
-            // Google API クライアント初期化
+            // Google API クライアント初期化（Service Account用）
             this.calendar = google.calendar({ version: 'v3', auth: authClient });
-            this.sheets = google.sheets({ version: 'v4', auth: authClient });
             this.gmail = google.gmail({ version: 'v1', auth: authClient });
             this.drive = google.drive({ version: 'v3', auth: authClient });
-            this.docs = google.docs({ version: 'v1', auth: authClient });
             
-            // OAuth用のクライアント（Gmail読み取り、Tasks用）
+            // OAuth用のクライアント（Gmail読み取り、Tasks、Sheets、Docs用）
             if (this.oauthClient) {
                 this.gmailOAuth = google.gmail({ version: 'v1', auth: this.oauthClient });
                 this.tasks = google.tasks({ version: 'v1', auth: this.oauthClient });
+                this.sheets = google.sheets({ version: 'v4', auth: this.oauthClient });
+                this.docs = google.docs({ version: 'v1', auth: this.oauthClient });
             }
             
             console.error('[Google] API clients initialized successfully');

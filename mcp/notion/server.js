@@ -32,6 +32,13 @@ class NotionMCPServer extends MCPBaseServer {
 
     async initializeDatabase() {
         try {
+            // 環境変数でデータベースIDが指定されている場合はそれを使用
+            if (process.env.NOTION_DATABASE_ID) {
+                this.databaseId = process.env.NOTION_DATABASE_ID;
+                console.error(`[Notion] Using configured database: ${this.databaseId}`);
+                return;
+            }
+            
             // 既存のデータベースを検索
             const response = await this.notion.search({
                 filter: {
@@ -300,7 +307,7 @@ class NotionMCPServer extends MCPBaseServer {
             }
             
             const properties = {
-                'Title': {
+                'タスク名': {
                     title: [
                         {
                             text: {
@@ -309,35 +316,25 @@ class NotionMCPServer extends MCPBaseServer {
                         }
                     ]
                 },
-                'Status': {
-                    select: {
-                        name: 'pending'
+                'ステータス': {
+                    status: {
+                        name: '未着手' // Default status
                     }
                 },
-                'Priority': {
+                '優先度': {
                     select: {
-                        name: priority || 'normal'
+                        name: priority === 'urgent' ? '高' : 
+                              priority === 'high' ? '高' :
+                              priority === 'low' ? '低' : '中'
                     }
                 }
             };
             
             if (due_date) {
-                properties['Due Date'] = {
+                properties['期日'] = {
                     date: {
                         start: due_date
                     }
-                };
-            }
-            
-            if (created_by) {
-                properties['Created By'] = {
-                    rich_text: [
-                        {
-                            text: {
-                                content: created_by
-                            }
-                        }
-                    ]
                 };
             }
             
@@ -409,18 +406,21 @@ class NotionMCPServer extends MCPBaseServer {
             
             if (status) {
                 filter.and.push({
-                    property: 'Status',
-                    select: {
+                    property: 'ステータス',
+                    status: {
                         equals: status
                     }
                 });
             }
             
             if (priority) {
+                const japanesePriority = priority === 'urgent' ? '高' : 
+                                       priority === 'high' ? '高' :
+                                       priority === 'low' ? '低' : '中';
                 filter.and.push({
-                    property: 'Priority',
+                    property: '優先度',
                     select: {
-                        equals: priority
+                        equals: japanesePriority
                     }
                 });
             }
@@ -430,11 +430,11 @@ class NotionMCPServer extends MCPBaseServer {
                 filter: filter.and.length > 0 ? filter : undefined,
                 sorts: [
                     {
-                        property: 'Priority',
+                        property: '優先度',
                         direction: 'ascending'
                     },
                     {
-                        property: 'Due Date',
+                        property: '期日',
                         direction: 'ascending'
                     }
                 ]
@@ -443,11 +443,9 @@ class NotionMCPServer extends MCPBaseServer {
             const todos = response.results.map(page => ({
                 id: page.id,
                 title: this.extractTitle(page),
-                status: page.properties['Status']?.select?.name,
-                priority: page.properties['Priority']?.select?.name,
-                due_date: page.properties['Due Date']?.date?.start,
-                created_by: page.properties['Created By']?.rich_text?.[0]?.text?.content,
-                tags: page.properties['Tags']?.multi_select?.map(tag => tag.name),
+                status: page.properties['ステータス']?.status?.name,
+                priority: page.properties['優先度']?.select?.name,
+                due_date: page.properties['期日']?.date?.start,
                 url: page.url
             }));
             
@@ -475,9 +473,9 @@ class NotionMCPServer extends MCPBaseServer {
             const page = await this.notion.pages.update({
                 page_id: todo_id,
                 properties: {
-                    'Status': {
-                        select: {
-                            name: 'completed'
+                    'ステータス': {
+                        status: {
+                            name: '完了' // Completed status
                         }
                     }
                 }
@@ -502,6 +500,9 @@ class NotionMCPServer extends MCPBaseServer {
 
     // ヘルパー関数：タイトルを抽出
     extractTitle(item) {
+        if (item.properties?.['タスク名']?.title?.[0]?.text?.content) {
+            return item.properties['タスク名'].title[0].text.content;
+        }
         if (item.properties?.Title?.title?.[0]?.text?.content) {
             return item.properties.Title.title[0].text.content;
         }

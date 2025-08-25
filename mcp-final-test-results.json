@@ -1,0 +1,148 @@
+{
+  "google": {
+    "gmail": {
+      "success": true,
+      "result": {
+        "success": true,
+        "messages": [
+          {
+            "id": "198df16b98539c4e",
+            "subject": "セキュリティ通知",
+            "from": "Google <no-reply@accounts.google.com>",
+            "date": "Mon, 25 Aug 2025 02:37:44 GMT",
+            "snippet": "新しいパスキーがアカウントに追加されました catherinecandyconytown@gmail.com パスキーを追加した覚えがない場合は、アカウントが不正に使用されている可能性があります。今すぐアカウントを確認し、保護してください。 アクティビティを確認 セキュリティ関連のアクティビティも確認できます https://myaccount.google.com/notifications この"
+          }
+        ],
+        "count": 1
+      }
+    },
+    "tasks": {
+      "success": true,
+      "result": {
+        "success": true,
+        "tasks": [
+          {
+            "id": "MlBGTUp4NHR4QVh4eEM5WA",
+            "title": "MCP Test Task",
+            "notes": "Testing MCP integration",
+            "status": "needsAction",
+            "updated": "2025-08-25T07:59:41.769Z"
+          }
+        ],
+        "count": 1
+      }
+    },
+    "sheets": {
+      "success": true,
+      "result": {
+        "success": true,
+        "spreadsheet_id": "1PsG0Ttw0Wu4baKQuF7gM6E0oD7QyqQUpBD1Qm1bcHEY",
+        "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1PsG0Ttw0Wu4baKQuF7gM6E0oD7QyqQUpBD1Qm1bcHEY/edit",
+        "message": "Created spreadsheet: MCP Final Test - 1756109180375"
+      }
+    }
+  },
+  "notion": {
+    "todo": {
+      "success": true,
+      "result": {
+        "success": true,
+        "todo_id": "25ac881f-b75c-819f-ab14-daa9a557425e",
+        "url": "https://www.notion.so/Final-Test-1756109183551-25ac881fb75c819fab14daa9a557425e",
+        "message": "Added TODO: Final Test - 1756109183551",
+        "details": {
+          "title": "Final Test - 1756109183551",
+          "priority": "normal",
+          "status": "pending"
+        }
+      }
+    },
+    "list": {
+      "success": true,
+      "result": {
+        "success": true,
+        "todos": [
+          {
+            "id": "25ac881f-b75c-8132-a39e-ea1217361c84",
+            "title": "📧 メール確認タスク",
+            "status": "未着手",
+            "priority": "中",
+            "due_date": "2025-09-01",
+            "url": "https://www.notion.so/25ac881fb75c8132a39eea1217361c84"
+          },
+          {
+            "id": "25ac881f-b75c-819f-ab14-daa9a557425e",
+            "title": "Final Test - 1756109183551",
+            "status": "未着手",
+            "priority": "中",
+            "url": "https://www.notion.so/Final-Test-1756109183551-25ac881fb75c819fab14daa9a557425e"
+          },
+          {
+            "id": "25ac881f-b75c-8105-8cd3-e00f9fa12429",
+            "title": "MCP Test TODO",
+            "status": "未着手",
+            "priority": "中",
+            "url": "https://www.notion.so/MCP-Test-TODO-25ac881fb75c81058cd3e00f9fa12429"
+          },
+          {
+            "id": "25ac881f-b75c-81f0-80b5-dda02687eb61",
+            "title": "Direct Test TODO",
+            "status": "未着手",
+            "priority": "中",
+            "url": "https://www.notion.so/Direct-Test-TODO-25ac881fb75c81f080b5dda02687eb61"
+          },
+          {
+            "id": "25ac881f-b75c-816b-86cd-cb338066b673",
+            "title": "🚀 Catherine機能拡張計画",
+            "status": "未着手",
+            "priority": "低",
+            "due_date": "2025-09-01",
+            "url": "https://www.notion.so/Catherine-25ac881fb75c816b86cdcb338066b673"
+          }
+        ],
+        "count": 5
+      }
+    }
+  },
+  "integration": [
+    {
+      "service": "Google Docs",
+      "success": true,
+      "result": {
+        "success": true,
+        "document_id": "1Pp-LXxpBDMNl8JZgV01mBhNTX6sCgUgi5SWOrhUBr0U",
+        "title": "会議資料 - 2025/8/25",
+        "url": "https://docs.google.com/document/d/1Pp-LXxpBDMNl8JZgV01mBhNTX6sCgUgi5SWOrhUBr0U/edit",
+        "message": "Created document: 会議資料 - 2025/8/25"
+      }
+    },
+    {
+      "service": "Google Sheets",
+      "success": true,
+      "result": {
+        "success": true,
+        "spreadsheet_id": "17O2GHPq8GVMDOzMfYtEuRPn6Y0GQvU26loDFhQ5qvac",
+        "spreadsheet_url": "https://docs.google.com/spreadsheets/d/17O2GHPq8GVMDOzMfYtEuRPn6Y0GQvU26loDFhQ5qvac/edit",
+        "message": "Created spreadsheet: 参加者リスト - 2025/8/25"
+      }
+    },
+    {
+      "service": "Notion TODO",
+      "success": true,
+      "result": {
+        "success": true,
+        "todo_id": "25ac881f-b75c-81ac-ba9c-efb06ec47ba7",
+        "url": "https://www.notion.so/25ac881fb75c81acba9cefb06ec47ba7",
+        "message": "Added TODO: 会議準備完了確認",
+        "details": {
+          "title": "会議準備完了確認",
+          "description": "明日の会議用資料とリストの最終確認",
+          "due_date": "2025-08-26",
+          "priority": "high",
+          "status": "pending"
+        }
+      }
+    }
+  ],
+  "timestamp": "2025-08-25T08:06:13.236Z"
+}

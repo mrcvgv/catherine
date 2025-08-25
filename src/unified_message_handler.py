@@ -70,8 +70,8 @@ class UnifiedMessageHandler:
             parameters = intent_result.get('parameters', {})
             confidence = intent_result.get('confidence', 0)
             
-            # アクション実行
-            execution_result = await self._execute_action(action, parameters, str(user.id))
+            # アクション実行（エラー回復システムと統合）
+            execution_result = await self._execute_action_with_recovery(action, parameters, str(user.id))
             
             # 返答生成
             if execution_result:
@@ -83,7 +83,61 @@ class UnifiedMessageHandler:
             
         except Exception as e:
             logger.error(f"Error handling message: {e}")
-            return "あらあら、何かうまくいかなかったようだね。もう一度試してみてくれるかい？"
+            # エラー回復システムを使用
+            from src.error_recovery_system import error_recovery
+            recovery_result = await error_recovery.handle_error(e, {
+                'user_id': str(user.id),
+                'message': content,
+                'action': 'message_handling'
+            })
+            
+            if recovery_result.get('recovered'):
+                return recovery_result.get('message', "あらあら、何かうまくいかなかったようだね。")
+            else:
+                return "ごめんなさい、完全に困っちゃった。しばらく待ってからもう一度試してくれる？"
+
+    async def _execute_action_with_recovery(self, action: str, parameters: Dict[str, Any], user_id: str) -> Optional[Dict[str, Any]]:
+        """エラー回復システムを統合したアクション実行"""
+        try:
+            # まず通常の実行を試行
+            return await self._execute_action(action, parameters, user_id)
+            
+        except Exception as e:
+            logger.error(f"Action execution failed: {action}, error: {e}")
+            
+            # エラー回復システムを使用
+            from src.error_recovery_system import error_recovery
+            
+            # 再試行可能な関数を定義
+            async def retry_function():
+                return await self._execute_action(action, parameters, user_id)
+            
+            # エラー回復を実行
+            recovery_result = await error_recovery.handle_error(e, {
+                'user_id': user_id,
+                'action': action,
+                'parameters': parameters,
+                'retry_function': retry_function
+            })
+            
+            # 回復結果を適切な形式で返す
+            if recovery_result.get('success'):
+                return recovery_result.get('data')
+            elif recovery_result.get('recovered'):
+                # フォールバックデータを返す
+                return {
+                    'success': False,
+                    'recovered': True,
+                    'message': recovery_result.get('message'),
+                    'fallback_data': recovery_result.get('fallback_data')
+                }
+            else:
+                # 完全な失敗
+                return {
+                    'success': False,
+                    'recovered': False,
+                    'error': recovery_result.get('message', 'Unknown error')
+                }
 
     async def _execute_action(self, action: str, parameters: Dict[str, Any], user_id: str) -> Optional[Dict[str, Any]]:
         """アクションを実行"""
