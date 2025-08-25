@@ -50,4 +50,4 @@ logs/
 
 # Temporary files
 *.tmp
-*.temp
+*.tempnode_modules/
