@@ -52,6 +52,9 @@ from src.moderation import (
     send_moderation_blocked_message,
     send_moderation_flagged_message,
 )
+from src.context_manager import context_manager
+from src.notion_integration import NotionIntegration
+from src.google_integration import GoogleIntegration
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -64,6 +67,10 @@ thread_data = defaultdict()
 _systems_initialized = False
 # Bot インスタンス識別子
 BOT_INSTANCE_ID = str(uuid.uuid4())[:8]
+
+# グローバル変数
+notion_integration = None
+google_integration = None
 
 # システム初期化用のsetup_hook
 @client.event
@@ -110,6 +117,29 @@ async def setup_hook():
                 logger.error(f"Failed to start reminder system: {e}")
                 
             logger.info("Phase 1 & 2 system initialization completed in setup_hook")
+            
+            # Phase 3: MCPブリッジを初期化（オプション）
+            try:
+                from src.mcp_bridge import mcp_bridge
+                logger.info("Phase 3: Initializing MCP Bridge...")
+                mcp_initialized = await mcp_bridge.initialize()
+                if mcp_initialized:
+                    logger.info(f"MCP Bridge initialized successfully")
+                    
+                    # Notion統合を初期化
+                    global notion_integration, google_integration
+                    notion_integration = NotionIntegration(mcp_bridge)
+                    google_integration = GoogleIntegration(mcp_bridge)
+                    logger.info("Notion and Google integration initialized")
+                else:
+                    logger.info("MCP Bridge initialization skipped (no servers configured)")
+                    notion_integration = None
+                    google_integration = None
+            except Exception as e:
+                logger.warning(f"MCP Bridge initialization failed (optional): {e}")
+                notion_integration = None
+                google_integration = None
+            
             _systems_initialized = True
         except Exception as e:
             logger.error(f"Failed to initialize systems in setup_hook: {e}")
@@ -616,7 +646,7 @@ async def on_ready():
 @app_commands.describe(message="The first prompt to start the chat with")
 @app_commands.describe(model="The model to use for the chat")
 @app_commands.describe(
-    temperature="Controls randomness. Higher values mean more randomness. Between 0 and 1"
+    temperature="Controls randomness. Higher values mean more randomness. Between 0 and 1 (default 0.7)"
 )
 @app_commands.describe(
     max_tokens="How many tokens the model should output at max for each message."
@@ -625,7 +655,7 @@ async def chat_command(
     interaction: discord.Interaction,
     message: str,
     model: AVAILABLE_MODELS = DEFAULT_MODEL,
-    temperature: Optional[float] = 1.0,
+    temperature: Optional[float] = 0.7,
     max_tokens: Optional[int] = 512,
 ):
     logger.info(f"Chat command triggered by {interaction.user.name} in guild {interaction.guild_id}")
@@ -762,11 +792,80 @@ async def on_message(message: DiscordMessage):
             # TODO操作を解析
             todo_intent = todo_nlu.parse_message(content)
             
+            # Notion操作の検出
+            notion_keywords = ["notion", "ノーション", "notion追加", "notionに", "notion検索"]
+            is_notion_request = any(keyword in content.lower() for keyword in notion_keywords)
+            
             if todo_intent.get('action') and todo_intent.get('confidence', 0) > 0.5:
                 logger.info(f"Processing TODO command: {todo_intent.get('action')} (confidence: {todo_intent.get('confidence')})")
-                # TODO操作を実行
+                
+                # Notion連携が有効で、Notionへの追加が要求されている場合
+                if is_notion_request and notion_integration and await notion_integration.is_available():
+                    if todo_intent.get('action') == 'create':
+                        async with message.channel.typing():
+                            # Notionに追加
+                            notion_result = await notion_integration.add_todo_to_notion(
+                                title=todo_intent.get('title', 'TODO'),
+                                description=todo_intent.get('description', ''),
+                                priority=todo_intent.get('priority', 'normal'),
+                                created_by=user.name,
+                                due_date=todo_intent.get('due_date')
+                            )
+                            
+                            if notion_result.get('success'):
+                                response_text = f"あらあら、NotionにTODOを追加したよ\n「{notion_result['details']['title']}」\n\n🔗 [Notionで確認]({notion_result.get('url', '#')})\n\n普通のTODOリストにも追加しておこうかい？"
+                            else:
+                                response_text = f"やれやれ、Notionへの追加に失敗したねぇ: {notion_result.get('error', 'Unknown error')}"
+                            
+                            await message.reply(response_text)
+                            logger.info("Notion TODO command processed successfully, returning early")
+                            return
+                
+                # 通常のTODO操作（デフォルトでNotionに保存）
                 async with message.channel.typing():
-                    response_text = await handle_todo_command(user, todo_intent)
+                    # まずNotionに保存
+                    if todo_intent.get('action') == 'create' and notion_integration and await notion_integration.is_available():
+                        notion_result = await notion_integration.add_todo_to_notion(
+                            title=todo_intent.get('title', 'TODO'),
+                            description=todo_intent.get('description', ''),
+                            priority=todo_intent.get('priority', 'normal'),
+                            created_by=user.name,
+                            due_date=todo_intent.get('due_date')
+                        )
+                        
+                        if notion_result.get('success'):
+                            response_parts = [f"ふふ、TODOをNotionに記録したよ\n「{notion_result['details']['title']}」"]
+                            
+                            # 期限がある場合、Google Calendarにも追加
+                            if todo_intent.get('due_date') and google_integration and await google_integration.is_available():
+                                try:
+                                    from datetime import datetime
+                                    import dateutil.parser
+                                    due_date = dateutil.parser.parse(todo_intent['due_date'])
+                                    
+                                    calendar_result = await google_integration.create_calendar_event(
+                                        title=f"📋 TODO期限: {notion_result['details']['title']}",
+                                        start_time=due_date,
+                                        description=f"TODO: {notion_result['details'].get('description', '')}\n優先度: {notion_result['details'].get('priority', 'normal')}",
+                                        reminder_minutes=30
+                                    )
+                                    
+                                    if calendar_result.get('success'):
+                                        response_parts.append(f"📅 期限をGoogleカレンダーにも追加したよ")
+                                    else:
+                                        response_parts.append(f"⚠️ カレンダーへの追加に失敗: {calendar_result.get('error', '')}")
+                                except Exception as e:
+                                    logger.error(f"Calendar integration error: {e}")
+                                    response_parts.append("⚠️ カレンダー連携でエラーが発生したよ")
+                            
+                            response_parts.append(f"\n🔗 [Notionで確認]({notion_result.get('url', '#')})")
+                            response_text = "\n".join(response_parts)
+                        else:
+                            response_text = f"あらら、Notionへの保存に失敗したねぇ: {notion_result.get('error', 'Unknown error')}"
+                    else:
+                        # Notion以外の操作は従来通り
+                        response_text = await handle_todo_command(user, todo_intent)
+                    
                     await message.reply(response_text)
                     
                     # Firebaseに保存
@@ -788,6 +887,93 @@ async def on_message(message: DiscordMessage):
                         logger.error(f"Learning system error: {e}")
                 logger.info("TODO command processed successfully, returning early")
                 return
+            
+            # Notionのみの操作（TODO以外）
+            elif is_notion_request and notion_integration and await notion_integration.is_available():
+                async with message.channel.typing():
+                    if "検索" in content or "search" in content.lower():
+                        # Notion検索
+                        query = content.replace("notion検索", "").replace("notion", "").replace("検索", "").strip()
+                        if query:
+                            search_result = await notion_integration.search_notion(query)
+                            if search_result.get('success'):
+                                results = search_result.get('results', [])
+                                if results:
+                                    response_text = f"Notionから検索結果が見つかったよ:\n\n"
+                                    for result in results[:5]:  # 最大5件
+                                        response_text += f"📄 **{result['title']}**\n🔗 [開く]({result['url']})\n\n"
+                                else:
+                                    response_text = "あらら、何も見つからなかったねぇ"
+                            else:
+                                response_text = f"検索に失敗したよ: {search_result.get('error', 'Unknown error')}"
+                        else:
+                            response_text = "何を検索したいのかい？"
+                    
+                    elif "一覧" in content or "リスト" in content or "list" in content.lower():
+                        # Notion TODO一覧
+                        list_result = await notion_integration.list_notion_todos()
+                        if list_result.get('success'):
+                            response_text = notion_integration.format_notion_todos(list_result)
+                        else:
+                            response_text = f"一覧の取得に失敗したよ: {list_result.get('error', 'Unknown error')}"
+                    
+                    else:
+                        response_text = "Notionで何をしたいのかい？\n「notion検索 キーワード」「notion一覧」などと言ってごらん"
+                    
+                    await message.reply(response_text)
+                    logger.info("Notion command processed successfully, returning early")
+                    return
+            
+            # Google Calendar/リマインド操作の検出
+            calendar_keywords = ["リマインド", "カレンダー", "予定", "reminder", "calendar", "schedule"]
+            is_calendar_request = any(keyword in content.lower() for keyword in calendar_keywords)
+            
+            if is_calendar_request and google_integration and await google_integration.is_available():
+                async with message.channel.typing():
+                    if "リマインド" in content or "reminder" in content.lower():
+                        # リマインダー設定
+                        reminder_time = google_integration.parse_time_from_text(content)
+                        if reminder_time:
+                            # リマインダー内容を抽出
+                            import re
+                            reminder_match = re.search(r'リマインド[：:](.*?)(?:を|の|に)', content)
+                            if not reminder_match:
+                                reminder_match = re.search(r'(.*?)をリマインド', content)
+                            
+                            reminder_text = reminder_match.group(1).strip() if reminder_match else "リマインダー"
+                            
+                            result = await google_integration.set_reminder(
+                                title=reminder_text,
+                                remind_time=reminder_time,
+                                description="Catherineからのリマインダー",
+                                reminder_minutes=5
+                            )
+                            
+                            if result.get('success'):
+                                time_str = reminder_time.strftime('%m/%d %H:%M')
+                                response_text = f"あらあら、リマインダーを設定したよ\n⏰ {time_str}: {reminder_text}\n\n🔗 [Googleカレンダーで確認]({result.get('html_link', '#')})"
+                            else:
+                                response_text = f"やれやれ、リマインダーの設定に失敗したねぇ: {result.get('error', 'Unknown error')}"
+                        else:
+                            response_text = "いつリマインドしたいのかい？「明日10時にリマインド」「30分後にリマインド」みたいに言ってごらん"
+                    
+                    elif "予定" in content or "カレンダー" in content or "スケジュール" in content:
+                        if "一覧" in content or "確認" in content or "見せて" in content:
+                            # 予定一覧表示
+                            events_result = await google_integration.list_upcoming_events(days_ahead=7)
+                            if events_result.get('success'):
+                                response_text = google_integration.format_calendar_events(events_result)
+                            else:
+                                response_text = f"予定の取得に失敗したよ: {events_result.get('error', 'Unknown error')}"
+                        else:
+                            response_text = "予定について何を知りたいのかい？「予定一覧」「今後の予定」などと言ってごらん"
+                    
+                    else:
+                        response_text = "カレンダーで何をしたいのかい？\n「明日10時にリマインド」「予定一覧」などと言ってごらん"
+                    
+                    await message.reply(response_text)
+                    logger.info("Calendar command processed successfully, returning early")
+                    return
         except ImportError:
             logger.warning("TODO modules not available")
         except Exception as e:
@@ -821,18 +1007,27 @@ async def on_message(message: DiscordMessage):
         
         # Show typing indicator
         async with message.channel.typing():
-            # Generate response using GPT-4o
+            # Generate response using GPT-5-mini with context
             logger.info(f"Generating GPT response for: {content[:50]}")
             try:
+                # コンテキストを構築
+                user_context = await context_manager.build_context_prompt(str(user.id))
+                
+                # コンテキスト付きメッセージを作成
+                enhanced_content = content
+                if user_context:
+                    enhanced_content = user_context + "\n" + content
+                    logger.info(f"Added context for user {user.id}")
+                
                 # Create thread config for the response
                 thread_config = ThreadConfig(
-                    model="gpt-4o",
-                    temperature=1.0,
+                    model="gpt-5-mini",
+                    temperature=0.7,
                     max_tokens=512
                 )
                 
                 response_data = await generate_completion_response(
-                    messages=[Message(user=user.name, text=content)],
+                    messages=[Message(user=user.name, text=enhanced_content)],
                     user=user,
                     thread_config=thread_config
                 )
@@ -853,6 +1048,11 @@ async def on_message(message: DiscordMessage):
                         channel_id=channel_id,
                         message=content,
                         response=response_data.reply_text
+                    )
+                    
+                    # コンテキスト学習
+                    await context_manager.learn_from_interaction(
+                        str(user.id), content, response_data.reply_text
                     )
                 else:
                     logger.error(f"No response generated for message: {content}")

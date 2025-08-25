@@ -1,0 +1,12 @@
+{
+  "name": "google-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Google services integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "googleapis": "^128.0.0"
+  }
+}

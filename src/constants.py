@@ -51,7 +51,7 @@ if not OPENAI_API_KEY:
     print("Checking for OpenAI-related env vars:", [k for k in os.environ.keys() if "OPENAI" in k or "API" in k])
     raise ValueError("OPENAI_API_KEY is required")
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL") or os.environ.get("MODEL") or "gpt-4o"
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL") or os.environ.get("MODEL") or "gpt-5-mini"
 
 ALLOWED_SERVER_IDS: List[int] = []
 server_ids_str = os.environ.get("ALLOWED_SERVER_IDS", "")
@@ -114,4 +114,4 @@ MAX_CHARS_PER_REPLY_MSG = (
     1500  # discord has a 2k limit, we just break message into 1.5k
 )
 
-AVAILABLE_MODELS = Literal["gpt-3.5-turbo", "gpt-4", "gpt-4-1106-preview", "gpt-4-32k", "gpt-4o", "gpt-4o-mini"]
+AVAILABLE_MODELS = Literal["gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo", "gpt-4", "gpt-4-1106-preview", "gpt-4-32k"]

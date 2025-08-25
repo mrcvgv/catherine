@@ -1,0 +1,89 @@
+{
+  "timestamp": "2025-08-25T12:26:24.282808",
+  "summary": {
+    "total": 13,
+    "successful": 12,
+    "failed": 1,
+    "success_rate": 92.3076923076923
+  },
+  "results": [
+    {
+      "test": "ENV_DISCORD_BOT_TOKEN",
+      "success": true,
+      "message": "Present",
+      "timestamp": "2025-08-25T12:26:23.834953"
+    },
+    {
+      "test": "ENV_OPENAI_API_KEY",
+      "success": true,
+      "message": "Present",
+      "timestamp": "2025-08-25T12:26:23.834953"
+    },
+    {
+      "test": "ENV_NOTION_API_KEY",
+      "success": true,
+      "message": "Present",
+      "timestamp": "2025-08-25T12:26:23.834953"
+    },
+    {
+      "test": "ENV_GOOGLE_SERVICE_ACCOUNT_KEY",
+      "success": true,
+      "message": "Present",
+      "timestamp": "2025-08-25T12:26:23.834953"
+    },
+    {
+      "test": "ENV_GOOGLE_CALENDAR_ID",
+      "success": true,
+      "message": "Present",
+      "timestamp": "2025-08-25T12:26:23.834953"
+    },
+    {
+      "test": "ENV_GOOGLE_DRIVE_FOLDER_ID",
+      "success": true,
+      "message": "Present",
+      "timestamp": "2025-08-25T12:26:23.834953"
+    },
+    {
+      "test": "ENV_MCP_SERVERS",
+      "success": true,
+      "message": "Present",
+      "timestamp": "2025-08-25T12:26:23.834953"
+    },
+    {
+      "test": "MCP_Notion_Server",
+      "success": true,
+      "message": "Running",
+      "timestamp": "2025-08-25T12:26:23.835919"
+    },
+    {
+      "test": "MCP_Google_Server",
+      "success": true,
+      "message": "Running",
+      "timestamp": "2025-08-25T12:26:23.835919"
+    },
+    {
+      "test": "Notion_Integration",
+      "success": false,
+      "message": "NotionIntegration.add_todo_to_notion() got an unexpected keyword argument 'status'",
+      "timestamp": "2025-08-25T12:26:23.835919"
+    },
+    {
+      "test": "Google_Calendar_List",
+      "success": true,
+      "message": "Retrieved 0 events",
+      "timestamp": "2025-08-25T12:26:23.946470"
+    },
+    {
+      "test": "Google_Calendar_Reminder",
+      "success": true,
+      "message": "Reminder created",
+      "timestamp": "2025-08-25T12:26:24.058121"
+    },
+    {
+      "test": "Integration_Workflow",
+      "success": true,
+      "message": "TODO created in Notion + Calendar event",
+      "timestamp": "2025-08-25T12:26:24.281806"
+    }
+  ]
+}
