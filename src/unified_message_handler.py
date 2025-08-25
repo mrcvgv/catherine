@@ -22,20 +22,39 @@ class UnifiedMessageHandler:
     async def initialize(self):
         """システムの初期化"""
         try:
-            from src.advanced_nlu_system import advanced_nlu
-            from src.google_services_integration import google_services
-            from src.todo_manager import todo_manager
+            # Import with fallback handling
+            try:
+                from src.advanced_nlu_system import advanced_nlu
+                self.advanced_nlu = advanced_nlu
+                logger.info("Advanced NLU system loaded successfully")
+            except Exception as e:
+                logger.warning(f"Advanced NLU system not available: {e}")
+                self.advanced_nlu = None
             
-            self.advanced_nlu = advanced_nlu
-            self.google_services = google_services
-            self.todo_manager = todo_manager
+            try:
+                from src.google_services_integration import google_services
+                self.google_services = google_services
+                logger.info("Google services integration loaded successfully")
+            except Exception as e:
+                logger.warning(f"Google services integration not available: {e}")
+                self.google_services = None
+            
+            try:
+                from src.todo_manager import todo_manager
+                self.todo_manager = todo_manager
+                logger.info("TODO manager loaded successfully")
+            except Exception as e:
+                logger.warning(f"TODO manager not available: {e}")
+                self.todo_manager = None
             
             # Notion統合（オプション）
             try:
                 from src.notion_integration import notion_integration
                 self.notion_integration = notion_integration
+                logger.info("Notion integration loaded successfully")
             except ImportError:
                 logger.info("Notion integration not available")
+                self.notion_integration = None
                 
             self.initialized = True
             logger.info("Unified message handler initialized successfully")
@@ -62,9 +81,13 @@ class UnifiedMessageHandler:
             }
             
             # 意図理解
-            intent_result = await self.advanced_nlu.understand_intent(content, user_context)
-            
-            logger.info(f"Intent analysis: action={intent_result.get('action')}, confidence={intent_result.get('confidence')}")
+            if self.advanced_nlu:
+                intent_result = await self.advanced_nlu.understand_intent(content, user_context)
+                logger.info(f"Intent analysis: action={intent_result.get('action')}, confidence={intent_result.get('confidence')}")
+            else:
+                # Fallback: Simple keyword-based intent recognition
+                intent_result = await self._simple_intent_understanding(content)
+                logger.info(f"Simple intent analysis: action={intent_result.get('action')}")
             
             action = intent_result.get('action')
             parameters = intent_result.get('parameters', {})
@@ -74,10 +97,14 @@ class UnifiedMessageHandler:
             execution_result = await self._execute_action_with_recovery(action, parameters, str(user.id))
             
             # 返答生成
-            if execution_result:
-                response = await self.advanced_nlu.generate_response(intent_result, execution_result)
+            if self.advanced_nlu:
+                if execution_result:
+                    response = await self.advanced_nlu.generate_response(intent_result, execution_result)
+                else:
+                    response = await self.advanced_nlu.generate_response(intent_result)
             else:
-                response = await self.advanced_nlu.generate_response(intent_result)
+                # Fallback response generation
+                response = await self._simple_response_generation(intent_result, execution_result)
             
             return response
             
@@ -342,6 +369,122 @@ class UnifiedMessageHandler:
             return await self.google_services.create_calendar_event(title, start_time, end_time, description)
         else:
             return {'success': False, 'error': '開始時間が必要です'}
+
+    async def _simple_intent_understanding(self, content: str) -> Dict[str, Any]:
+        """簡単なキーワードベースの意図理解（フォールバック）"""
+        content_lower = content.lower()
+        
+        # TODOリスト関連
+        if any(word in content_lower for word in ['リスト', 'list', '一覧', '全部', '全リスト']):
+            return {
+                "action": "list",
+                "confidence": 0.7,
+                "parameters": {"include_completed": False},
+                "reasoning": "キーワードベース: リスト表示"
+            }
+        
+        # TODO作成関連
+        elif any(word in content_lower for word in ['追加', 'add', '作成', 'create', 'を', 'やる', 'する']):
+            return {
+                "action": "create",
+                "confidence": 0.6,
+                "parameters": {"title": content, "priority": "normal"},
+                "reasoning": "キーワードベース: TODO作成"
+            }
+        
+        # TODO完了関連  
+        elif any(word in content_lower for word in ['完了', 'done', '終了', 'complete', '済み']):
+            # 番号を抽出
+            import re
+            numbers = re.findall(r'\d+', content)
+            if numbers:
+                return {
+                    "action": "complete",
+                    "confidence": 0.7,
+                    "parameters": {"todo_number": int(numbers[0])},
+                    "reasoning": "キーワードベース: TODO完了"
+                }
+        
+        # TODO削除関連
+        elif any(word in content_lower for word in ['削除', 'delete', '消す', '消去']):
+            import re
+            numbers = re.findall(r'\d+', content)
+            if numbers:
+                return {
+                    "action": "delete", 
+                    "confidence": 0.7,
+                    "parameters": {"todo_number": int(numbers[0])},
+                    "reasoning": "キーワードベース: TODO削除"
+                }
+        
+        # デフォルト: 会話として処理
+        return {
+            "action": "chat",
+            "confidence": 0.5,
+            "parameters": {"message": content},
+            "reasoning": "キーワードベース: 一般会話"
+        }
+    
+    async def _simple_response_generation(self, intent_result: Dict, execution_result: Optional[Dict] = None) -> str:
+        """簡単な返答生成（フォールバック）"""
+        action = intent_result.get('action')
+        
+        # 魔女風の返答パターン
+        witch_responses = {
+            'create_success': [
+                "ふふ、新しいTODOを追加したよ",
+                "あらあら、また一つ増えちゃったね", 
+                "やれやれ、追加完了だよ",
+                "まったく、忙しくなるねぇ"
+            ],
+            'list_success': [
+                "ふふ、TODOリストを見せてあげるよ",
+                "あらあら、やることがいろいろあるねぇ",
+                "やれやれ、リストはこんな感じだよ"
+            ],
+            'complete_success': [
+                "ふふ、お疲れさま。一つ片付いたね",
+                "あらあら、よくできました",
+                "やれやれ、完了したよ"
+            ],
+            'delete_success': [
+                "ふふ、削除したよ",
+                "あらあら、消しちゃったね",
+                "やれやれ、なくなったよ"
+            ],
+            'error': [
+                "あらあら、うまくいかなかったねぇ",
+                "やれやれ、困ったことになったよ", 
+                "ごめんなさい、何かおかしいようだね"
+            ],
+            'chat': [
+                "ふふ、そうですねぇ",
+                "あらあら、なるほどねぇ",
+                "やれやれ、そういうことかい"
+            ]
+        }
+        
+        import random
+        
+        if execution_result and execution_result.get('success'):
+            response_key = f"{action}_success"
+            base_response = random.choice(witch_responses.get(response_key, witch_responses['chat']))
+            
+            # 結果に応じて詳細を追加
+            if action == 'list' and execution_result.get('formatted_list'):
+                return base_response + "\n\n" + execution_result['formatted_list']
+            elif execution_result.get('message'):
+                return base_response + "\n" + execution_result['message']
+            else:
+                return base_response
+        
+        elif execution_result and not execution_result.get('success'):
+            base_response = random.choice(witch_responses['error'])
+            error_msg = execution_result.get('error', '不明なエラー')
+            return f"{base_response}\n{error_msg}"
+        
+        else:
+            return random.choice(witch_responses['chat'])
 
 # グローバルインスタンス
 unified_handler = UnifiedMessageHandler()

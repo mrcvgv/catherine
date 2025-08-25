@@ -9,6 +9,7 @@ dacite>=1.8.0
 
 # Firebase integration
 firebase-admin>=6.5.0
+google-cloud-firestore>=2.11.0
 pytz>=2023.3
 
 # Date parsing
