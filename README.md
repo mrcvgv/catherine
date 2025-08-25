@@ -1,11 +1,33 @@
-# Catherine AI - 荒れ地の魔女風 TODO管理 Discord Bot
+# Catherine AI - 高性能 Discord AI アシスタント 🤖
 
-## 🧙‍♀️ 概要
+## 🎯 概要
 
-Catherineは荒れ地の魔女のような品のあるおばあさんの性格を持つAI秘書です。  
-Discord上でTODO管理、リマインダー設定、そして自然な会話ができます。
+Catherineは荒れ地の魔女のような品のあるおばあさんの性格を持つ高性能AI秘書です。  
+Discord上で**TODO管理、Google Workspace統合、自然言語処理、チャンネル制御**など多彩な機能を提供します。
 
 ## ✨ 主な機能
+
+### 🏠 **スマートチャンネル制御**
+- **#catherineチャンネル**: 全ての会話に自動応答（自然な対話）
+- **その他許可チャンネル (#一般、#suzunebrain等)**: @catherine メンションで呼び出し可能
+- **DM**: 常時応答でプライベート会話
+- **非許可チャンネル**: 完全に無視（邪魔しません）
+- **チャンネルID設定**: 環境変数で厳密なチャンネル制御が可能
+
+### 🌐 **Google Workspace完全統合**
+- **Gmail**: メール確認・件名取得・監視機能・OAuth認証対応
+- **Google Tasks**: タスク作成・管理・完了処理・期限設定
+- **Google Docs**: ドキュメント作成・編集・レポート生成・共有設定
+- **Google Sheets**: スプレッドシート作成・データ管理・計算式対応
+- **Google Drive**: ファイル整理・フォルダ管理・共有機能
+- **Google Calendar**: 予定作成・イベント管理・リマインダー・定期予定
+
+### 🧠 **高度自然言語処理**
+- **多様な表現理解**: 「メール確認して」「タスク作って」「資料作成」など自然な会話
+- **確認システム**: 曖昧な指示には選択肢を提示して確認
+- **人間らしい応答**: バリエーション豊かな返答パターンと感情表現
+- **日本語完全対応**: 丁寧語から関西弁まで理解・適応
+- **意図推定システム**: 複数のキーワードから最適なアクションを判定
 
 ### 📝 **TODO管理システム**
 - **自然言語でTODO操作**: 「アクリルキーホルダー入稿を追加」のような自然な文章でTODO追加
@@ -28,6 +50,87 @@ Discord上でTODO管理、リマインダー設定、そして自然な会話が
 - **優先度コメント**: 優先度に応じた魔女らしいアドバイス
 
 ## 🗣️ 使い方
+
+### 🏠 **チャンネル別の使い方**
+
+#### **#catherine チャンネル**
+```
+おはよう Catherine！
+今日のタスクを作成して
+メールを3通確認して
+明日の会議資料をドキュメントで作って
+売上データのスプレッドシート作成
+```
+*メンション不要。すべての発言に応答します。*
+
+#### **その他のチャンネル (#一般、#suzunebrain など)**
+```
+@catherine タスク作成して
+Catherine、メール確認お願いします
+@catherine 来週の予定を教えて
+```
+*@catherine でメンションが必要です。*
+
+#### **DM（プライベート会話）**
+```
+個人的なタスクを管理したい
+プライベートな予定を相談
+秘密の プロジェクト用ドキュメント作成
+```
+*常に応答。プライベートな内容に最適。*
+
+### 🌐 **Google Workspace操作**
+
+#### **Gmail操作**
+```
+メール確認して
+最新5件のメールを見せて
+新着メールはある？
+今日のメール件数を教えて
+重要なメールがあるか確認
+```
+
+#### **Google Tasks操作**  
+```
+「会議準備」のタスク作成
+タスクリストを見せて
+タスクを完了にして
+明日までに「資料作成」のタスク追加
+期限付きタスクを作成して
+```
+
+#### **Google Docs操作**
+```
+「プロジェクト報告書」のドキュメント作って
+会議資料をまとめて
+「Catherine統合レポート」の文書作成
+共有可能なドキュメント生成
+```
+
+#### **Google Sheets操作**
+```
+「売上管理表」のスプレッドシート作成
+データ分析用の表を作って
+「タスク管理シート」を作成
+計算式付きのスプレッドシート作成
+```
+
+#### **Google Drive操作**
+```
+「Catherine プロジェクト」フォルダ作成
+ファイルを整理して
+共有フォルダを作成
+プロジェクト用のフォルダ構成を作って
+```
+
+#### **Google Calendar操作**
+```
+明日14時に会議予定を追加
+来週の予定を確認して
+「定例ミーティング」を月曜10時に設定
+定期的な予定を作成
+今日の予定を教えて
+```
 
 ### **基本的なTODO操作**
 
@@ -105,8 +208,18 @@ DISCORD_BOT_TOKEN=your-bot-token
 DISCORD_CLIENT_ID=your-client-id
 ALLOWED_SERVER_IDS=your-server-ids
 
+# チャンネル制御設定
+ALLOWED_CHANNEL_IDS=1401831166117544043,1404390881326268476,1404452180416532550
+CATHERINE_CHANNEL_IDS=1401958031788478526
+
 # OpenAI設定
 OPENAI_API_KEY=sk-your-openai-key
+
+# Google OAuth設定（Google Workspace統合用）
+GOOGLE_OAUTH_CLIENT_ID=your-google-client-id
+GOOGLE_OAUTH_CLIENT_SECRET=your-google-client-secret
+GMAIL_REFRESH_TOKEN=your-gmail-refresh-token
+GOOGLE_FULL_REFRESH_TOKEN=your-full-google-refresh-token
 
 # Firebase設定（TODO管理用）
 # firebase-key.json ファイルをプロジェクトルートに配置
@@ -118,7 +231,12 @@ OPENAI_API_KEY=sk-your-openai-key
 - スラッシュコマンドを使用
 - メンション@everyoneを使用
 
-### 3. Firebase設定
+### 3. Google OAuth設定
+- Google Cloud Consoleで OAuth 2.0 クライアントIDを作成
+- リダイレクトURIに `http://localhost:3000/auth/google/callback` を追加
+- `get-full-google-token.js` を実行してリフレッシュトークンを取得
+
+### 4. Firebase設定
 - Firestoreデータベースを有効化
 - サービスアカウントキーを`firebase-key.json`として保存
 
