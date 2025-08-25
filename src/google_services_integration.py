@@ -248,6 +248,46 @@ class GoogleServicesIntegration:
                 'message': 'Googleタスクの取得に失敗しました'
             }
 
+    async def complete_google_task(self, task_id: str) -> Dict[str, Any]:
+        """Googleタスクを完了にマーク"""
+        try:
+            if not self.tasks_service:
+                self.tasks_service = self._get_service('tasks', 'v1')
+            
+            # タスクリストを取得
+            tasklists = self.tasks_service.tasklists().list().execute()
+            tasklist_id = tasklists['items'][0]['id']
+            
+            # タスクを完了にマーク
+            task_update = {
+                'status': 'completed'
+            }
+            
+            result = self.tasks_service.tasks().patch(
+                tasklist=tasklist_id,
+                task=task_id,
+                body=task_update
+            ).execute()
+            
+            return {
+                'success': True,
+                'task_id': task_id,
+                'title': result.get('title', 'Unknown Task'),
+                'message': f'Googleタスクを完了にマークしました'
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to complete Google task: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Googleタスクの完了に失敗しました'
+            }
+
+    def is_configured(self) -> bool:
+        """Google Servicesが設定されているかチェック"""
+        return self.credentials is not None
+
     async def create_google_doc(self, title: str, content: str = "") -> Dict[str, Any]:
         """Googleドキュメント作成"""
         try:
