@@ -3,9 +3,10 @@
 """
 import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import pytz
 import logging
+from src.mention_utils import DiscordMentionHandler, get_mention_string
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,10 @@ class SchedulerSystem:
         self.scheduled_tasks = {}  # task_id -> task_info
         self.running = False
         self.task_counter = 0
+        self.mention_handler: Optional[DiscordMentionHandler] = None
+        
+        if bot_instance:
+            self.mention_handler = DiscordMentionHandler(bot_instance)
         
     async def start(self):
         """スケジューラーを開始"""
@@ -125,41 +130,18 @@ class SchedulerSystem:
                 logger.error(f"Channel '{channel_name}' not found")
                 return
             
-            # メンションを構築
+            # 新しいメンションハンドラーを使用
             mention_target = todo_data.get('mention_target', 'everyone')
             logger.info(f"Building mention for target: {mention_target}")
             
-            if mention_target == 'everyone':
-                mention = '@everyone'
-            elif mention_target == 'mrc':
-                # mrcvglユーザーを検索（複数のパターンで検索）
-                target_user = None
-                search_patterns = ['mrcvgl', 'mrc']
-                for member in channel.guild.members:
-                    member_name = member.name.lower()
-                    member_display = member.display_name.lower()
-                    logger.info(f"Checking member: {member.name} (display: {member.display_name})")
-                    if any(pattern in member_name or pattern in member_display for pattern in search_patterns):
-                        target_user = member
-                        logger.info(f"Found mrc user: {member.name} (ID: {member.id})")
-                        break
-                mention = target_user.mention if target_user else '@mrcvgl'
-            elif mention_target == 'supy':
-                # supy000ユーザーを検索（複数のパターンで検索）
-                target_user = None
-                search_patterns = ['supy000', 'supy']
-                logger.info(f"Guild has {len(channel.guild.members)} members")
-                for member in channel.guild.members:
-                    member_name = member.name.lower()
-                    member_display = member.display_name.lower()
-                    logger.info(f"Checking member: {member.name} (display: {member.display_name})")
-                    if any(pattern in member_name or pattern in member_display for pattern in search_patterns):
-                        target_user = member
-                        logger.info(f"Found supy user: {member.name} (ID: {member.id})")
-                        break
-                mention = target_user.mention if target_user else '@supy000'
+            if self.mention_handler:
+                mention_data = self.mention_handler.parse_mention_text(mention_target, channel.guild)
+                mention = mention_data.get('mention_string', '@everyone')
+                logger.info(f"Built mention using handler: {mention} for target: {mention_target}")
             else:
-                mention = f'@{mention_target}'
+                # フォールバック
+                mention = get_mention_string(mention_target, channel.guild, self.bot)
+                logger.info(f"Built mention using fallback: {mention} for target: {mention_target}")
             
             # メッセージを送信
             if todo_data.get('is_list_reminder'):

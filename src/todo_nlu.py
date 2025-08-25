@@ -489,17 +489,8 @@ class TodoNLU:
         if is_list_reminder:
             todo_number = None  # 全リスト通知の場合は番号なし
         
-        # メンション先を検出
-        mention_target = 'everyone'  # デフォルト
-        if '@mrc' in message.lower() or 'mrc' in message.lower():
-            mention_target = 'mrc'
-        elif '@supy' in message.lower() or 'supy' in message.lower():
-            mention_target = 'supy'
-        elif '@' in message:
-            # その他のメンション指定があれば抽出
-            mention_match = re.search(r'@(\w+)', message)
-            if mention_match:
-                mention_target = mention_match.group(1)
+        # メンション先を検出（より高度な解析）
+        mention_target = self._parse_mention_target(message)
         
         # チャンネル指定を検出
         channel_target = 'todo'  # デフォルト
@@ -521,6 +512,52 @@ class TodoNLU:
             'custom_message': custom_message,
             'confidence': 0.7
         }
+    
+    def _parse_mention_target(self, message: str) -> str:
+        """メンション対象を詳細に解析"""
+        message_lower = message.lower()
+        
+        # 明示的な@everyone
+        if '@everyone' in message_lower or 'みんな' in message_lower or '全員' in message_lower:
+            return 'everyone'
+        
+        # 特定ユーザー（拡張可能）
+        user_patterns = {
+            'mrc': ['@mrc', 'mrc', 'mrcvgl', '@mrcvgl', 'mrcさん', 'エムアールシー'],
+            'supy': ['@supy', 'supy', 'supy000', '@supy000', 'supyさん', 'スピー'],
+            'ko': ['@ko', 'ko', 'kouhei', '@kouhei', 'koさん', 'コウヘイ'],
+            'catherine': ['@catherine', 'catherine', 'キャサリン', 'カトリン']
+        }
+        
+        for user, patterns in user_patterns.items():
+            if any(pattern in message_lower for pattern in patterns):
+                return user
+        
+        # ロールの検出
+        role_patterns = {
+            'admin': ['@admin', 'admin', 'administrator', '管理者', 'アドミン'],
+            'moderator': ['@mod', 'mod', 'moderator', 'モデレーター'],
+            'member': ['@member', 'member', 'メンバー', '参加者'],
+            'staff': ['@staff', 'staff', 'スタッフ'],
+            'developer': ['@dev', 'dev', 'developer', '開発者']
+        }
+        
+        for role, patterns in role_patterns.items():
+            if any(pattern in message_lower for pattern in patterns):
+                return f'role:{role}'
+        
+        # 一般的な@メンション
+        mention_match = re.search(r'@(\w+)', message_lower)
+        if mention_match:
+            return mention_match.group(1)
+        
+        # 「〇〇さん」パターン
+        san_match = re.search(r'(\w+)さん', message)
+        if san_match:
+            return san_match.group(1)
+        
+        # デフォルトは everyone
+        return 'everyone'
 
 # グローバルインスタンス
 todo_nlu = TodoNLU()

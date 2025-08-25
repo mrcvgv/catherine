@@ -55,6 +55,7 @@ from src.moderation import (
 from src.context_manager import context_manager
 from src.notion_integration import NotionIntegration
 from src.google_integration import GoogleIntegration
+from src.mention_utils import DiscordMentionHandler, get_mention_string
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -71,6 +72,7 @@ BOT_INSTANCE_ID = str(uuid.uuid4())[:8]
 # グローバル変数
 notion_integration = None
 google_integration = None
+mention_handler = None
 
 # システム初期化用のsetup_hook
 @client.event
@@ -127,24 +129,30 @@ async def setup_hook():
                     logger.info(f"MCP Bridge initialized successfully")
                     
                     # Notion統合を初期化
-                    global notion_integration, google_integration
+                    global notion_integration, google_integration, mention_handler
                     notion_integration = NotionIntegration(mcp_bridge)
                     google_integration = GoogleIntegration(mcp_bridge)
-                    logger.info("Notion and Google integration initialized")
+                    mention_handler = DiscordMentionHandler(client)
+                    logger.info("Notion, Google integration, and mention handler initialized")
                 else:
                     logger.info("MCP Bridge initialization skipped (no servers configured)")
                     notion_integration = None
                     google_integration = None
+                    mention_handler = DiscordMentionHandler(client)
             except Exception as e:
                 logger.warning(f"MCP Bridge initialization failed (optional): {e}")
                 notion_integration = None
                 google_integration = None
+                mention_handler = DiscordMentionHandler(client)
             
             _systems_initialized = True
         except Exception as e:
             logger.error(f"Failed to initialize systems in setup_hook: {e}")
     else:
         logger.info("Firebase not enabled, skipping system initialization")
+        # Firebase不使用時も基本的なメンションハンドラーは初期化
+        global mention_handler
+        mention_handler = DiscordMentionHandler(client)
         _systems_initialized = True
     
     logger.info("Setup hook completed")
@@ -484,38 +492,15 @@ async def handle_todo_command(user: discord.User, intent: Dict[str, Any]) -> str
                                     break
                             
                             if channel:
-                                # メンションを構築
+                                # 新しいメンションハンドラーを使用
                                 mention_target = result.get('mention_target', 'everyone')
-                                if mention_target == 'everyone':
-                                    mention = '@everyone'
-                                elif mention_target == 'mrc':
-                                    # mrcvglユーザーを検索（複数パターン）
-                                    mrc_user = None
-                                    search_patterns = ['mrcvgl', 'mrc']
-                                    for member in channel.guild.members:
-                                        member_name = member.name.lower()
-                                        member_display = member.display_name.lower()
-                                        logger.info(f"[main.py] Checking member: {member.name} (display: {member.display_name})")
-                                        if any(pattern in member_name or pattern in member_display for pattern in search_patterns):
-                                            mrc_user = member
-                                            logger.info(f"[main.py] Found mrc user: {member.name} (ID: {member.id})")
-                                            break
-                                    mention = mrc_user.mention if mrc_user else '@mrcvgl'
-                                elif mention_target == 'supy':
-                                    # supy000ユーザーを検索（複数パターン）
-                                    supy_user = None
-                                    search_patterns = ['supy000', 'supy']
-                                    for member in channel.guild.members:
-                                        member_name = member.name.lower()
-                                        member_display = member.display_name.lower()
-                                        logger.info(f"[main.py] Checking member: {member.name} (display: {member.display_name})")
-                                        if any(pattern in member_name or pattern in member_display for pattern in search_patterns):
-                                            supy_user = member
-                                            logger.info(f"[main.py] Found supy user: {member.name} (ID: {member.id})")
-                                            break
-                                    mention = supy_user.mention if supy_user else '@supy000'
+                                if mention_handler:
+                                    mention_data = mention_handler.parse_mention_text(mention_target, channel.guild)
+                                    mention = mention_data.get('mention_string', '@everyone')
+                                    logger.info(f"[main.py] Parsed mention: {mention} for target: {mention_target}")
                                 else:
-                                    mention = f'@{mention_target}'
+                                    # フォールバック
+                                    mention = get_mention_string(mention_target, channel.guild, client)
                                 
                                 # リマインダーメッセージを送信
                                 witch_urgent = [
