@@ -1,1 +1,1 @@
-web: python3 -m src.main
+web: python src/simple_bot.py

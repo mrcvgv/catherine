@@ -15,16 +15,9 @@ logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO
 )
 
-# Firebase integration
-try:
-    # Add parent directory to path for firebase_config import
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from firebase_config import firebase_manager
-    FIREBASE_ENABLED = True
-    logging.info("Firebase integration enabled")
-except ImportError as e:
-    FIREBASE_ENABLED = False
-    logging.warning(f"Firebase integration not available: {e}")
+# Firebase は使用しない
+FIREBASE_ENABLED = False
+logging.info("Firebase integration disabled - using Google/Notion APIs")
 
 from src.base import Message, Conversation, ThreadConfig
 from src.constants import (
@@ -54,9 +47,7 @@ from src.moderation import (
     send_moderation_blocked_message,
     send_moderation_flagged_message,
 )
-from src.context_manager import context_manager
-from src.notion_integration import NotionIntegration
-# Google integration now handled by google_services_integration.py
+from src.simple_google_service import google_service
 from src.mention_utils import DiscordMentionHandler, get_mention_string
 from src.channel_utils import should_respond_to_message, get_channel_info
 
@@ -86,99 +77,27 @@ async def setup_hook():
         logger.info("Systems already initialized, skipping setup_hook")
         return
         
-    logger.info(f"[BOT-{BOT_INSTANCE_ID}] Setup hook called - gradual system initialization")
+    logger.info(f"[BOT-{BOT_INSTANCE_ID}] Setup hook called - simple system initialization")
     
-    if FIREBASE_ENABLED:
-        try:
-            import sys
-            import os
-            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-            
-            # 段階的にシステムを初期化（旧メモリベースシステムは削除済み）
-            # Phase 1: 外部API管理リマインダーシステムを初期化
-            logger.info("Phase 1: Initializing external reminder system...")
-            from src.external_reminder_manager import init_external_reminder_manager
-            from src.google_services_integration import google_services
-            
-            external_reminder_system = init_external_reminder_manager(
-                notion_integration=None,  # 後で設定
-                google_services=google_services,
-                discord_bot=client
-            )
-            
-            try:
-                logger.info("Initializing external reminder system...")
-                initialized = await external_reminder_system.initialize()
-                if initialized:
-                    await external_reminder_system.start_periodic_checker()
-                    logger.info("External reminder system started successfully")
-                else:
-                    logger.warning("External reminder system initialization failed")
-            except Exception as e:
-                logger.error(f"Failed to start external reminder system: {e}")
-                
-            logger.info("Phase 1 system initialization completed in setup_hook")
-            
-            # Phase 1.5: Initialize unified TODO manager
-            try:
-                from src.unified_todo_manager import unified_todo_manager
-                logger.info("Initializing unified TODO manager...")
-                await unified_todo_manager.initialize()
-                logger.info("Unified TODO manager initialized successfully")
-            except Exception as e:
-                logger.error(f"Failed to initialize unified TODO manager: {e}")
-            
-            # Phase 2: MCPブリッジを初期化（オプション）
-            try:
-                from src.mcp_bridge import mcp_bridge
-                logger.info("Phase 2: Initializing MCP Bridge...")
-                mcp_initialized = await mcp_bridge.initialize()
-                if mcp_initialized:
-                    logger.info(f"MCP Bridge initialized successfully")
-                    
-                    # Notion統合を初期化
-                    notion_integration = NotionIntegration(mcp_bridge)
-                    mention_handler = DiscordMentionHandler(client)
-                    logger.info("Notion integration and mention handler initialized")
-                    
-                    # 外部リマインダーシステムにNotion統合を設定
-                    try:
-                        from src.external_reminder_manager import external_reminder_manager
-                        external_reminder_manager.notion = notion_integration
-                        logger.info("External reminder system updated with Notion integration")
-                    except Exception as e:
-                        logger.warning(f"Failed to update external reminder system with Notion: {e}")
-                else:
-                    logger.info("MCP Bridge initialization skipped (no servers configured)")
-                    notion_integration = None
-                    mention_handler = DiscordMentionHandler(client)
-            except Exception as e:
-                logger.warning(f"MCP Bridge initialization failed (optional): {e}")
-                notion_integration = None
-                mention_handler = DiscordMentionHandler(client)
-            
-            _systems_initialized = True
-        except Exception as e:
-            logger.error(f"Failed to initialize systems in setup_hook: {e}")
-    else:
-        logger.info("Firebase not enabled, initializing minimal systems")
-        # Firebase不使用時も基本的なメンションハンドラーは初期化
-        if mention_handler is None:
-            mention_handler = DiscordMentionHandler(client)
+    try:
+        # Google Service初期化
+        logger.info("Initializing Google Services...")
+        google_initialized = google_service.initialize()
+        if google_initialized:
+            logger.info("✅ Google Services initialized successfully")
+        else:
+            logger.warning("⚠️ Google Services initialization failed")
         
-        # 最低限のTODO manager初期化を試行
-        try:
-            from src.unified_todo_manager import unified_todo_manager
-            logger.info("Attempting to initialize unified TODO manager without Firebase...")
-            await unified_todo_manager.initialize()
-            if unified_todo_manager.initialized:
-                logger.info("Unified TODO manager initialized successfully (external services only)")
-            else:
-                logger.warning("Unified TODO manager initialization failed")
-        except Exception as e:
-            logger.error(f"Failed to initialize minimal TODO manager: {e}")
-            
+        # メンションハンドラー初期化
+        mention_handler = DiscordMentionHandler(client)
+        logger.info("✅ Mention handler initialized")
+        
         _systems_initialized = True
+        logger.info("✅ System initialization completed")
+        
+    except Exception as e:
+        logger.error(f"System initialization error: {e}")
+        _systems_initialized = True  # エラーでも続行
     
     logger.info("Setup hook completed")
 
