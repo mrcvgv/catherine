@@ -766,8 +766,8 @@ async def on_message(message: DiscordMessage):
             return
         
         # チャンネル制限チェック - Catherineが応答すべきかどうか
-        if not should_respond_to_message(message):
-            channel_info = get_channel_info(message)
+        if not should_respond_to_message(message, client.user.id):
+            channel_info = get_channel_info(message, client.user.id)
             logger.info(f"Message ignored - not responding in channel '{channel_info.get('channel_name', 'unknown')}' (Catherine channels only or mention required)")
             return
         

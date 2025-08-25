@@ -98,7 +98,7 @@ def is_catherine_channel(message: DiscordMessage) -> bool:
     logger.info(f"Channel '{channel_name}' (ID: {channel_id}) - not Catherine channel")
     return False
 
-def should_respond_to_message(message: DiscordMessage) -> bool:
+def should_respond_to_message(message: DiscordMessage, bot_user_id: int = None) -> bool:
     """
     Catherineがメッセージに応答すべきかどうか判定
     
@@ -139,15 +139,20 @@ def should_respond_to_message(message: DiscordMessage) -> bool:
     # Discord @メンション（Botユーザーへの言及）
     bot_mentioned = False
     if message.mentions:
-        # Botがメンションされているかチェック
-        for mention in message.mentions:
-            if hasattr(mention, 'bot') and mention.bot:
-                bot_mentioned = True
-                break
-            # または特定のBot IDチェック（より厳密）
-            if hasattr(mention, 'id'):
-                # Catherineの実際のBot IDと比較する場合
-                pass
+        # 特定のBot IDとの比較（最も正確）
+        if bot_user_id:
+            for mention in message.mentions:
+                if hasattr(mention, 'id') and mention.id == bot_user_id:
+                    bot_mentioned = True
+                    logger.info(f"Bot {bot_user_id} was directly mentioned")
+                    break
+        else:
+            # フォールバック：Botかどうかでチェック
+            for mention in message.mentions:
+                if hasattr(mention, 'bot') and mention.bot:
+                    bot_mentioned = True
+                    logger.info(f"Generic bot mention detected")
+                    break
     
     is_mentioned = text_mentioned or bot_mentioned
     
@@ -156,7 +161,7 @@ def should_respond_to_message(message: DiscordMessage) -> bool:
     
     return is_mentioned
 
-def get_channel_info(message: DiscordMessage) -> dict:
+def get_channel_info(message: DiscordMessage, bot_user_id: int = None) -> dict:
     """
     チャンネル情報を取得（デバッグ用）
     
@@ -171,7 +176,7 @@ def get_channel_info(message: DiscordMessage) -> dict:
         "is_dm": isinstance(message.channel, DMChannel),
         "is_allowed": is_allowed_channel(message),
         "is_catherine": is_catherine_channel(message),
-        "should_respond": should_respond_to_message(message)
+        "should_respond": should_respond_to_message(message, bot_user_id)
     }
     
     if hasattr(message.channel, 'name'):

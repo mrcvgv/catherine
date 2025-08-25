@@ -467,8 +467,27 @@ class TodoNLU:
                 todo_number = int(number_match.group(1)) if number_match else None
         else:
             # 通常のパターン（カスタムメッセージなし）
-            number_match = re.search(r'(\d+)', message)
-            todo_number = int(number_match.group(1)) if number_match else None
+            # 時間表現の文脈を先にチェック
+            all_numbers = re.findall(r'(\d+)', message)
+            todo_number = None
+            
+            for num in all_numbers:
+                num_int = int(num)
+                # 数字の前後の文脈をチェック
+                num_pos = message.find(num)
+                context_before = message[max(0, num_pos-5):num_pos].lower()
+                context_after = message[num_pos+len(num):num_pos+len(num)+5].lower()
+                
+                # 時間表現の文脈かどうかチェック
+                is_time_context = (
+                    any(time_word in context_after for time_word in ['時', '分', '：', ':', '月', '日', '分後', '時間後', '日後']) or
+                    any(time_word in context_before for time_word in ['毎日', '毎朝', '毎晩', '明日', '今日']) or
+                    (num_int >= 1 and num_int <= 24 and ('時' in context_after or ':' in context_after or '：' in context_after))
+                )
+                
+                if not is_time_context:
+                    todo_number = num_int
+                    break
         
         # 時間指定を検出
         remind_time = self._detect_due_date(message.lower())
