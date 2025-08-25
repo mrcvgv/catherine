@@ -117,6 +117,15 @@ async def setup_hook():
                 
             logger.info("Phase 1 system initialization completed in setup_hook")
             
+            # Phase 1.5: Initialize unified TODO manager
+            try:
+                from src.unified_todo_manager import unified_todo_manager
+                logger.info("Initializing unified TODO manager...")
+                await unified_todo_manager.initialize()
+                logger.info("Unified TODO manager initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize unified TODO manager: {e}")
+            
             # Phase 2: MCPブリッジを初期化（オプション）
             try:
                 from src.mcp_bridge import mcp_bridge

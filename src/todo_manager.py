@@ -4,6 +4,9 @@ TODO管理システム - AI秘書Catherine用
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any
 import pytz
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from firebase_config import firebase_manager
 from google.cloud.firestore_v1.base_query import FieldFilter
 import logging
