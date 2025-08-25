@@ -92,36 +92,35 @@ async def setup_hook():
             import os
             sys.path.append(os.path.dirname(os.path.abspath(__file__)))
             
-            # 段階的にシステムを初期化
-            logger.info("Phase 1: Initializing scheduler system only...")
-            from scheduler_system import init_scheduler_system
-            scheduler_system = init_scheduler_system(client)
+            # 段階的にシステムを初期化（旧メモリベースシステムは削除済み）
+            # Phase 1: 外部API管理リマインダーシステムを初期化
+            logger.info("Phase 1: Initializing external reminder system...")
+            from src.external_reminder_manager import init_external_reminder_manager
+            from src.google_services_integration import google_services
+            
+            external_reminder_system = init_external_reminder_manager(
+                notion_integration=None,  # 後で設定
+                google_services=google_services,
+                discord_bot=client
+            )
             
             try:
-                logger.info("Starting scheduler system...")
-                await scheduler_system.start()
-                logger.info("Scheduler system started successfully")
+                logger.info("Initializing external reminder system...")
+                initialized = await external_reminder_system.initialize()
+                if initialized:
+                    await external_reminder_system.start_periodic_checker()
+                    logger.info("External reminder system started successfully")
+                else:
+                    logger.warning("External reminder system initialization failed")
             except Exception as e:
-                logger.error(f"Failed to start scheduler system: {e}")
-            
-            # Phase 2: 新しい柔軟なリマインダーシステムを初期化
-            logger.info("Phase 2: Initializing flexible reminder system...")
-            from src.flexible_reminder_system import init_flexible_reminder_system
-            flexible_reminder_system = init_flexible_reminder_system(client)
-            
-            try:
-                logger.info("Starting flexible reminder system...")
-                await flexible_reminder_system.start()
-                logger.info("Flexible reminder system started successfully")
-            except Exception as e:
-                logger.error(f"Failed to start flexible reminder system: {e}")
+                logger.error(f"Failed to start external reminder system: {e}")
                 
-            logger.info("Phase 1 & 2 system initialization completed in setup_hook")
+            logger.info("Phase 1 system initialization completed in setup_hook")
             
-            # Phase 3: MCPブリッジを初期化（オプション）
+            # Phase 2: MCPブリッジを初期化（オプション）
             try:
                 from src.mcp_bridge import mcp_bridge
-                logger.info("Phase 3: Initializing MCP Bridge...")
+                logger.info("Phase 2: Initializing MCP Bridge...")
                 mcp_initialized = await mcp_bridge.initialize()
                 if mcp_initialized:
                     logger.info(f"MCP Bridge initialized successfully")
@@ -130,6 +129,14 @@ async def setup_hook():
                     notion_integration = NotionIntegration(mcp_bridge)
                     mention_handler = DiscordMentionHandler(client)
                     logger.info("Notion integration and mention handler initialized")
+                    
+                    # 外部リマインダーシステムにNotion統合を設定
+                    try:
+                        from src.external_reminder_manager import external_reminder_manager
+                        external_reminder_manager.notion = notion_integration
+                        logger.info("External reminder system updated with Notion integration")
+                    except Exception as e:
+                        logger.warning(f"Failed to update external reminder system with Notion: {e}")
                 else:
                     logger.info("MCP Bridge initialization skipped (no servers configured)")
                     notion_integration = None

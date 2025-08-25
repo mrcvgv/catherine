@@ -361,20 +361,20 @@ class UnifiedMessageHandler:
             return {'success': False, 'error': f'リマインダー設定に失敗しました: {str(e)}'}
 
     async def _handle_custom_reminder(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
-        """カスタムリマインダー（自然言語解析）"""
+        """カスタムリマインダー（外部API管理）"""
         try:
-            from src.flexible_reminder_system import flexible_reminder_system
+            from src.external_reminder_manager import external_reminder_manager
             
             text = parameters.get('text', parameters.get('message', ''))
             if not text:
                 return {'success': False, 'error': 'リマインダー内容が必要です'}
             
-            result = await flexible_reminder_system.create_custom_reminder(text, user_id)
+            result = await external_reminder_manager.create_reminder_from_text(text, user_id)
             return result
             
         except Exception as e:
-            logger.error(f"Error creating custom reminder: {e}")
-            return {'success': False, 'error': f'カスタムリマインダー作成に失敗しました: {str(e)}'}
+            logger.error(f"Error creating external custom reminder: {e}")
+            return {'success': False, 'error': f'外部リマインダー作成に失敗しました: {str(e)}'}
 
     # Google Workspace関連メソッド
     async def _handle_gmail_check(self, parameters: Dict[str, Any]) -> Dict[str, Any]:

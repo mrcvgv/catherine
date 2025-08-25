@@ -195,3 +195,113 @@ class NotionIntegration:
             formatted += "\n"
         
         return formatted
+    
+    async def create_reminder_record(self, reminder_id: str, message: str, 
+                                   calendar_event_id: str, remind_time: str,
+                                   mention_target: str, channel_target: str,
+                                   status: str, created_by: str) -> Dict[str, Any]:
+        """Notion にリマインダーレコードを作成"""
+        try:
+            if not await self.is_available():
+                return {"success": False, "error": "Notion integration not available"}
+            
+            params = {
+                "database_name": "Catherine_Reminders",
+                "properties": {
+                    "reminder_id": reminder_id,
+                    "message": message,
+                    "calendar_event_id": calendar_event_id,
+                    "remind_time": remind_time,
+                    "mention_target": mention_target,
+                    "channel_target": channel_target,
+                    "status": status,
+                    "created_by": created_by
+                }
+            }
+            
+            result = await self.mcp_bridge.call_tool(
+                self.server_name, "create_reminder", params
+            )
+            
+            if result:
+                logger.info(f"Created reminder record in Notion: {reminder_id}")
+                return result
+            else:
+                return {"success": False, "error": "Failed to call Notion MCP for reminder"}
+                
+        except Exception as e:
+            logger.error(f"Error creating reminder record: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def update_reminder_status(self, reminder_id: str, status: str, 
+                                   executed_at: Optional[str] = None) -> Dict[str, Any]:
+        """Notion のリマインダーステータスを更新"""
+        try:
+            if not await self.is_available():
+                return {"success": False, "error": "Notion integration not available"}
+            
+            params = {
+                "reminder_id": reminder_id,
+                "status": status
+            }
+            
+            if executed_at:
+                params["executed_at"] = executed_at
+            
+            result = await self.mcp_bridge.call_tool(
+                self.server_name, "update_reminder_status", params
+            )
+            
+            if result:
+                logger.info(f"Updated reminder status in Notion: {reminder_id} -> {status}")
+                return result
+            else:
+                return {"success": False, "error": "Failed to call Notion MCP for status update"}
+                
+        except Exception as e:
+            logger.error(f"Error updating reminder status: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def get_reminder_record(self, reminder_id: str) -> Dict[str, Any]:
+        """Notion からリマインダーレコードを取得"""
+        try:
+            if not await self.is_available():
+                return {"success": False, "error": "Notion integration not available"}
+            
+            params = {"reminder_id": reminder_id}
+            
+            result = await self.mcp_bridge.call_tool(
+                self.server_name, "get_reminder", params
+            )
+            
+            if result:
+                logger.info(f"Retrieved reminder record from Notion: {reminder_id}")
+                return result
+            else:
+                return {"success": False, "error": "Failed to call Notion MCP for reminder get"}
+                
+        except Exception as e:
+            logger.error(f"Error getting reminder record: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def list_active_reminders(self) -> Dict[str, Any]:
+        """Notion からアクティブなリマインダー一覧を取得"""
+        try:
+            if not await self.is_available():
+                return {"success": False, "error": "Notion integration not available"}
+            
+            params = {"status": "scheduled"}
+            
+            result = await self.mcp_bridge.call_tool(
+                self.server_name, "list_reminders", params
+            )
+            
+            if result:
+                logger.info(f"Retrieved {result.get('count', 0)} active reminders from Notion")
+                return result
+            else:
+                return {"success": False, "error": "Failed to call Notion MCP for reminder list"}
+                
+        except Exception as e:
+            logger.error(f"Error listing active reminders: {e}")
+            return {"success": False, "error": str(e)}

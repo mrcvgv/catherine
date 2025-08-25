@@ -428,5 +428,139 @@ class GoogleServicesIntegration:
                 'message': 'カレンダーイベントの作成に失敗しました'
             }
 
+    async def get_upcoming_events(self, time_min: datetime = None, time_max: datetime = None, 
+                                 query: str = None, max_results: int = 50) -> Dict[str, Any]:
+        """指定期間の予定イベントを取得"""
+        try:
+            if not self.calendar_service:
+                self.calendar_service = self._get_service('calendar', 'v3')
+            
+            if not time_min:
+                time_min = datetime.now(pytz.timezone('Asia/Tokyo'))
+            if not time_max:
+                time_max = time_min + timedelta(hours=24)
+            
+            # RFC3339 形式に変換
+            time_min_rfc = time_min.isoformat()
+            time_max_rfc = time_max.isoformat()
+            
+            events_request = self.calendar_service.events().list(
+                calendarId='primary',
+                timeMin=time_min_rfc,
+                timeMax=time_max_rfc,
+                maxResults=max_results,
+                singleEvents=True,
+                orderBy='startTime'
+            )
+            
+            if query:
+                events_request = events_request.q = query
+            
+            events_result = events_request.execute()
+            events = events_result.get('items', [])
+            
+            formatted_events = []
+            for event in events:
+                formatted_event = {
+                    'id': event['id'],
+                    'title': event.get('summary', 'No Title'),
+                    'description': event.get('description', ''),
+                    'start': event['start'].get('dateTime', event['start'].get('date')),
+                    'end': event['end'].get('dateTime', event['end'].get('date')),
+                    'html_link': event.get('htmlLink', ''),
+                    'location': event.get('location', '')
+                }
+                formatted_events.append(formatted_event)
+            
+            return {
+                'success': True,
+                'count': len(formatted_events),
+                'events': formatted_events,
+                'message': f'{len(formatted_events)}件のイベントを取得しました'
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get upcoming events: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'イベント取得に失敗しました'
+            }
+
+    async def delete_calendar_event(self, event_id: str) -> Dict[str, Any]:
+        """カレンダーイベントを削除"""
+        try:
+            if not self.calendar_service:
+                self.calendar_service = self._get_service('calendar', 'v3')
+            
+            self.calendar_service.events().delete(
+                calendarId='primary',
+                eventId=event_id
+            ).execute()
+            
+            return {
+                'success': True,
+                'event_id': event_id,
+                'message': f'イベント {event_id} を削除しました'
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to delete calendar event: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'イベント削除に失敗しました'
+            }
+
+    async def update_calendar_event(self, event_id: str, **kwargs) -> Dict[str, Any]:
+        """カレンダーイベントを更新"""
+        try:
+            if not self.calendar_service:
+                self.calendar_service = self._get_service('calendar', 'v3')
+            
+            # 既存イベントを取得
+            event = self.calendar_service.events().get(
+                calendarId='primary',
+                eventId=event_id
+            ).execute()
+            
+            # 指定されたフィールドを更新
+            if 'title' in kwargs:
+                event['summary'] = kwargs['title']
+            if 'description' in kwargs:
+                event['description'] = kwargs['description']
+            if 'start_time' in kwargs:
+                event['start'] = {
+                    'dateTime': kwargs['start_time'].isoformat(),
+                    'timeZone': 'Asia/Tokyo'
+                }
+            if 'end_time' in kwargs:
+                event['end'] = {
+                    'dateTime': kwargs['end_time'].isoformat(),
+                    'timeZone': 'Asia/Tokyo'
+                }
+            
+            # 更新を実行
+            updated_event = self.calendar_service.events().update(
+                calendarId='primary',
+                eventId=event_id,
+                body=event
+            ).execute()
+            
+            return {
+                'success': True,
+                'event_id': updated_event['id'],
+                'title': updated_event.get('summary', ''),
+                'message': f'イベント {event_id} を更新しました'
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to update calendar event: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'イベント更新に失敗しました'
+            }
+
 # グローバルインスタンス
 google_services = GoogleServicesIntegration()
