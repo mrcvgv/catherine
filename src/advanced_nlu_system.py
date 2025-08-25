@@ -44,7 +44,11 @@ class AdvancedNLU:
    - drive_create_folder: Google Drive フォルダ作成 (name, parent_folder)
    - calendar_create_event: カレンダーイベント作成 (title, start_time, end_time, description)
 
-3. **一般会話**:
+3. **リマインダー**:
+   - remind: TODO項目のリマインダー設定 (todo_number, remind_time, mention_target, channel_target)
+   - custom_reminder: カスタムメッセージリマインダー (text, mention_target, channel_target)
+
+4. **一般会話**:
    - chat: 通常の会話・質問回答
 
 優先度レベル: urgent(激高), high(高), normal(普通), low(低)
@@ -72,6 +76,12 @@ class AdvancedNLU:
 
 入力: "おはよう"
 出力: {"action": "chat", "confidence": 0.8, "parameters": {"message": "おはよう"}, "reasoning": "一般的な挨拶"}
+
+入力: "1時間後にミーティング準備をリマインド@everyone"
+出力: {"action": "custom_reminder", "confidence": 0.9, "parameters": {"text": "1時間後にミーティング準備をリマインド@everyone"}, "reasoning": "カスタムリマインダー設定"}
+
+入力: "3番のTODOを明日の10時にリマインド"
+出力: {"action": "remind", "confidence": 0.9, "parameters": {"todo_number": 3, "remind_time": "2025-08-26T10:00:00+09:00", "mention_target": "everyone", "channel_target": "catherine"}, "reasoning": "TODO項目リマインダー設定"}
 """
 
     async def understand_intent(self, text: str, user_context: Optional[Dict] = None) -> Dict[str, Any]:

@@ -201,6 +201,10 @@ class UnifiedMessageHandler:
             elif action == 'calendar_create_event':
                 return await self._handle_calendar_create_event(parameters)
                 
+            # カスタムリマインダー（自然言語）
+            elif action == 'custom_reminder':
+                return await self._handle_custom_reminder(parameters, user_id)
+            
             # 通常の会話
             elif action == 'chat':
                 return {'success': True, 'type': 'chat', 'message': parameters.get('message', '')}
@@ -298,29 +302,79 @@ class UnifiedMessageHandler:
         }
 
     async def _handle_todo_remind(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
-        """リマインダー設定"""
-        # 既存のリマインダーシステムを使用
+        """リマインダー設定 - 新しい柔軟なシステムを使用"""
         try:
-            from src.reminder_system import reminder_system
+            from src.flexible_reminder_system import flexible_reminder_system
             
-            todo_number = parameters.get('todo_number')
-            remind_time = parameters.get('remind_time')
-            custom_message = parameters.get('custom_message')
+            # カスタムメッセージリマインダー
+            if parameters.get('custom_message') and not parameters.get('todo_number'):
+                custom_message = parameters['custom_message']
+                remind_time = parameters.get('remind_time')
+                mention_target = parameters.get('mention_target', 'everyone')
+                channel_target = parameters.get('channel_target', 'catherine')
+                
+                if remind_time:
+                    result = await flexible_reminder_system.create_reminder(
+                        message=custom_message,
+                        remind_time=remind_time,
+                        mention_target=mention_target,
+                        channel_target=channel_target,
+                        user_id=user_id,
+                        is_todo_reminder=False
+                    )
+                    
+                    time_str = remind_time.strftime('%Y-%m-%d %H:%M JST')
+                    mention_info = flexible_reminder_system.parse_mention_target(mention_target)
+                    
+                    return {
+                        'success': True,
+                        'reminder_id': result,
+                        'message': f"🔔 カスタムリマインダーを設定しました\n\n📝 内容: {custom_message}\n⏰ 時刻: {time_str}\n📢 通知: {mention_info['mention_string']}\n📍 場所: #{channel_target}"
+                    }
+                else:
+                    return {'success': False, 'error': '時間指定が必要です'}
             
-            if remind_time:
-                await reminder_system.schedule_reminder(
-                    user_id=user_id,
-                    todo_number=todo_number,
-                    remind_time=remind_time,
-                    custom_message=custom_message
-                )
-                return {'success': True, 'message': 'リマインダーを設定しました'}
+            # TODO項目リマインダー
+            elif parameters.get('todo_number'):
+                todo_number = parameters['todo_number']
+                remind_time = parameters.get('remind_time')
+                mention_target = parameters.get('mention_target', 'everyone')
+                channel_target = parameters.get('channel_target', 'catherine')
+                
+                if remind_time:
+                    result = await flexible_reminder_system.create_todo_reminder(
+                        todo_number=todo_number,
+                        remind_time=remind_time,
+                        user_id=user_id,
+                        mention_target=mention_target,
+                        channel_target=channel_target
+                    )
+                    return result
+                else:
+                    return {'success': False, 'error': '時間指定が必要です'}
+            
             else:
-                return {'success': False, 'error': '時間指定が必要です'}
+                return {'success': False, 'error': 'リマインダー内容またはTODO番号が必要です'}
                 
         except Exception as e:
-            logger.error(f"Error setting reminder: {e}")
-            return {'success': False, 'error': str(e)}
+            logger.error(f"Error setting flexible reminder: {e}")
+            return {'success': False, 'error': f'リマインダー設定に失敗しました: {str(e)}'}
+
+    async def _handle_custom_reminder(self, parameters: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+        """カスタムリマインダー（自然言語解析）"""
+        try:
+            from src.flexible_reminder_system import flexible_reminder_system
+            
+            text = parameters.get('text', parameters.get('message', ''))
+            if not text:
+                return {'success': False, 'error': 'リマインダー内容が必要です'}
+            
+            result = await flexible_reminder_system.create_custom_reminder(text, user_id)
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error creating custom reminder: {e}")
+            return {'success': False, 'error': f'カスタムリマインダー作成に失敗しました: {str(e)}'}
 
     # Google Workspace関連メソッド
     async def _handle_gmail_check(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
@@ -415,6 +469,15 @@ class UnifiedMessageHandler:
                     "parameters": {"todo_number": int(numbers[0])},
                     "reasoning": "キーワードベース: TODO削除"
                 }
+        
+        # リマインダー関連
+        elif any(word in content_lower for word in ['リマインド', 'remind', '時間後', '分後', '明日', '今日']):
+            return {
+                "action": "custom_reminder",
+                "confidence": 0.6,
+                "parameters": {"text": content},
+                "reasoning": "キーワードベース: リマインダー"
+            }
         
         # デフォルト: 会話として処理
         return {

@@ -104,19 +104,17 @@ async def setup_hook():
             except Exception as e:
                 logger.error(f"Failed to start scheduler system: {e}")
             
-            # Phase 2: リマインダーシステムを初期化
-            logger.info("Phase 2: Initializing reminder system...")
-            from reminder_system import init_reminder_system
-            from todo_manager import todo_manager
-            reminder_system = init_reminder_system(todo_manager, client)
+            # Phase 2: 新しい柔軟なリマインダーシステムを初期化
+            logger.info("Phase 2: Initializing flexible reminder system...")
+            from src.flexible_reminder_system import init_flexible_reminder_system
+            flexible_reminder_system = init_flexible_reminder_system(client)
             
             try:
-                logger.info("Starting reminder system as background task...")
-                # リマインダーシステムを非同期タスクとして開始
-                asyncio.create_task(reminder_system.start())
-                logger.info("Reminder system background task created successfully")
+                logger.info("Starting flexible reminder system...")
+                await flexible_reminder_system.start()
+                logger.info("Flexible reminder system started successfully")
             except Exception as e:
-                logger.error(f"Failed to start reminder system: {e}")
+                logger.error(f"Failed to start flexible reminder system: {e}")
                 
             logger.info("Phase 1 & 2 system initialization completed in setup_hook")
             
